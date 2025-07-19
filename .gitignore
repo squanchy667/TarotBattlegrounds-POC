@@ -31,3 +31,8 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Additional Mac-specific
+Icon?
+*.app
+.fseventsd
