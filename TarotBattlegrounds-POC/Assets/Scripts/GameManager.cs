@@ -5,6 +5,7 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
 {
     // Enum for phases - easy to expand (e.g., add HeroSelect)
     public enum GamePhase { Recruit, Combat }
+    public TavernManager tavern;  // Reference to TavernManager component
 
     private GamePhase currentPhase = GamePhase.Recruit;  // Default start
     private int turnNumber = 1;  // Turn counter
@@ -21,8 +22,13 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
         {
             // Recruit Phase
             currentPhase = GamePhase.Recruit;
+            Debug.Log("Current Phase: " + currentPhase);
             SimulateAI();
             Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
+            if (tavern != null)
+                {
+                    tavern.RefreshShop();  // New call
+                }
             yield return new WaitForSeconds(recruitTimer);  // Pause for timer
 
             // Combat Phase
