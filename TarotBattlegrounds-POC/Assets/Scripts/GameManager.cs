@@ -21,6 +21,7 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
         {
             // Recruit Phase
             currentPhase = GamePhase.Recruit;
+            SimulateAI();
             Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
             yield return new WaitForSeconds(recruitTimer);  // Pause for timer
 
@@ -32,4 +33,10 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
             turnNumber++;  // Increment turn
         }
     }
+
+    private void SimulateAI()
+{
+    Debug.Log("AI opponent: Randomly buying and positioning cards (placeholder).");
+    // Later: Expand to actual random actions for testing combats
+}
 }
