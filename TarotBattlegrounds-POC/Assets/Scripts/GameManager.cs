@@ -27,7 +27,11 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
             Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
             if (tavern != null)
                 {
-                    tavern.RefreshShop();  // New call
+                    tavern.RefreshShop();
+                    // Test buy first card
+                    if (tavern.availableCards.Count > 0) tavern.BuyCard(0);
+                    // Test sell if board has cards
+                    if (tavern.board.Count > 0) tavern.SellCard(0);
                 }
             yield return new WaitForSeconds(recruitTimer);  // Pause for timer
 
