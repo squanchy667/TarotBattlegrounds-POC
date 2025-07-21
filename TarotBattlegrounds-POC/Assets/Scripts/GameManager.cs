@@ -37,6 +37,11 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
 
             // Combat Phase
             currentPhase = GamePhase.Combat;
+            if (tavern != null && tavern.allCards.Count == 0)
+                {
+                    tavern.allCards.AddRange(new List<Card>(tavern.availableCards));  // Restore pool
+                    tavern.availableCards.Clear();  // Clear for next turn
+                }
             Debug.Log($"Turn {turnNumber}: Combat Phase - Battles commence!");
             yield return new WaitForSeconds(5f);  // Short combat sim
 

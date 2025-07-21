@@ -154,6 +154,8 @@ MonoBehaviour:
   availableCards:
   - {fileID: 11400000, guid: 1b6999a510ab94681b9ed65364875c9a, type: 2}
   - {fileID: 11400000, guid: 249c02eb0e0264cb5a01970155050b37, type: 2}
+  coins: 3
+  board: []
 --- !u!4 &474272206
 Transform:
   m_ObjectHideFlags: 0
@@ -305,7 +307,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0df6ffec1497c415e8cea3e681281706, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tavern: {fileID: 0}
+  tavern: {fileID: 474272205}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

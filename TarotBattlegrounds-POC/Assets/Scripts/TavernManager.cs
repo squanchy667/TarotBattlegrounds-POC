@@ -3,21 +3,16 @@ using System.Collections.Generic;
 
 public class TavernManager : MonoBehaviour
 {
-    public List<Card> availableCards;  // Assign in Inspector
 
     void Start()  // Keeps original logic, runs auto
     {
         RefreshShop();  // Call our new method
     }
-
-    public void RefreshShop()  // Public for external calls
-    {
-        Debug.Log("Tavern refreshed: Available cards - " + availableCards.Count);
-        // Later: Randomize cards, etc.
-    }
-
-    public int coins = 3;  // Starting coins
-    public List<Card> board = new List<Card>();  // Player's board (max 7)
+    [SerializeField] private List<Card> allCards = new List<Card>();  // Assign in Inspector
+    public List<Card> availableCards;  // Tavern shop
+    public int coins = ;  // Starting coins
+    public List<Card> board = new List<Card>();  // Player's board
+    private int localTurn = 0;  // Define here
 
     public void BuyCard(int index)  // Buy from availableCards by index
     {
@@ -47,9 +42,19 @@ public class TavernManager : MonoBehaviour
         Debug.Log($"Sold {card.cardName} (Tier {card.tier}) for {value} coins. Coins: {coins}");
     }
 
-    public void RefreshShop()  // Update to include coin growth
+    public void RefreshShop()
     {
-        coins = Mathf.Min(coins + 1, 10);  // Increase coins per turn, cap at 10
-        Debug.Log("Tavern refreshed: Available cards - " + availableCards.Count + ", Coins: " + coins);
+        int oldCoins = coins;
+        coins = Mathf.Min(coins + 1, 10);  // Increment coins
+        availableCards.Clear();  // Reset available cards
+        int cardsToShow = Mathf.Min(3, allCards.Count);
+        for (int i = 0; i < cardsToShow; i++)
+        {
+            int randomIndex = Random.Range(0, allCards.Count);
+            availableCards.Add(allCards[randomIndex]);
+            allCards.RemoveAt(randomIndex);  // Temporary removal (see step 3 for reset)
+        }
+        Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}");
+        localTurn++;  // Increment turn counter
     }
 }
