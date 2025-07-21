@@ -1,5 +1,6 @@
 using UnityEngine;
-using System.Collections;  // Needed for coroutines (timed waits)
+using System.Collections;  // For Coroutines
+using System.Collections.Generic;  // For List<T>
 
 public class GameManager : MonoBehaviour  // Base class for Unity scripts
 {

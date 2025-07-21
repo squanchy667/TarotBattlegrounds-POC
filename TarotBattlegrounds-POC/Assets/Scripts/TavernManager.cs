@@ -8,9 +8,9 @@ public class TavernManager : MonoBehaviour
     {
         RefreshShop();  // Call our new method
     }
-    [SerializeField] private List<Card> allCards = new List<Card>();  // Assign in Inspector
+    [SerializeField] public List<Card> allCards = new List<Card>();  // Assign in Inspector
     public List<Card> availableCards;  // Tavern shop
-    public int coins = ;  // Starting coins
+    public int coins = 2;  // Starting coins
     public List<Card> board = new List<Card>();  // Player's board
     private int localTurn = 0;  // Define here
 
