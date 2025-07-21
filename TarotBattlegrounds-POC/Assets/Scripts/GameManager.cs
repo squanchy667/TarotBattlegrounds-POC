@@ -9,7 +9,7 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
 
     private GamePhase currentPhase = GamePhase.Recruit;  // Default start
     private int turnNumber = 1;  // Turn counter
-    private float recruitTimer = 60f;  // Shorter for testing (was 60f)
+    private float recruitTimer = 5f;  // Shorter for testing (was 60f)
 
     void Start()  // Runs once on scene load
     {
