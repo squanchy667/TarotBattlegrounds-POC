@@ -41,7 +41,7 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
             Debug.Log("Current Phase: " + currentPhase);
             if (tavern != null && tavern.availableCards.Count == 0)
                 {
-                    tavern.allCards = tavern.GenerateFullPool();  // Force full repopulation
+                    tavern.allCards = tavern.GetFullPool();  // Use wrapper
                 }
             Debug.Log($"Turn {turnNumber}");
             yield return new WaitForSeconds(5f);  // Short combat sim

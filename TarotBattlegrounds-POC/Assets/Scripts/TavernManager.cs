@@ -38,6 +38,11 @@ public class TavernManager : MonoBehaviour
             Debug.Log("Cannot buy: Insufficient coins or board full.");
         }
     }
+    
+    public List<Card> GetFullPool()
+    {
+        return GenerateFullPool();
+    }
 
     private List<Card> GenerateFullPool()
     {
