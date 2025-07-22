@@ -67,19 +67,20 @@ public class TavernManager : MonoBehaviour
     {
         int oldCoins = coins;
         coins = Mathf.Min(coins + 1, 10);  // Increment coins
-        availableCards.Clear();  // Reset available cards
-        List<Card> tempPool = GenerateFullPool();  // Use temporary pool for selection
-        int cardsToShow = Mathf.Min(3, tempPool.Count);
+        availableCards.Clear();  // Reset available
+        allCards = GenerateFullPool();  // Regenerate full pool
+        Debug.Log($"RefreshShop: Initial allCards count - {allCards.Count}");  // Debug pool size
+        int cardsToShow = Mathf.Min(3, allCards.Count);
         for (int i = 0; i < cardsToShow; i++)
         {
-            int randomIndex = Random.Range(0, tempPool.Count);
-            availableCards.Add(tempPool[randomIndex]);
-            tempPool.RemoveAt(randomIndex);  // Modify temp, not serialized
+            int randomIndex = Random.Range(0, allCards.Count);
+            availableCards.Add(allCards[randomIndex]);
+            allCards.RemoveAt(randomIndex);  // Temporary removal
         }
         Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}");
         localTurn++;
     }
-    
+
     public void ResetAllCards(List<Card> newCards)
     {
         allCards.Clear();
