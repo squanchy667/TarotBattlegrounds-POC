@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class TavernManager : MonoBehaviour
 {
     [SerializeField] private List<Card> masterCards = new List<Card>();  // Assign all samples here
-    private List<Card> allCards = new List<Card>();  // No [SerializeField]
+    public List<Card> allCards = new List<Card>();  // No [SerializeField]
     public List<Card> availableCards;  // Tavern shop
     public int coins = 2;  // Starting coins
     public List<Card> board = new List<Card>();  // Player's board
@@ -78,5 +78,16 @@ public class TavernManager : MonoBehaviour
         }
         Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}");
         localTurn++;
+    }
+    
+    public void ResetAllCards(List<Card> newCards)
+    {
+        allCards.Clear();
+        allCards.AddRange(newCards);
+    }
+
+    public int GetAllCardsCount()
+    {
+        return allCards.Count;
     }
 }
