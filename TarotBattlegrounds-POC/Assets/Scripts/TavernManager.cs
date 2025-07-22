@@ -3,30 +3,30 @@ using System.Collections.Generic;
 
 public class TavernManager : MonoBehaviour
 {
-    [SerializeField] private List<Card> masterCards = new List<Card>();  // Assign all samples here
-    private List<Card> allCards = new List<Card>();  // Remove [SerializeField] if present
+    [SerializeField] private List<Card> masterCards = new List<Card>();  // Assign unique cards in Inspector
+    private List<Card> allCards = new List<Card>();  // Runtime pool
     public List<Card> availableCards;  // Tavern shop
-    public int coins = 2;  // Starting coins
+    public int coins = 3;  // Starting coins
     public List<Card> board = new List<Card>();  // Player's board
-    private int localTurn = 0;  // Define here
+    private int localTurn = 0;  // Turn counter
 
     private Dictionary<int, int> tierCopies = new Dictionary<int, int>()
     {
         {1, 16}, {2, 15}, {3, 13}, {4, 11}, {5, 9}, {6, 7}
     };
 
-    void Start()  // Keeps original logic, runs auto
+    void Start()
     {
-        allCards.AddRange(masterCards);  // Initialize with master list
-        RefreshShop();  // Call our new method
+        ResetPool();  // Initial pool
+        RefreshShop();  // Initial refresh
     }
 
-    public void BuyCard(int index)  // Buy from availableCards by index
+    public void BuyCard(int index)
     {
-        if (index < 0 || index >= availableCards.Count) return;  // Invalid index
+        if (index < 0 || index >= availableCards.Count) return;
         Card card = availableCards[index];
-        int cost = 3;  // (e.g., Tier = 3 coins)
-        if (coins >= cost && board.Count < 7)  // Check coins and board limit
+        int cost = card.tier * 3;  // Tier-based cost
+        if (coins >= cost && board.Count < 7)
         {
             coins -= cost;
             board.Add(card);
@@ -39,30 +39,11 @@ public class TavernManager : MonoBehaviour
         }
     }
 
-    public List<Card> GetFullPool()
+    public void SellCard(int index)
     {
-        return GenerateFullPool();
-    }
-
-    private List<Card> GenerateFullPool()
-    {
-        List<Card> fullPool = new List<Card>();
-        foreach (Card uniqueCard in masterCards)
-        {
-            int copies = tierCopies.ContainsKey(uniqueCard.tier) ? tierCopies[uniqueCard.tier] : 1;  // Default 1 if tier not found
-            for (int i = 0; i < copies; i++)
-            {
-                fullPool.Add(uniqueCard);  // Add copies
-            }
-        }
-        return fullPool;
-    }
-
-    public void SellCard(int index)  // Sell from board by index
-    {
-        if (index < 0 || index >= board.Count) return;  // Invalid index
+        if (index < 0 || index >= board.Count) return;
         Card card = board[index];
-        int value = card.tier * 2;  // Sell value (e.g., Tier 1 = 2 coins)
+        int value = card.tier * 2;  // Sell value
         coins += value;
         board.RemoveAt(index);
         Debug.Log($"Sold {card.cardName} (Tier {card.tier}) for {value} coins. Coins: {coins}");
@@ -73,32 +54,42 @@ public class TavernManager : MonoBehaviour
         int oldCoins = coins;
         coins = Mathf.Min(coins + 1, 10);
         availableCards.Clear();
-        List<Card> tempPool = GenerateFullPool();  // Use temp for modifications
+        Debug.Log("Master cards count: " + masterCards.Count);  // NEW LOG
+        List<Card> tempPool = GetFullPool();  // Temp for selection
         int cardsToShow = Mathf.Min(3, tempPool.Count);
         for (int i = 0; i < cardsToShow; i++)
         {
             int randomIndex = Random.Range(0, tempPool.Count);
             availableCards.Add(tempPool[randomIndex]);
-            tempPool.RemoveAt(randomIndex);  // Modify temp only
+            tempPool.RemoveAt(randomIndex);
         }
         Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}");
         localTurn++;
     }
 
-    public void ResetAllCards(List<Card> newCards)
+    public void ResetPool()
     {
-        allCards.Clear();
-        allCards.AddRange(newCards);
+        allCards = GetFullPool();  // Reset to full pool
     }
 
-    public int GetAllCardsCount()
+    public List<Card> GetFullPool()
     {
-        return allCards.Count;
+        return GenerateFullPool();
     }
 
-    public void SetAllCards(List<Card> newPool)
+    private List<Card> GenerateFullPool()
     {
-        allCards = newPool;  // Set the pool
+        List<Card> fullPool = new List<Card>();
+        Debug.Log("Generated full pool size: " + fullPool.Count);
+        foreach (Card uniqueCard in masterCards)
+        {
+            int copies = tierCopies.ContainsKey(uniqueCard.tier) ? tierCopies[uniqueCard.tier] : 1;
+            for (int i = 0; i < copies; i++)
+            {
+                fullPool.Add(uniqueCard);
+            }
+        }
+        Debug.Log("Generated full pool size: " + fullPool.Count);  // NEW LOG
+        return fullPool;
     }
-
 }
