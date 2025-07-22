@@ -64,6 +64,7 @@ public class TavernManager : MonoBehaviour
             tempPool.RemoveAt(randomIndex);
         }
         Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}");
+        if (tempPool.Count == 0) Debug.LogWarning("Temp pool empty! Check masterCards or tierCopies.");
         localTurn++;
     }
 
@@ -89,7 +90,6 @@ public class TavernManager : MonoBehaviour
                 fullPool.Add(uniqueCard);
             }
         }
-        Debug.Log("Generated full pool size: " + fullPool.Count);  // NEW LOG
         return fullPool;
     }
 }

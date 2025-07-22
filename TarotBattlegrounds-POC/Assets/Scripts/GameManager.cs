@@ -30,9 +30,9 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
                 {
                     tavern.RefreshShop();
                     // Test buy first card
-                    // if (tavern.availableCards.Count > 0) tavern.BuyCard(0);
+                    if (tavern.availableCards.Count > 0) tavern.BuyCard(0);
                     // Test sell if board has cards
-                    // if (tavern.board.Count > 0) tavern.SellCard(0);
+                    if (tavern.board.Count > 0) tavern.SellCard(0);
                 }
             yield return new WaitForSeconds(recruitTimer);  // Pause for timer
 
