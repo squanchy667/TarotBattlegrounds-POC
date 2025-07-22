@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class TavernManager : MonoBehaviour
 {
     [SerializeField] private List<Card> masterCards = new List<Card>();  // Assign all samples here
-    public List<Card> allCards = new List<Card>();  // No [SerializeField]
+    private List<Card> allCards = new List<Card>();  // Remove [SerializeField] if present
     public List<Card> availableCards;  // Tavern shop
     public int coins = 2;  // Starting coins
     public List<Card> board = new List<Card>();  // Player's board
@@ -38,7 +38,7 @@ public class TavernManager : MonoBehaviour
             Debug.Log("Cannot buy: Insufficient coins or board full.");
         }
     }
-    
+
     public List<Card> GetFullPool()
     {
         return GenerateFullPool();
@@ -71,16 +71,15 @@ public class TavernManager : MonoBehaviour
     public void RefreshShop()
     {
         int oldCoins = coins;
-        coins = Mathf.Min(coins + 1, 10);  // Increment coins
-        availableCards.Clear();  // Reset available
-        allCards = GenerateFullPool();  // Regenerate full pool
-        Debug.Log($"RefreshShop: Initial allCards count - {allCards.Count}");  // Debug pool size
-        int cardsToShow = Mathf.Min(3, allCards.Count);
+        coins = Mathf.Min(coins + 1, 10);
+        availableCards.Clear();
+        List<Card> tempPool = GenerateFullPool();  // Use temp for modifications
+        int cardsToShow = Mathf.Min(3, tempPool.Count);
         for (int i = 0; i < cardsToShow; i++)
         {
-            int randomIndex = Random.Range(0, allCards.Count);
-            availableCards.Add(allCards[randomIndex]);
-            allCards.RemoveAt(randomIndex);  // Temporary removal
+            int randomIndex = Random.Range(0, tempPool.Count);
+            availableCards.Add(tempPool[randomIndex]);
+            tempPool.RemoveAt(randomIndex);  // Modify temp only
         }
         Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}");
         localTurn++;
@@ -96,4 +95,10 @@ public class TavernManager : MonoBehaviour
     {
         return allCards.Count;
     }
+
+    public void SetAllCards(List<Card> newPool)
+    {
+        allCards = newPool;  // Set the pool
+    }
+
 }
