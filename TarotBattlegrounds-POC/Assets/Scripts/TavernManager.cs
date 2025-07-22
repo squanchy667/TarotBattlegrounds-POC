@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class TavernManager : MonoBehaviour
 {
     [SerializeField] private List<Card> masterCards = new List<Card>();  // Assign all samples here
-    public List<Card> allCards = new List<Card>();  // Working copy, reset each turn
+    private List<Card> allCards = new List<Card>();  // No [SerializeField]
     public List<Card> availableCards;  // Tavern shop
     public int coins = 2;  // Starting coins
     public List<Card> board = new List<Card>();  // Player's board
@@ -25,7 +25,7 @@ public class TavernManager : MonoBehaviour
     {
         if (index < 0 || index >= availableCards.Count) return;  // Invalid index
         Card card = availableCards[index];
-        int cost = card.tier * 3;  // Tier-based cost (e.g., Tier 1 = 3 coins)
+        int cost = 3;  // (e.g., Tier = 3 coins)
         if (coins >= cost && board.Count < 7)  // Check coins and board limit
         {
             coins -= cost;
@@ -66,15 +66,15 @@ public class TavernManager : MonoBehaviour
     public void RefreshShop()
     {
         int oldCoins = coins;
-        coins = Mathf.Min(coins + 1, 10);
-        availableCards.Clear();  // Reset available
-        allCards = GenerateFullPool();  // Generate fresh pool each turn
-        int cardsToShow = Mathf.Min(3, allCards.Count);
+        coins = Mathf.Min(coins + 1, 10);  // Increment coins
+        availableCards.Clear();  // Reset available cards
+        List<Card> tempPool = GenerateFullPool();  // Use temporary pool for selection
+        int cardsToShow = Mathf.Min(3, tempPool.Count);
         for (int i = 0; i < cardsToShow; i++)
         {
-            int randomIndex = Random.Range(0, allCards.Count);
-            availableCards.Add(allCards[randomIndex]);
-            allCards.RemoveAt(randomIndex);  // Remove for this turn
+            int randomIndex = Random.Range(0, tempPool.Count);
+            availableCards.Add(tempPool[randomIndex]);
+            tempPool.RemoveAt(randomIndex);  // Modify temp, not serialized
         }
         Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}");
         localTurn++;
