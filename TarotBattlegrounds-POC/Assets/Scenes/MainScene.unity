@@ -157,11 +157,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 52540b6e8b9964b13b01312fea780565, type: 2}
   - {fileID: 11400000, guid: 102a7f73b4c08453a99a0acbe7ff035c, type: 2}
   - {fileID: 11400000, guid: 75094a2a776cb46e08c74e177d8ca58c, type: 2}
-  availableCards:
-  - {fileID: 11400000, guid: 249c02eb0e0264cb5a01970155050b37, type: 2}
-  - {fileID: 11400000, guid: 1b6999a510ab94681b9ed65364875c9a, type: 2}
-  coins: 2
+  - {fileID: 11400000, guid: 061efab5627e84a5790f89c64797ae8f, type: 2}
+  availableCards: []
+  coins: 0
   board: []
+  currentTavernTier: 1
 --- !u!4 &474272206
 Transform:
   m_ObjectHideFlags: 0

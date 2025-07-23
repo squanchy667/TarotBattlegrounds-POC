@@ -29,12 +29,16 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
             if (tavern != null)
                 {
                     tavern.RefreshShop();
-                    // Test buy first card
-                    if (tavern.availableCards.Count > 0) tavern.BuyCard(0);
-                    // Test sell if board has cards
-                    if (tavern.board.Count > 0) tavern.SellCard(0);
+                    // Upgrade test first
+                    if (tavern.currentTavernTier < 6 && tavern.coins >= tavern.GetUpgradeCost())  // Assuming GetUpgradeCost() added
+                    {
+                        tavern.UpgradeTavern();
+                    }
+                    // Then buy/sell
+                    // if (tavern.availableCards.Count > 0) tavern.BuyCard(0);
+                    // if (tavern.board.Count > 0) tavern.SellCard(0);
                 }
-            yield return new WaitForSeconds(recruitTimer);  // Pause for timer
+            yield return new WaitForSeconds(recruitTimer);
 
             // Combat Phase
             currentPhase = GamePhase.Combat;
@@ -52,8 +56,8 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
     
 
     private void SimulateAI()
-{
-    Debug.Log("AI opponent: Randomly buying and positioning cards (placeholder).");
-    // Later: Expand to actual random actions for testing combats
-}
+    {
+        Debug.Log("AI opponent: Randomly buying and positioning cards (placeholder).");
+        // Later: Expand to actual random actions for testing combats
+    }
 }

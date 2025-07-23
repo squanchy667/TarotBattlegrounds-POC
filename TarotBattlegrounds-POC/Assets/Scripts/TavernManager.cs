@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class TavernManager : MonoBehaviour
 {
@@ -9,6 +10,13 @@ public class TavernManager : MonoBehaviour
     public int coins = 3;  // Starting coins
     public List<Card> board = new List<Card>();  // Player's board
     private int localTurn = 0;  // Turn counter
+
+    public int currentTavernTier = 1;
+    private int upgradeCostReduction = 0;  // Accumulates if not upgraded
+    private Dictionary<int, int> baseUpgradeCosts = new Dictionary<int, int>()
+    {
+        {2, 5}, {3, 7}, {4, 8}, {5, 9}, {6, 10}
+    };
 
     private Dictionary<int, int> tierCopies = new Dictionary<int, int>()
     {
@@ -25,7 +33,8 @@ public class TavernManager : MonoBehaviour
     {
         if (index < 0 || index >= availableCards.Count) return;
         Card card = availableCards[index];
-        int cost = card.tier * 3;  // Tier-based cost
+        int cost = 3;  // Fixed, unless effect overrides (add check later)
+        // Example override placeholder: if (card.ability.Contains("cost reduction")) cost -= 1;
         if (coins >= cost && board.Count < 7)
         {
             coins -= cost;
@@ -43,7 +52,8 @@ public class TavernManager : MonoBehaviour
     {
         if (index < 0 || index >= board.Count) return;
         Card card = board[index];
-        int value = card.tier * 2;  // Sell value
+        int value = 1;  // Fixed, unless effect overrides
+        // Example: if (card.ability.Contains("sell bonus")) value += 1;
         coins += value;
         board.RemoveAt(index);
         Debug.Log($"Sold {card.cardName} (Tier {card.tier}) for {value} coins. Coins: {coins}");
@@ -51,20 +61,21 @@ public class TavernManager : MonoBehaviour
 
     public void RefreshShop()
     {
+        upgradeCostReduction++;
         int oldCoins = coins;
         coins = Mathf.Min(coins + 1, 10);
         availableCards.Clear();
-        Debug.Log("Master cards count: " + masterCards.Count);  // NEW LOG
-        List<Card> tempPool = GetFullPool();  // Temp for selection
+        Debug.Log("Master cards count: " + masterCards.Count);
+        List<Card> tempPool = GetFullPool().Where(card => card.tier <= currentTavernTier).ToList();  // Now works with LINQ
         int cardsToShow = Mathf.Min(3, tempPool.Count);
+        if (tempPool.Count == 0) Debug.LogWarning("Temp pool empty! Check masterCards or tierCopies.");
         for (int i = 0; i < cardsToShow; i++)
         {
             int randomIndex = Random.Range(0, tempPool.Count);
             availableCards.Add(tempPool[randomIndex]);
             tempPool.RemoveAt(randomIndex);
         }
-        Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}");
-        if (tempPool.Count == 0) Debug.LogWarning("Temp pool empty! Check masterCards or tierCopies.");
+        Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}, Current Tier: {currentTavernTier}");
         localTurn++;
     }
 
@@ -81,7 +92,6 @@ public class TavernManager : MonoBehaviour
     private List<Card> GenerateFullPool()
     {
         List<Card> fullPool = new List<Card>();
-        Debug.Log("Generated full pool size: " + fullPool.Count);
         foreach (Card uniqueCard in masterCards)
         {
             int copies = tierCopies.ContainsKey(uniqueCard.tier) ? tierCopies[uniqueCard.tier] : 1;
@@ -90,6 +100,34 @@ public class TavernManager : MonoBehaviour
                 fullPool.Add(uniqueCard);
             }
         }
+        Debug.Log("Generated full pool size: " + fullPool.Count);  // Move here
         return fullPool;
+    }
+
+    public void UpgradeTavern()
+    {
+        if (currentTavernTier >= 6) return;
+        int nextTier = currentTavernTier + 1;
+        int baseCost = baseUpgradeCosts.ContainsKey(nextTier) ? baseUpgradeCosts[nextTier] : 10;
+        int actualCost = Mathf.Max(1, baseCost - upgradeCostReduction);
+        if (coins >= actualCost)
+        {
+            coins -= actualCost;
+            currentTavernTier++;
+            upgradeCostReduction = 0;  // Reset after upgrade
+            Debug.Log($"Upgraded to Tavern Tier {currentTavernTier} for {actualCost} coins.");
+        }
+        else
+        {
+            Debug.Log("Cannot upgrade: Insufficient coins.");
+        }
+    }
+
+    public int GetUpgradeCost()
+    {
+        if (currentTavernTier >= 6) return int.MaxValue;
+        int nextTier = currentTavernTier + 1;
+        int baseCost = baseUpgradeCosts.ContainsKey(nextTier) ? baseUpgradeCosts[nextTier] : 10;
+        return Mathf.Max(1, baseCost - upgradeCostReduction);
     }
 }

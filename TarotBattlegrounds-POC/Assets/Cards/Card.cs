@@ -9,6 +9,8 @@ public class Card : ScriptableObject
     public int attack;
     public int health;
     public string ability;  // Placeholder text, e.g., "Arcane Barrier: Divine shield equivalent"
+    public int buyCostModifier = 0;
+    public int sellValueModifier = 0;
 
     // Later: Add effects as enums or methods
 }
