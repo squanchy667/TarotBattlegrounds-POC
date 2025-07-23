@@ -4,15 +4,16 @@ using System.Linq;
 
 public class TavernManager : MonoBehaviour
 {
+    private bool firstTurn = true;
     [SerializeField] private List<Card> masterCards = new List<Card>();  // Assign unique cards in Inspector
     private List<Card> allCards = new List<Card>();  // Runtime pool
     public List<Card> availableCards;  // Tavern shop
     public int coins = 3;  // Starting coins
     public List<Card> board = new List<Card>();  // Player's board
     private int localTurn = 0;  // Turn counter
-
     public int currentTavernTier = 1;
     private int upgradeCostReduction = 0;  // Accumulates if not upgraded
+    
     private Dictionary<int, int> baseUpgradeCosts = new Dictionary<int, int>()
     {
         {2, 5}, {3, 7}, {4, 8}, {5, 9}, {6, 10}
@@ -61,9 +62,13 @@ public class TavernManager : MonoBehaviour
 
     public void RefreshShop()
     {
-        upgradeCostReduction++;
         int oldCoins = coins;
-        coins = Mathf.Min(coins + 1, 10);
+        if (!firstTurn) {
+            coins = Mathf.Min(coins + 1, 10);
+            upgradeCostReduction++;
+        } else {
+            firstTurn = false;
+        }
         availableCards.Clear();
         Debug.Log("Master cards count: " + masterCards.Count);
         List<Card> tempPool = GetFullPool().Where(card => card.tier <= currentTavernTier).ToList();  // Now works with LINQ
@@ -129,5 +134,29 @@ public class TavernManager : MonoBehaviour
         int nextTier = currentTavernTier + 1;
         int baseCost = baseUpgradeCosts.ContainsKey(nextTier) ? baseUpgradeCosts[nextTier] : 10;
         return Mathf.Max(1, baseCost - upgradeCostReduction);
+    }
+
+    public void RefreshTavernShop()
+    {
+        if (firstTurn || coins >= 1)
+        {
+            if (!firstTurn) coins -= 1;  // Cost 1 gold, free on first turn
+            availableCards.Clear();
+            Debug.Log("Master cards count: " + masterCards.Count);
+            List<Card> tempPool = GetFullPool().Where(card => card.tier <= currentTavernTier).ToList();
+            int cardsToShow = Mathf.Min(3, tempPool.Count);
+            if (tempPool.Count == 0) Debug.LogWarning("Temp pool empty! Check masterCards or tierCopies.");
+            for (int i = 0; i < cardsToShow; i++)
+            {
+                int randomIndex = Random.Range(0, tempPool.Count);
+                availableCards.Add(tempPool[randomIndex]);
+                tempPool.RemoveAt(randomIndex);
+            }
+            Debug.Log($"Tavern shop refreshed: Available cards - {availableCards.Count}, Coins: {coins}, Current Tier: {currentTavernTier}");
+        }
+        else
+        {
+            Debug.Log("Cannot refresh: Insufficient coins (1 gold required).");
+        }
     }
 }

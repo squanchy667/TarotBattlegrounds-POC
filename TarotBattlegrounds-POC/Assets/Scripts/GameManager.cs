@@ -34,6 +34,10 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
                     {
                         tavern.UpgradeTavern();
                     }
+                    if (tavern.coins >= 1)  // Test refresh if coins allow
+                    {
+                        tavern.RefreshTavernShop();
+                    }
                     // Then buy/sell
                     // if (tavern.availableCards.Count > 0) tavern.BuyCard(0);
                     // if (tavern.board.Count > 0) tavern.SellCard(0);
@@ -43,12 +47,12 @@ public class GameManager : MonoBehaviour  // Base class for Unity scripts
             // Combat Phase
             currentPhase = GamePhase.Combat;
             Debug.Log("Current Phase: " + currentPhase);
-            if (tavern != null && tavern.availableCards.Count == 0)
-                {
-                    tavern.ResetPool();  // Reset pool if depleted
-                }
+            // Placeholder battle sim
+            Debug.Log("Simulating combat... Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")));
+            int damage = Mathf.Min(5, turnNumber);  // Example early cap
+            Debug.Log("Combat outcome: Player takes " + damage + " damage. Health remaining: " + (40 - damage * turnNumber));  // Placeholder health
             Debug.Log($"Turn {turnNumber}");
-            yield return new WaitForSeconds(5f);  // Short combat sim
+            yield return new WaitForSeconds(5f); // Short combat sim
 
             turnNumber++;  // Increment turn
         }
