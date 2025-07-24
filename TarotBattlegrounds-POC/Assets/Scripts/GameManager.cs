@@ -21,7 +21,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameLoop()
     {
-        while (true)  // Loops forever (add end condition later, e.g., health <= 0)
+        while (true)
         {
             // Recruit Phase
             currentPhase = GamePhase.Recruit;
@@ -30,32 +30,48 @@ public class GameManager : MonoBehaviour
             Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
             if (tavern != null)
             {
+                // Log at beginning of recruit
+                Debug.Log($"Recruit Start: Coins = {tavern.coins}, Upgrade Cost = {tavern.GetUpgradeCost()}, Current Tier = {tavern.currentTavernTier}");
                 tavern.RefreshShop();
-                if (tavern.currentTavernTier < 6 && tavern.coins >= tavern.GetUpgradeCost())
+                // For upgrade test: Waste on upgrades
+                while (tavern.currentTavernTier < 6 && tavern.coins >= tavern.GetUpgradeCost())
                 {
                     tavern.UpgradeTavern();
                 }
-                if (tavern.coins >= 1)  // Test refresh if coins allow
+                // For buy/sell test: Waste on buys
+                while (tavern.availableCards.Count > 0 && tavern.coins >= 3 && tavern.board.Count < 7)
+                {
+                    tavern.BuyCard(0);
+                }
+                // For reroll test: Waste on rerolls
+                while (tavern.coins >= 1)
                 {
                     tavern.RefreshTavernShop();
                 }
-                if (tavern.availableCards.Count > 0 && tavern.coins >= 3) tavern.BuyCard(0);
-                if (tavern.board.Count > 0) tavern.SellCard(0);
+                
+                while (tavern.board.Count > 0)
+                {
+                    tavern.SellCard(0);
+                }
+                // Log shop offerings after actions
+                Debug.Log("Shop Offered: " + string.Join(", ", tavern.availableCards.Select(c => c.cardName + " (Tier " + c.tier + ")")));
+                // Log board after buy/sell
+                Debug.Log("Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")));
             }
             yield return new WaitForSeconds(recruitTimer);
 
             // Combat Phase
             currentPhase = GamePhase.Combat;
             Debug.Log("Current Phase: " + currentPhase);
-            Debug.Log("Simulating combat... Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")));
-            int damage = Mathf.Min(5, turnNumber);  // Fixed: Use Mathf.Min
-            health -= damage;  // Update health
+            Debug.Log("Simulating combat... Player Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " | AI Board: Placeholder AI cards");
+            int damage = Mathf.Min(5, turnNumber);
+            health -= damage;
             Debug.Log("Combat outcome: Player takes " + damage + " damage. Health remaining: " + health);
             Debug.Log($"Turn {turnNumber}");
             yield return new WaitForSeconds(5f);
 
-            turnNumber++;  // Increment turn
-            if (health <= 0) break;  // End game if health <=0
+            turnNumber++;
+            if (health <= 0) break;
         }
     }
 

@@ -61,11 +61,9 @@ public class TavernManager : MonoBehaviour
     public void RefreshShop()
     {
         int oldCoins = coins;
-        if (localTurn > 0)  // +1 only after Turn 1
-        {
-            coins = Mathf.Min(coins + 1, 10);
-            upgradeCostReduction++;
-        }
+        int expectedCoins = Mathf.Min(3 + localTurn, 10);  // Start at 3, +1 per turn, cap 10
+        coins = expectedCoins;  // Reset to expected total
+        upgradeCostReduction++;  // Reduce upgrade cost if not upgraded
         availableCards.Clear();
         Debug.Log("Master cards count: " + masterCards.Count);
         List<Card> tempPool = GetFullPool().Where(card => card.tier <= currentTavernTier).ToList();
