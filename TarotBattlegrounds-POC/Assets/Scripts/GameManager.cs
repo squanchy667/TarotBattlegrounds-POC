@@ -30,33 +30,30 @@ public class GameManager : MonoBehaviour
             Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
             if (tavern != null)
             {
-                // Log at beginning of recruit
-                Debug.Log($"Recruit Start: Coins = {tavern.coins}, Upgrade Cost = {tavern.GetUpgradeCost()}, Current Tier = {tavern.currentTavernTier}");
+                int expectedCoins = Mathf.Min(3 + (turnNumber - 1), 10);
+                Debug.Log($"Recruit Start: Coins = {tavern.coins}/{expectedCoins}, Upgrade Cost = {tavern.GetUpgradeCost()}, Current Tier = {tavern.currentTavernTier}");
                 tavern.RefreshShop();
-                // For upgrade test: Waste on upgrades
+                // Upgrade (comment for other tests)
                 while (tavern.currentTavernTier < 6 && tavern.coins >= tavern.GetUpgradeCost())
                 {
                     tavern.UpgradeTavern();
                 }
-                // For buy/sell test: Waste on buys
+                // Buy/sell (comment for other tests)
                 while (tavern.availableCards.Count > 0 && tavern.coins >= 3 && tavern.board.Count < 7)
                 {
                     tavern.BuyCard(0);
                 }
-                // For reroll test: Waste on rerolls
-                while (tavern.coins >= 1)
-                {
-                    tavern.RefreshTavernShop();
-                }
-                
                 while (tavern.board.Count > 0)
                 {
                     tavern.SellCard(0);
                 }
-                // Log shop offerings after actions
+                // Reroll (comment for other tests)
+                while (tavern.coins >= 1)
+                {
+                    tavern.RefreshTavernShop();
+                }
                 Debug.Log("Shop Offered: " + string.Join(", ", tavern.availableCards.Select(c => c.cardName + " (Tier " + c.tier + ")")));
-                // Log board after buy/sell
-                Debug.Log("Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")));
+                Debug.Log("Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " Size " + tavern.board.Count);
             }
             yield return new WaitForSeconds(recruitTimer);
 

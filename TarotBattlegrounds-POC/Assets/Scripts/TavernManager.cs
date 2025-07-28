@@ -51,9 +51,8 @@ public class TavernManager : MonoBehaviour
     {
         if (index < 0 || index >= board.Count) return;
         Card card = board[index];
-        int value = 1;  // Fixed, unless effect overrides
-        // Example: if (card.ability.Contains("sell bonus")) value += 1;
-        coins += value;
+        int value = 1;
+        coins += value;  // Ensure addition
         board.RemoveAt(index);
         Debug.Log($"Sold {card.cardName} (Tier {card.tier}) for {value} coins. Coins: {coins}");
     }
@@ -61,13 +60,14 @@ public class TavernManager : MonoBehaviour
     public void RefreshShop()
     {
         int oldCoins = coins;
-        int expectedCoins = Mathf.Min(3 + localTurn, 10);  // Start at 3, +1 per turn, cap 10
-        coins = expectedCoins;  // Reset to expected total
-        upgradeCostReduction++;  // Reduce upgrade cost if not upgraded
+        int expectedCoins = Mathf.Min((3 + localTurn), 10);  // Reset to expected
+        coins = expectedCoins;
+        upgradeCostReduction++;
         availableCards.Clear();
         Debug.Log("Master cards count: " + masterCards.Count);
         List<Card> tempPool = GetFullPool().Where(card => card.tier <= currentTavernTier).ToList();
-        int cardsToShow = Mathf.Min(3, tempPool.Count);
+        int cardsToShow = GetShopSize();  // Scale per tier
+        cardsToShow = Mathf.Min(cardsToShow, tempPool.Count);
         if (tempPool.Count == 0) Debug.LogWarning("Temp pool empty! Check masterCards or tierCopies.");
         for (int i = 0; i < cardsToShow; i++)
         {
@@ -77,6 +77,20 @@ public class TavernManager : MonoBehaviour
         }
         Debug.Log($"Tavern refreshed: Turn {localTurn}, Available cards - {availableCards.Count}, Coins increased from {oldCoins} to {coins}, Current Tier: {currentTavernTier}");
         localTurn++;
+    }
+
+    private int GetShopSize()  // New
+    {
+        switch (currentTavernTier)
+        {
+            case 1: return 3;
+            case 2: return 4;
+            case 3: return 4;
+            case 4: return 5;
+            case 5: return 5;
+            case 6: return 6;
+            default: return 3;
+        }
     }
 
     public void ResetPool()
@@ -138,7 +152,8 @@ public class TavernManager : MonoBehaviour
             coins -= 1;
             availableCards.Clear();
             List<Card> tempPool = GetFullPool().Where(card => card.tier <= currentTavernTier).ToList();
-            int cardsToShow = Mathf.Min(3, tempPool.Count);
+            int cardsToShow = GetShopSize();  // New helper for size per tier
+            cardsToShow = Mathf.Min(cardsToShow, tempPool.Count);
             for (int i = 0; i < cardsToShow; i++)
             {
                 int randomIndex = Random.Range(0, tempPool.Count);
