@@ -4,7 +4,7 @@ using System.Linq;
 
 public class TavernManager : MonoBehaviour
 {
-    [SerializeField] private List<Card> masterCards = new List<Card>();  // Assign unique cards in Inspector
+    [SerializeField] public List<Card> masterCards = new List<Card>();  // Assign unique cards in Inspector
     private List<Card> allCards = new List<Card>();  // Runtime pool
     public List<Card> availableCards;  // Tavern shop
     public int coins = 3;  // Starting coins

@@ -1,16 +1,43 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewCard", menuName = "Tarot/Card")]  // Allows creating in Unity menu
+[CreateAssetMenu(fileName = "NewCard", menuName = "Tarot/Card")]
 public class Card : ScriptableObject
 {
-    public string cardName;  // e.g., "3 of Pentacles"
-    public int tier;  // 1-5
-    public string tribe;  // "Pentacles", "Cups", etc.
+    public string cardName;
+    public int tier;
+    public string tribe;
     public int attack;
     public int health;
-    public string ability;  // Placeholder text, e.g., "Arcane Barrier: Divine shield equivalent"
+    public string ability;
     public int buyCostModifier = 0;
     public int sellValueModifier = 0;
 
-    // Later: Add effects as enums or methods
+    public Card Clone()
+    {
+        Card clone = ScriptableObject.CreateInstance<Card>();
+        clone.cardName = this.cardName;
+        clone.tier = this.tier;
+        clone.tribe = this.tribe;
+        clone.attack = this.attack;
+        clone.health = this.health;
+        clone.ability = this.ability;
+        clone.buyCostModifier = this.buyCostModifier;
+        clone.sellValueModifier = this.sellValueModifier;
+        return clone;
+    }
+
+    public virtual void OnAttack(Card defender)
+    {
+        // Placeholder
+    }
+
+    public virtual void OnDeath()
+    {
+        // Placeholder
+    }
+
+    public virtual void OnSurvive()
+    {
+        // Placeholder
+    }
 }

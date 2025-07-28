@@ -7,6 +7,7 @@ using System.Linq;
 public class GameManager : MonoBehaviour
 {
     public enum GamePhase { Recruit, Combat }
+    public CombatManager combatManager; // Reference to CombatManager component
     public TavernManager tavern;  // Reference to TavernManager component
 
     private GamePhase currentPhase = GamePhase.Recruit;  // Default start
@@ -16,12 +17,14 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        combatManager = FindObjectOfType<CombatManager>();
+        if (combatManager == null) Debug.LogError("CombatManager not found!");
         StartCoroutine(GameLoop());  // Starts the loop
     }
 
     IEnumerator GameLoop()
     {
-        while (true)
+        while (health > 0)
         {
             // Recruit Phase
             currentPhase = GamePhase.Recruit;
@@ -38,20 +41,12 @@ public class GameManager : MonoBehaviour
                 {
                     tavern.UpgradeTavern();
                 }
-                // Buy/sell (comment for other tests)
-                while (tavern.availableCards.Count > 0 && tavern.coins >= 3 && tavern.board.Count < 7)
-                {
-                    tavern.BuyCard(0);
-                }
-                while (tavern.board.Count > 0)
-                {
-                    tavern.SellCard(0);
-                }
+                // Buy (comment for other tests)
+                while (tavern.availableCards.Count > 0 && tavern.coins >= 3 && tavern.board.Count < 7) {tavern.BuyCard(0);}
+                // Sell (comment for other tests)
+                // while (tavern.board.Count > 0) {tavern.SellCard(0);}
                 // Reroll (comment for other tests)
-                while (tavern.coins >= 1)
-                {
-                    tavern.RefreshTavernShop();
-                }
+                int rerolls = 0; while (tavern.coins >=1 && rerolls <2) { tavern.RefreshTavernShop(); rerolls++; }
                 Debug.Log("Shop Offered: " + string.Join(", ", tavern.availableCards.Select(c => c.cardName + " (Tier " + c.tier + ")")));
                 Debug.Log("Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " Size " + tavern.board.Count);
             }
@@ -60,20 +55,40 @@ public class GameManager : MonoBehaviour
             // Combat Phase
             currentPhase = GamePhase.Combat;
             Debug.Log("Current Phase: " + currentPhase);
-            Debug.Log("Simulating combat... Player Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " | AI Board: Placeholder AI cards");
-            int damage = Mathf.Min(5, turnNumber);
+            List<Card> aiBoard = GenerateAIBoard(turnNumber);
+            int damage = combatManager.SimulateBattle(tavern.board, aiBoard, tavern.currentTavernTier);  // Remove turnNumber arg
             health -= damage;
+            Debug.Log("Simulating combat... Player Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " | AI Board: " + string.Join(", ", aiBoard.Select(c => c.cardName + " (Tier " + c.tier + ")")));
             Debug.Log("Combat outcome: Player takes " + damage + " damage. Health remaining: " + health);
             Debug.Log($"Turn {turnNumber}");
             yield return new WaitForSeconds(5f);
 
             turnNumber++;
-            if (health <= 0) break;
+            if (health <= 0) { Debug.Log("Game Over"); break; }
         }
+        
     }
 
     private void SimulateAI()
     {
         Debug.Log("AI opponent: Randomly buying and positioning cards (placeholder).");
+    }
+
+    // Outside GameLoop
+    private List<Card> GenerateAIBoard(int turnNumber)
+    {
+        List<Card> ai = new List<Card>();
+        int aiSize = Mathf.Min(turnNumber + Random.Range(0,2), 7); // Slight variance
+        List<Card> filteredPool = tavern.GetFullPool().Where(c => c.tier <= tavern.currentTavernTier + 1).ToList(); // Balance: Max tier = player tier +1
+        for (int i = 0; i < aiSize; i++)
+        {
+            if (filteredPool.Count > 0)
+            {
+                int idx = Random.Range(0, filteredPool.Count);
+                ai.Add(filteredPool[idx]);
+                filteredPool.RemoveAt(idx); // Avoid duplicates if desired
+            }
+        }
+        return ai;
     }
 }
