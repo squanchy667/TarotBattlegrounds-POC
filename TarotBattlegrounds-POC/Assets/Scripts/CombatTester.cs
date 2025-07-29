@@ -38,8 +38,7 @@ public class CombatTester : MonoBehaviour
             List<Card> aBoard = aiBoard.Select(c => c.Clone()).ToList();
             int damage = combatManager.SimulateBattle(pBoard, aBoard, tavernTier);
             Debug.Log($"Run {i + 1} outcome: Damage = {damage}");
-
-            // Count winner/tie based on last logged state
+            Debug.Log($"Survivor P={pBoard.Count}, A={aBoard.Count}");
             if (pBoard.Count == 0 && aBoard.Count == 0)
                 ties++;
             else if (aBoard.Count == 0)

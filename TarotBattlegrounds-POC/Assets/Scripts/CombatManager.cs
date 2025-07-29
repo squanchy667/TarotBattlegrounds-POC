@@ -6,13 +6,10 @@ public class CombatManager : MonoBehaviour
 {
     public TavernManager tavern; // Add reference (assign in Inspector or via GameManager)
 
-    public int SimulateBattle(List<Card> playerBoard, List<Card> aiBoard, int tavernTier)
+    public int SimulateBattle(List<Card> pBoard, List<Card> aBoard, int tavernTier)
     {
-        // Copy boards to avoid modifying originals
-        List<Card> pBoard = playerBoard.Select(c => c.Clone()).ToList();
-        List<Card> aBoard = aiBoard.Select(c => c.Clone()).ToList();
-
-        // Single combat cycle for now
+        Debug.Log($"CombatManager: Simulating battle with P={pBoard.Count}, A={aBoard.Count}, Tavern Tier={tavernTier}");
+        // Single combat cycle
         if (pBoard.Count > 0 && aBoard.Count > 0)
         {
             Card pAttacker = pBoard[0];
@@ -66,6 +63,11 @@ public class CombatManager : MonoBehaviour
         // Damage calculation based on final state
         int survivingTier = (pBoard.Count > 0 ? pBoard.Sum(c => c.tier) : aBoard.Count > 0 ? aBoard.Sum(c => c.tier) : 0) + tavernTier;
         int damage = Mathf.Min(5, survivingTier);
+        if (pBoard.Count == 0 && aBoard.Count == 0)
+        {
+            damage = 0; // No damage for ties
+            Debug.Log("Tie confirmed, damage set to 0");
+        }
         Debug.Log("Battle outcome: Surviving tier sum = " + survivingTier + ", Damage = " + damage);
         return damage;
     }
