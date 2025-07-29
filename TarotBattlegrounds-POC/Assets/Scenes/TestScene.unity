@@ -214,6 +214,56 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &530027581
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 530027582}
+  - component: {fileID: 530027583}
+  m_Layer: 0
+  m_Name: CombatTester
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &530027582
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 530027581}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.1728595, y: 0.25764725, z: -0.0028869582}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &530027583
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 530027581}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f1f10623223642c79bfbad2dbb9c1db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerBoard:
+  - {fileID: 11400000, guid: 75094a2a776cb46e08c74e177d8ca58c, type: 2}
+  aiBoard:
+  - {fileID: 11400000, guid: 75094a2a776cb46e08c74e177d8ca58c, type: 2}
+  simulationRuns: 100
+  tavernTier: 1
 --- !u!1 &538530946
 GameObject:
   m_ObjectHideFlags: 0
@@ -238,7 +288,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 538530946}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4b3b40372774b4200b7a7a844ca7ea0b, type: 3}
   m_Name: 
@@ -265,3 +315,4 @@ SceneRoots:
   m_Roots:
   - {fileID: 166943310}
   - {fileID: 538530948}
+  - {fileID: 530027582}

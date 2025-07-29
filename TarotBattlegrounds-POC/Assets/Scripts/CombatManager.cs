@@ -4,56 +4,67 @@ using System.Linq;
 
 public class CombatManager : MonoBehaviour
 {
-    public TavernManager tavern;  // Add reference (assign in Inspector or via GameManager)
+    public TavernManager tavern; // Add reference (assign in Inspector or via GameManager)
 
     public int SimulateBattle(List<Card> playerBoard, List<Card> aiBoard, int tavernTier)
     {
-        // Copy boards
+        // Copy boards to avoid modifying originals
         List<Card> pBoard = playerBoard.Select(c => c.Clone()).ToList();
         List<Card> aBoard = aiBoard.Select(c => c.Clone()).ToList();
 
-        // Battle loop
-        while (pBoard.Count > 0 && aBoard.Count > 0)
+        // Single combat cycle for now
+        if (pBoard.Count > 0 && aBoard.Count > 0)
         {
             Card pAttacker = pBoard[0];
             Card aAttacker = aBoard[0];
+            Dictionary<Card, int> damages = new Dictionary<Card, int>();
 
-            // Player attack with random targeting
+            // Queue simultaneous attacks
             List<Card> aliveEnemies = aBoard.Where(c => c.health > 0).ToList();
             if (aliveEnemies.Count > 0)
             {
                 int targetIdx = Random.Range(0, aliveEnemies.Count);
-                aliveEnemies[targetIdx].health -= pAttacker.attack;
-                // Update original board health
-                int originalIdx = aBoard.IndexOf(aliveEnemies[targetIdx]);
-                aBoard[originalIdx].health = aliveEnemies[targetIdx].health;
+                Card target = aliveEnemies[targetIdx];
+                Debug.Log($"Player Attack: {pAttacker.cardName} targets {target.cardName}, damage {pAttacker.attack}");
+                damages[target] = pAttacker.attack;
             }
 
-            // AI attack with random targeting
             List<Card> aliveAllies = pBoard.Where(c => c.health > 0).ToList();
             if (aliveAllies.Count > 0)
             {
                 int targetIdx = Random.Range(0, aliveAllies.Count);
-                aliveAllies[targetIdx].health -= aAttacker.attack;
-                // Update original board health
-                int originalIdx = pBoard.IndexOf(aliveAllies[targetIdx]);
-                pBoard[originalIdx].health = aliveAllies[targetIdx].health;
+                Card target = aliveAllies[targetIdx];
+                Debug.Log($"AI Attack: {aAttacker.cardName} targets {target.cardName}, damage {aAttacker.attack}");
+                damages[target] = damages.ContainsKey(target) ? damages[target] + aAttacker.attack : aAttacker.attack;
             }
 
-            // Remove dead
-            if (aAttacker.health <= 0) aBoard.RemoveAt(0);
-            if (pAttacker.health <= 0) pBoard.RemoveAt(0);
-
-            // Tribe synergy example (Pentacles +coins on kill, player only)
-            if (pAttacker.tribe == "Pentacles" && aAttacker.health <= 0)
+            // Apply damages simultaneously
+            foreach (var pair in damages)
             {
-                tavern.coins += 1;
-                Debug.Log("Pentacles synergy: +1 coin on kill.");
+                pair.Key.health -= pair.Value;
+            }
+
+            // Remove dead minions
+            pBoard.RemoveAll(c => c.health <= 0);
+            aBoard.RemoveAll(c => c.health <= 0);
+
+            // Determine winner/tie after resolution
+            if (pBoard.Count == 0 && aBoard.Count == 0)
+            {
+                Debug.Log("Both boards empty, Tie");
+            }
+            else if (aBoard.Count == 0)
+            {
+                Debug.Log("AI board empty, Player wins");
+            }
+            else if (pBoard.Count == 0)
+            {
+                Debug.Log("Player board empty, AI wins");
             }
         }
 
-        // Damage calculation
-        int survivingTier = (pBoard.Count > 0 ? pBoard.Sum(c => c.tier) : aBoard.Sum(c => c.tier)) + tavernTier;
+        // Damage calculation based on final state
+        int survivingTier = (pBoard.Count > 0 ? pBoard.Sum(c => c.tier) : aBoard.Count > 0 ? aBoard.Sum(c => c.tier) : 0) + tavernTier;
         int damage = Mathf.Min(5, survivingTier);
         Debug.Log("Battle outcome: Surviving tier sum = " + survivingTier + ", Damage = " + damage);
         return damage;
