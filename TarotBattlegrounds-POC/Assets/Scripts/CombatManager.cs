@@ -4,32 +4,30 @@ using System.Linq; // Ensure this is present
 
 public static class CombatManager
 {
-    public static int SimulateBattle(List<Card> pBoard, List<Card> aBoard, int tavernTier)
+    public static int SimulateBattle(List<Card> pBoard, List<Card> aBoard, int tavernTier, string pName, string aName)
     {
-        Debug.Log($"CombatManager: Simulating battle with P={pBoard.Count}, A={aBoard.Count}, Tavern Tier={tavernTier}"); // Confirm entry
+        Debug.Log($"CombatManager: Simulating battle with {pName}={pBoard.Count}, {aName}={aBoard.Count}, Tavern Tier={tavernTier}"); // Confirm entry with names
 
-        // Connect fixed names to boards and randomly choose first attacker
-        string pName = "ofek"; // Fixed name for pBoard
-        string aName = "jaya"; // Fixed name for aBoard
-        bool FirstToAttack = Random.value > 0.5f;
-        string firstPlayer = FirstToAttack ? pName : aName;
-        string secondPlayer = FirstToAttack ? aName : pName;
-        Debug.Log($"Entering attack phase: {firstPlayer} attacks first, {pName}={pBoard.Count}, {aName}={aBoard.Count}"); // Debug entry with fixed names
+        // Randomly choose first attacker
+        bool pFirst = Random.value > 0.5f;
+        string firstPlayer = pFirst ? pName : aName;
+        string secondPlayer = pFirst ? aName : pName;
+        Debug.Log($"Entering attack phase: {firstPlayer} attacks first, {pName}={pBoard.Count}, {aName}={aBoard.Count}"); // Debug entry with names
 
-        // Alternate attacks between ofek and jaya
-        List<(List<Card> attackers, List<Card> targetBoard, bool isOfek)> sides = new List<(List<Card>, List<Card>, bool)>();
-        sides.Add((pBoard.ToList(), aBoard.ToList(), true));  // ofek (copy of pBoard)
-        sides.Add((aBoard.ToList(), pBoard.ToList(), false)); // jaya (copy of aBoard)
+        // Alternate attacks between pName and aName
+        List<(List<Card> attackers, List<Card> targetBoard, bool isP)> sides = new List<(List<Card>, List<Card>, bool)>();
+        sides.Add((pBoard.ToList(), aBoard.ToList(), true));  // pName (copy to avoid modification issues)
+        sides.Add((aBoard.ToList(), pBoard.ToList(), false)); // aName (copy to avoid modification issues)
 
-        int currentSide = FirstToAttack ? 0 : 1;
-        int turnCount = 0;
+        int currentSide = pFirst ? 0 : 1;
+        int turnCount = 1;
         bool hasValidAttack = true;
         while (hasValidAttack)
         {
             hasValidAttack = false;
-            var (attackers, targetBoard, isOfek) = sides[currentSide];
+            var (attackers, targetBoard, isP) = sides[currentSide];
             var attacker = attackers.FirstOrDefault(c => c.health > 0);
-            Debug.Log($"Turn {turnCount}: {(isOfek ? pName : aName)}'s turn"); // Use pName or aName based on isOfek
+            Debug.Log($"Turn {turnCount}: {(isP ? pName : aName)}'s turn");
             if (attacker != null)
             {
                 var aliveTargets = targetBoard.Where(c => c.health > 0).ToList();
@@ -38,8 +36,8 @@ public static class CombatManager
                     hasValidAttack = true;
                     int targetIdx = Random.Range(0, aliveTargets.Count);
                     Card target = aliveTargets[targetIdx]; // Random target
-                    string attackerPlayer = isOfek ? pName : aName;
-                    string targetPlayer = isOfek ? aName : pName;
+                    string attackerPlayer = isP ? pName : aName;
+                    string targetPlayer = isP ? aName : pName;
                     Debug.Log($"Run Attack - {attacker.cardName} ({attackerPlayer}) targets {target.cardName} ({targetPlayer}), damage {attacker.attack}");
                     target.health -= attacker.attack;
                     Debug.Log($"Counterattack - {target.cardName} ({targetPlayer}) Counterattacks {attacker.cardName} ({attackerPlayer}), damage {target.attack}");
@@ -59,7 +57,7 @@ public static class CombatManager
                 }
                 else
                 {
-                    string attackerPlayer = isOfek ? pName : aName;
+                    string attackerPlayer = isP ? pName : aName;
                     Debug.Log($"No valid targets for {attacker.cardName} {attackerPlayer}");
                 }
             }

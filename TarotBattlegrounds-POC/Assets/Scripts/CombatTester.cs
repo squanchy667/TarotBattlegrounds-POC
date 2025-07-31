@@ -6,8 +6,10 @@ public class CombatTester : MonoBehaviour
 {
     public List<Card> playerBoard; // Assign in Inspector
     public List<Card> aiBoard;     // Assign in Inspector
-    public int simulationRuns = 10; // Default to 10 for testing
+    public int simulationRuns = 5; // Default to 5 as per log
     public int tavernTier = 1;     // Default tavern tier
+    public string playerName = "ofek"; // Assign in Inspector
+    public string aiName = "jaya";     // Assign in Inspector
 
     void Start()
     {
@@ -30,13 +32,13 @@ public class CombatTester : MonoBehaviour
 
         for (int i = 0; i < simulationRuns; i++)
         {
-            Debug.Log($"Calling SimulateBattle for Run {i + 1}");
+            Debug.Log("Calling SimulateBattle for Run " + (i+1));
             Debug.Log($"Run {i + 1} / {simulationRuns}: Boards P={playerBoard.Count}, A={aiBoard.Count}");
             List<Card> pBoard = playerBoard.Select(c => c.Clone()).ToList(); // Fresh clone
             List<Card> aBoard = aiBoard.Select(c => c.Clone()).ToList();     // Fresh clone
             if (pBoard.Count > 0 && aBoard.Count > 0) // Ensure valid boards
             {
-                int damage = CombatManager.SimulateBattle(pBoard, aBoard, tavernTier);
+                int damage = CombatManager.SimulateBattle(pBoard, aBoard, tavernTier, playerName, aiName); // Pass names
                 Debug.Log($"Run {i + 1} outcome: Damage = {damage}");
                 Debug.Log($"Survivor P={pBoard.Count}, A={aBoard.Count}");
 
@@ -58,7 +60,7 @@ public class CombatTester : MonoBehaviour
         float pctAIWins = (float)aiWins / simulationRuns * 100;
         float pctTies = (float)ties / simulationRuns * 100;
 
-        string result = $"Player 1 wins: {pctPlayerWins:F2}%, Player 2 wins: {pctAIWins:F2}%, Ties: {pctTies:F2}%";
+        string result = $"{playerName} wins: {pctPlayerWins:F2}%, {aiName} wins: {pctAIWins:F2}%, Ties: {pctTies:F2}%";
         Debug.Log(result);
     }
 }

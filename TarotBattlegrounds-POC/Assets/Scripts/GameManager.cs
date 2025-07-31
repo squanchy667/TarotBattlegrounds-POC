@@ -48,7 +48,7 @@ public class GameManager : MonoBehaviour
             currentPhase = GamePhase.Combat;
             Debug.Log("Current Phase: " + currentPhase);
             List<Card> aiBoard = GenerateAIBoard(turnNumber);
-            int damage = CombatManager.SimulateBattle(tavern.board, aiBoard, tavern.currentTavernTier);
+            int damage = CombatManager.SimulateBattle(tavern.board, aiBoard, tavern.currentTavernTier, "player1", "player2");
             health -= damage;
             Debug.Log("Simulating combat... Player Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " | AI Board: " + string.Join(", ", aiBoard.Select(c => c.cardName + " (Tier " + c.tier + ")")));
             Debug.Log("Combat outcome: Player takes " + damage + " damage. Health remaining: " + health);

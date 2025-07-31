@@ -304,8 +304,10 @@ MonoBehaviour:
   aiBoard:
   - {fileID: 11400000, guid: 75094a2a776cb46e08c74e177d8ca58c, type: 2}
   - {fileID: 11400000, guid: 1b6999a510ab94681b9ed65364875c9a, type: 2}
-  simulationRuns: 5
+  simulationRuns: 100
   tavernTier: 1
+  playerName: ofek
+  aiName: jaya
 --- !u!4 &1070726477
 Transform:
   m_ObjectHideFlags: 0
