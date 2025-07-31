@@ -1,24 +1,21 @@
 using UnityEngine;
-using System.Collections;  // For Coroutines
-using System.Collections.Generic;  // For List<T>
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-
 
 public class GameManager : MonoBehaviour
 {
     public enum GamePhase { Recruit, Combat }
-    public CombatManager combatManager; // Reference to CombatManager component
     public TavernManager tavern;  // Reference to TavernManager component
 
     private GamePhase currentPhase = GamePhase.Recruit;  // Default start
     private int turnNumber = 1;  // Turn counter
     private float recruitTimer = 5f;  // Shorter for testing (was 60f)
-    private int health = 40;  // New: Starting health
+    private int health = 40;  // Starting health
 
     void Start()
     {
-        combatManager = FindObjectOfType<CombatManager>();
-        if (combatManager == null) Debug.LogError("CombatManager not found!");
+        if (tavern == null) Debug.LogError("TavernManager not found!");
         StartCoroutine(GameLoop());  // Starts the loop
     }
 
@@ -36,17 +33,12 @@ public class GameManager : MonoBehaviour
                 int expectedCoins = Mathf.Min(3 + (turnNumber - 1), 10);
                 Debug.Log($"Recruit Start: Coins = {tavern.coins}/{expectedCoins}, Upgrade Cost = {tavern.GetUpgradeCost()}, Current Tier = {tavern.currentTavernTier}");
                 tavern.RefreshShop();
-                // Upgrade (comment for other tests)
                 while (tavern.currentTavernTier < 6 && tavern.coins >= tavern.GetUpgradeCost())
                 {
                     tavern.UpgradeTavern();
                 }
-                // Buy (comment for other tests)
-                while (tavern.availableCards.Count > 0 && tavern.coins >= 3 && tavern.board.Count < 7) {tavern.BuyCard(0);}
-                // Sell (comment for other tests)
-                // while (tavern.board.Count > 0) {tavern.SellCard(0);}
-                // Reroll (comment for other tests)
-                int rerolls = 0; while (tavern.coins >=1 && rerolls <2) { tavern.RefreshTavernShop(); rerolls++; }
+                while (tavern.availableCards.Count > 0 && tavern.coins >= 3 && tavern.board.Count < 7) { tavern.BuyCard(0); }
+                int rerolls = 0; while (tavern.coins >= 1 && rerolls < 2) { tavern.RefreshTavernShop(); rerolls++; }
                 Debug.Log("Shop Offered: " + string.Join(", ", tavern.availableCards.Select(c => c.cardName + " (Tier " + c.tier + ")")));
                 Debug.Log("Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " Size " + tavern.board.Count);
             }
@@ -56,7 +48,7 @@ public class GameManager : MonoBehaviour
             currentPhase = GamePhase.Combat;
             Debug.Log("Current Phase: " + currentPhase);
             List<Card> aiBoard = GenerateAIBoard(turnNumber);
-            int damage = combatManager.SimulateBattle(tavern.board, aiBoard, tavern.currentTavernTier);  // Remove turnNumber arg
+            int damage = CombatManager.SimulateBattle(tavern.board, aiBoard, tavern.currentTavernTier);
             health -= damage;
             Debug.Log("Simulating combat... Player Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " | AI Board: " + string.Join(", ", aiBoard.Select(c => c.cardName + " (Tier " + c.tier + ")")));
             Debug.Log("Combat outcome: Player takes " + damage + " damage. Health remaining: " + health);
@@ -66,7 +58,6 @@ public class GameManager : MonoBehaviour
             turnNumber++;
             if (health <= 0) { Debug.Log("Game Over"); break; }
         }
-        
     }
 
     private void SimulateAI()
@@ -74,19 +65,18 @@ public class GameManager : MonoBehaviour
         Debug.Log("AI opponent: Randomly buying and positioning cards (placeholder).");
     }
 
-    // Outside GameLoop
     private List<Card> GenerateAIBoard(int turnNumber)
     {
         List<Card> ai = new List<Card>();
-        int aiSize = Mathf.Min(turnNumber + Random.Range(0,2), 7); // Slight variance
-        List<Card> filteredPool = tavern.GetFullPool().Where(c => c.tier <= tavern.currentTavernTier + 1).ToList(); // Balance: Max tier = player tier +1
+        int aiSize = Mathf.Min(turnNumber + Random.Range(0, 2), 7);
+        List<Card> filteredPool = tavern.GetFullPool().Where(c => c.tier <= tavern.currentTavernTier + 1).ToList();
         for (int i = 0; i < aiSize; i++)
         {
             if (filteredPool.Count > 0)
             {
                 int idx = Random.Range(0, filteredPool.Count);
                 ai.Add(filteredPool[idx]);
-                filteredPool.RemoveAt(idx); // Avoid duplicates if desired
+                filteredPool.RemoveAt(idx);
             }
         }
         return ai;

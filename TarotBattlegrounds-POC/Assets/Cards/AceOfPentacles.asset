@@ -16,5 +16,7 @@ MonoBehaviour:
   tier: 1
   tribe: Pentacles
   attack: 1
-  health: 1
-  ability: Gain 1 coin on survive
+  health: 3
+  ability: 
+  buyCostModifier: 0
+  sellValueModifier: 0

@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: 3OfSwords
   m_EditorClassIdentifier: 
   cardName: 3OfSwords
-  tier: 2
+  tier: 1
   tribe: Swords
   attack: 3
-  health: 3
+  health: 1
   ability: 
   buyCostModifier: 0
   sellValueModifier: 0
