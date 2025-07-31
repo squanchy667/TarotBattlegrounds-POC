@@ -8,26 +8,28 @@ public static class CombatManager
     {
         Debug.Log($"CombatManager: Simulating battle with P={pBoard.Count}, A={aBoard.Count}, Tavern Tier={tavernTier}"); // Confirm entry
 
-        // Randomly choose first attacker (Player 1 or Player 2)
-        bool player1First = Random.value > 0.5f;
-        string firstPlayer = player1First ? "ofek" : "jaya";
-        string secondPlayer = player1First ? "jaya" : "ofek";
-        Debug.Log($"Entering attack phase: {firstPlayer}, attacks first, P={pBoard.Count}, A={aBoard.Count}"); // Debug entry
+        // Connect fixed names to boards and randomly choose first attacker
+        string pName = "ofek"; // Fixed name for pBoard
+        string aName = "jaya"; // Fixed name for aBoard
+        bool FirstToAttack = Random.value > 0.5f;
+        string firstPlayer = FirstToAttack ? pName : aName;
+        string secondPlayer = FirstToAttack ? aName : pName;
+        Debug.Log($"Entering attack phase: {firstPlayer} attacks first, {pName}={pBoard.Count}, {aName}={aBoard.Count}"); // Debug entry with fixed names
 
-        // Alternate attacks between Player 1 and Player 2
-        List<(List<Card> attackers, List<Card> targetBoard, bool isPlayer1)> sides = new List<(List<Card>, List<Card>, bool)>();
-        sides.Add((pBoard.ToList(), aBoard.ToList(), true));  // Player 1 (copy to avoid modification issues)
-        sides.Add((aBoard.ToList(), pBoard.ToList(), false)); // Player 2 (copy to avoid modification issues)
+        // Alternate attacks between ofek and jaya
+        List<(List<Card> attackers, List<Card> targetBoard, bool isOfek)> sides = new List<(List<Card>, List<Card>, bool)>();
+        sides.Add((pBoard.ToList(), aBoard.ToList(), true));  // ofek (copy of pBoard)
+        sides.Add((aBoard.ToList(), pBoard.ToList(), false)); // jaya (copy of aBoard)
 
-        int currentSide = player1First ? 0 : 1;
-        int turnCount = 1;
+        int currentSide = FirstToAttack ? 0 : 1;
+        int turnCount = 0;
         bool hasValidAttack = true;
         while (hasValidAttack)
         {
             hasValidAttack = false;
-            var (attackers, targetBoard, isPlayer1) = sides[currentSide];
+            var (attackers, targetBoard, isOfek) = sides[currentSide];
             var attacker = attackers.FirstOrDefault(c => c.health > 0);
-            Debug.Log($"Turn {turnCount}: {firstPlayer}'s turn");
+            Debug.Log($"Turn {turnCount}: {(isOfek ? pName : aName)}'s turn"); // Use pName or aName based on isOfek
             if (attacker != null)
             {
                 var aliveTargets = targetBoard.Where(c => c.health > 0).ToList();
@@ -36,8 +38,8 @@ public static class CombatManager
                     hasValidAttack = true;
                     int targetIdx = Random.Range(0, aliveTargets.Count);
                     Card target = aliveTargets[targetIdx]; // Random target
-                    string attackerPlayer = isPlayer1 ? firstPlayer : secondPlayer;
-                    string targetPlayer = isPlayer1 ? secondPlayer : firstPlayer;
+                    string attackerPlayer = isOfek ? pName : aName;
+                    string targetPlayer = isOfek ? aName : pName;
                     Debug.Log($"Run Attack - {attacker.cardName} ({attackerPlayer}) targets {target.cardName} ({targetPlayer}), damage {attacker.attack}");
                     target.health -= attacker.attack;
                     Debug.Log($"Counterattack - {target.cardName} ({targetPlayer}) Counterattacks {attacker.cardName} ({attackerPlayer}), damage {target.attack}");
@@ -57,7 +59,7 @@ public static class CombatManager
                 }
                 else
                 {
-                    string attackerPlayer = isPlayer1 ? firstPlayer : secondPlayer;
+                    string attackerPlayer = isOfek ? pName : aName;
                     Debug.Log($"No valid targets for {attacker.cardName} {attackerPlayer}");
                 }
             }
@@ -69,8 +71,6 @@ public static class CombatManager
                 hasValidAttack = false;
             }
         }
-
-
 
         // Remove any remaining dead minions
         Debug.Log($"Post-removal state: P={pBoard.Count}, A={aBoard.Count}"); // Debug post-removal
@@ -86,11 +86,11 @@ public static class CombatManager
         }
         else if (aBoard.Count == 0)
         {
-            outcome = player1First ? "ofek wins" : "jaya wins";
+            outcome = $"{pName} wins";
         }
         else if (pBoard.Count == 0)
         {
-            outcome = player1First ? "jaya wins" : "ofek wins";
+            outcome = $"{aName} wins";
         }
         Debug.Log($"Outcome determined: {outcome}"); // Debug after outcome
 

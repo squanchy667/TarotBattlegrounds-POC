@@ -30,7 +30,7 @@ public class CombatTester : MonoBehaviour
 
         for (int i = 0; i < simulationRuns; i++)
         {
-            Debug.Log("Calling SimulateBattle for Run " + i);
+            Debug.Log($"Calling SimulateBattle for Run {i + 1}");
             Debug.Log($"Run {i + 1} / {simulationRuns}: Boards P={playerBoard.Count}, A={aiBoard.Count}");
             List<Card> pBoard = playerBoard.Select(c => c.Clone()).ToList(); // Fresh clone
             List<Card> aBoard = aiBoard.Select(c => c.Clone()).ToList();     // Fresh clone
