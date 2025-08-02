@@ -20,7 +20,7 @@ public class CombatTester : MonoBehaviour
     [ContextMenu("Run Combat Test")]
     public void RunCombatTest()
     {
-        if (playerBoard == null || aiBoard == null || playerBoard.Count == 0 || aiBoard.Count == 0)
+        if (playerBoard == null || aiBoard == null || playerBoard.Count == 0 || aiBoard.Count == 0 || playerBoard.Count > 7 || aiBoard.Count > 7)
         {
             Debug.LogError("Cannot run test: Invalid boards.");
             return;

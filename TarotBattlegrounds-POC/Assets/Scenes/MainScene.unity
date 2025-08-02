@@ -298,8 +298,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f1f10623223642c79bfbad2dbb9c1db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerBoard: []
-  aiBoard: []
+  playerBoard:
+  - {fileID: 11400000, guid: b06120802f6664315a37294069b38c84, type: 2}
+  - {fileID: 11400000, guid: fa4994ac24fe34e799974890e1ea4add, type: 2}
+  - {fileID: 11400000, guid: 19726133ff51b4f138fa9d5388b9f93b, type: 2}
+  - {fileID: 11400000, guid: 5eefdd61548204335beed70b4d30819c, type: 2}
+  aiBoard:
+  - {fileID: 11400000, guid: cf2add7c76c61437c9c67cbbf36cd4a8, type: 2}
+  - {fileID: 11400000, guid: 1d0e1c77d96c94286a3dbac184d931ac, type: 2}
+  - {fileID: 11400000, guid: 2879dc455c19a49b69ab8dac8dd9830f, type: 2}
+  - {fileID: 11400000, guid: 0555f6ebc5c8c4003915920f3cd032b2, type: 2}
   simulationRuns: 100
   tavernTier: 1
   playerName: ofek
