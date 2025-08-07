@@ -1,107 +1,116 @@
-using System.Collections.Generic;
 using UnityEngine;
-using System.Linq; // Ensure this is present
+using System.Collections.Generic;
+using System.Linq;
 
 public static class CombatManager
 {
     public static int SimulateBattle(List<Card> pBoard, List<Card> aBoard, int tavernTier, string pName, string aName)
     {
-        Debug.Log($"CombatManager: Simulating battle with {pName}={pBoard.Count}, {aName}={aBoard.Count}, Tavern Tier={tavernTier}"); // Confirm entry with names
-
-        // Randomly choose first attacker
+        Debug.Log($"CombatManager: Simulating battle with {pName}={pBoard.Count}, {aName}={aBoard.Count}, Tavern Tier={tavernTier}");
+        List<Card> pBoardCopy = pBoard.Select(c => c.Clone()).ToList();
+        List<Card> aBoardCopy = aBoard.Select(c => c.Clone()).ToList();
         bool pFirst = Random.value > 0.5f;
         string firstPlayer = pFirst ? pName : aName;
         string secondPlayer = pFirst ? aName : pName;
-        Debug.Log($"Entering attack phase: {firstPlayer} attacks first, {pName}={pBoard.Count}, {aName}={aBoard.Count}"); // Debug entry with names
+        Debug.Log($"Entering attack phase: {firstPlayer} attacks first, {pName}={pBoardCopy.Count}, {aName}={aBoardCopy.Count}");
 
-        // Alternate attacks between pName and aName
-        List<(List<Card> attackers, List<Card> targetBoard, bool isP)> sides = new List<(List<Card>, List<Card>, bool)>();
-        sides.Add((pBoard.ToList(), aBoard.ToList(), true));  // pName (copy to avoid modification issues)
-        sides.Add((aBoard.ToList(), pBoard.ToList(), false)); // aName (copy to avoid modification issues)
-
+        List<(List<Card> attackers, List<Card> targetBoard, bool isP, string attackerName, string targetName)> sides = new List<(List<Card>, List<Card>, bool, string, string)>
+        {
+            (pBoardCopy, aBoardCopy, true, pName, aName),
+            (aBoardCopy, pBoardCopy, false, aName, pName)
+        };
         int currentSide = pFirst ? 0 : 1;
         int turnCount = 1;
         bool hasValidAttack = true;
+
         while (hasValidAttack)
         {
             hasValidAttack = false;
-            var (attackers, targetBoard, isP) = sides[currentSide];
+            var (attackers, targetBoard, isP, attackerName, targetName) = sides[currentSide];
             var attacker = attackers.FirstOrDefault(c => c.health > 0);
-            Debug.Log($"Turn {turnCount}: {(isP ? pName : aName)}'s turn");
+            Debug.Log($"Turn {turnCount}: {attackerName}'s turn");
             if (attacker != null)
             {
                 var aliveTargets = targetBoard.Where(c => c.health > 0).ToList();
-                if (aliveTargets.Count > 0)
+                var guardianTarget = aliveTargets.FirstOrDefault(c => c.effectType == Card.EffectType.Guardian);
+                Card target = guardianTarget ?? aliveTargets.OrderBy(x => Random.value).FirstOrDefault();
+                if (target != null)
                 {
                     hasValidAttack = true;
-                    int targetIdx = Random.Range(0, aliveTargets.Count);
-                    Card target = aliveTargets[targetIdx]; // Random target
-                    string attackerPlayer = isP ? pName : aName;
-                    string targetPlayer = isP ? aName : pName;
-                    Debug.Log($"Run Attack - {attacker.cardName} ({attackerPlayer}) targets {target.cardName} ({targetPlayer}), damage {attacker.attack}");
-                    target.health -= attacker.attack;
-                    Debug.Log($"Counterattack - {target.cardName} ({targetPlayer}) Counterattacks {attacker.cardName} ({attackerPlayer}), damage {target.attack}");
-                    attacker.health -= target.attack;
-                    Debug.Log($"{target.name} ({targetPlayer}) {target.cardName} health now {target.health}");
-                    Debug.Log($"{attacker.name} ({attackerPlayer}) {attacker.cardName} health now {attacker.health}");
-                    if (target.health <= 0)
+                    Debug.Log($"Run Attack - {attacker.cardName} ({attackerName}) targets {target.cardName} ({targetName}), damage {attacker.attack}");
+                    if (target.hasAegis)
                     {
-                        targetBoard.Remove(target);
-                        Debug.Log($"{target.cardName} removed from {targetPlayer} board");
+                        Debug.Log($"Aegis: {target.cardName} ({targetName}) blocks attack");
+                        target.hasAegis = false;
                     }
-                    if (attacker.health <= 0)
+                    else
                     {
-                        attackers.Remove(attacker);
-                        Debug.Log($"{attacker.cardName} removed from {attackerPlayer} board");
+                        target.health -= attacker.attack;
+                        Debug.Log($"{target.cardName} ({targetName}) health now {target.health}");
+                        if (target.health <= 0)
+                        {
+                            if (target.effectType == Card.EffectType.Echo)
+                            {
+                                Card ally = targetBoard.Where(c => c != target && c.health > 0).OrderBy(x => Random.value).FirstOrDefault();
+                                if (ally != null)
+                                {
+                                    string[] param = target.effectParameter.Split(':');
+                                    int value = param.Length > 1 && int.TryParse(param[1], out int v) ? v : 0;
+                                    ally.attack += value;
+                                    Debug.Log($"Echo: {target.cardName} ({targetName}) buffs {ally.cardName} attack by {value} (New Attack: {ally.attack})");
+                                }
+                            }
+                            targetBoard.Remove(target);
+                            Debug.Log($"{target.cardName} removed from {targetName} board");
+                        }
+                    }
+                    Debug.Log($"Counterattack - {target.cardName} ({targetName}) counterattacks {attacker.cardName} ({attackerName}), damage {target.attack}");
+                    if (attacker.hasAegis)
+                    {
+                        Debug.Log($"Aegis: {attacker.cardName} ({attackerName}) blocks counterattack");
+                        attacker.hasAegis = false;
+                    }
+                    else
+                    {
+                        attacker.health -= target.attack;
+                        Debug.Log($"{attacker.cardName} ({attackerName}) health now {attacker.health}");
+                        if (attacker.health <= 0)
+                        {
+                            if (attacker.effectType == Card.EffectType.Echo)
+                            {
+                                Card ally = attackers.Where(c => c != attacker && c.health > 0).OrderBy(x => Random.value).FirstOrDefault();
+                                if (ally != null)
+                                {
+                                    string[] param = attacker.effectParameter.Split(':');
+                                    int value = param.Length > 1 && int.TryParse(param[1], out int v) ? v : 0;
+                                    ally.attack += value;
+                                    Debug.Log($"Echo: {attacker.cardName} ({attackerName}) buffs {ally.cardName} attack by {value} (New Attack: {ally.attack})");
+                                }
+                            }
+                            attackers.Remove(attacker);
+                            Debug.Log($"{attacker.cardName} removed from {attackerName} board");
+                        }
                     }
                 }
                 else
                 {
-                    string attackerPlayer = isP ? pName : aName;
-                    Debug.Log($"No valid targets for {attacker.cardName} {attackerPlayer}");
+                    Debug.Log($"No valid targets for {attacker.cardName} ({attackerName})");
                 }
             }
-            currentSide = 1 - currentSide; // Switch sides
+            currentSide = 1 - currentSide;
             turnCount++;
-            // Check if both sides have no valid attackers or targets
             if (!sides[0].attackers.Any(c => c.health > 0) || !sides[1].attackers.Any(c => c.health > 0))
             {
                 hasValidAttack = false;
             }
         }
 
-        // Remove any remaining dead minions
-        Debug.Log($"Post-removal state: P={pBoard.Count}, A={aBoard.Count}"); // Debug post-removal
-        pBoard.RemoveAll(c => c.health <= 0);
-        aBoard.RemoveAll(c => c.health <= 0);
-        Debug.Log($"Determining outcome: P={pBoard.Count}, A={aBoard.Count}"); // Debug before outcome
-
-        // Determine winner/tie after resolution
-        string outcome = "";
-        if (pBoard.Count == 0 && aBoard.Count == 0)
-        {
-            outcome = "Both boards empty, Tie";
-        }
-        else if (aBoard.Count == 0)
-        {
-            outcome = $"{pName} wins";
-        }
-        else if (pBoard.Count == 0)
-        {
-            outcome = $"{aName} wins";
-        }
-        Debug.Log($"Outcome determined: {outcome}"); // Debug after outcome
-
-        // Damage calculation based on final state
-        int survivingTier = (pBoard.Count > 0 ? pBoard.Sum(c => c.tier) : aBoard.Count > 0 ? aBoard.Sum(c => c.tier) : 0) + tavernTier;
-        int damage = Mathf.Min(5, survivingTier);
-        if (pBoard.Count == 0 && aBoard.Count == 0)
-        {
-            survivingTier = 0;
-            damage = 0;
-            Debug.Log("Tie confirmed, surviving tier and damage set to 0");
-        }
-        Debug.Log("Battle outcome: Surviving tier sum = " + survivingTier + ", Damage = " + damage);
+        Debug.Log($"Post-removal state: {pName}={pBoardCopy.Count}, {aName}={aBoardCopy.Count}");
+        int survivingTier = (pBoardCopy.Count > 0 ? pBoardCopy.Sum(c => c.tier) : aBoardCopy.Count > 0 ? aBoardCopy.Sum(c => c.tier) : 0) + tavernTier;
+        int damage = pBoardCopy.Count == 0 && aBoardCopy.Count == 0 ? 0 : Mathf.Min(5, survivingTier);
+        string outcome = pBoardCopy.Count == 0 && aBoardCopy.Count == 0 ? "Both boards empty, Tie" :
+                        pBoardCopy.Count > 0 ? $"{pName} wins" : $"{aName} wins";
+        Debug.Log($"Outcome: {outcome}, Surviving tier sum = {survivingTier}, Damage = {damage}");
         return damage;
     }
 }

@@ -36,4 +36,18 @@ public class Card : ScriptableObject
         return clone;
     }
 
+    public virtual void OnAttack(Card defender)
+    {
+        // Placeholder
+    }
+
+    public virtual void OnDeath()
+    {
+        // Placeholder
+    }
+
+    public virtual void OnSurvive()
+    {
+        // Placeholder
+    }
 }

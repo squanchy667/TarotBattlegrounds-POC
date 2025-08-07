@@ -6,57 +6,134 @@ using System.Linq;
 public class GameManager : MonoBehaviour
 {
     public enum GamePhase { Recruit, Combat }
-    public TavernManager tavern;  // Reference to TavernManager component
-
-    private GamePhase currentPhase = GamePhase.Recruit;  // Default start
-    private int turnNumber = 1;  // Turn counter
-    private float recruitTimer = 5f;  // Shorter for testing (was 60f)
-    private int health = 40;  // Starting health
+    public List<Player> players;
+    public int playerCount = 4;
+    private List<int> playerHealths;
+    private GamePhase currentPhase = GamePhase.Recruit;
+    private int turnNumber = 1;
+    private float recruitTimer = 35f;
 
     void Start()
     {
-        if (tavern == null) Debug.LogError("TavernManager not found!");
-        StartCoroutine(GameLoop());  // Starts the loop
+        if (players == null || players.Count != playerCount)
+        {
+            Debug.LogError($"GameManager requires exactly {playerCount} Player instances!");
+            return;
+        }
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i] == null)
+            {
+                Debug.LogError($"Player {i + 1} is null in GameManager.players!");
+                return;
+            }
+            players[i].playerId = i + 1; // 1-based playerId
+            Debug.Log($"Player {i + 1}: {players[i].gameObject.name}, Instance ID: {players[i].GetInstanceID()}");
+            if (TavernManager.Instance != null)
+            {
+                TavernManager.Instance.availableCards[i + 1] = new List<Card>(); // Initialize shop
+            }
+            else
+            {
+                Debug.LogError($"TavernManager.Instance is null during GameManager Start!");
+            }
+        }
+        playerHealths = new List<int>(Enumerable.Repeat(40, playerCount).ToArray());
+        StartCoroutine(GameLoop());
     }
 
     IEnumerator GameLoop()
     {
-        while (health > 0)
+        while (playerHealths.Any(h => h > 0))
         {
-            // Recruit Phase
-            currentPhase = GamePhase.Recruit;
-            Debug.Log("Current Phase: " + currentPhase);
-            SimulateAI();
-            Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
-            if (tavern != null)
-            {
-                int expectedCoins = Mathf.Min(3 + (turnNumber - 1), 10);
-                Debug.Log($"Recruit Start: Coins = {tavern.coins}/{expectedCoins}, Upgrade Cost = {tavern.GetUpgradeCost()}, Current Tier = {tavern.currentTavernTier}");
-                tavern.RefreshShop();
-                while (tavern.currentTavernTier < 6 && tavern.coins >= tavern.GetUpgradeCost())
-                {
-                    tavern.UpgradeTavern();
-                }
-                while (tavern.availableCards.Count > 0 && tavern.coins >= 3 && tavern.board.Count < 7) { tavern.BuyCard(0); }
-                int rerolls = 0; while (tavern.coins >= 1 && rerolls < 2) { tavern.RefreshTavernShop(); rerolls++; }
-                Debug.Log("Shop Offered: " + string.Join(", ", tavern.availableCards.Select(c => c.cardName + " (Tier " + c.tier + ")")));
-                Debug.Log("Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " Size " + tavern.board.Count);
-            }
-            yield return new WaitForSeconds(recruitTimer);
+            yield return StartCoroutine(RecruitPhase());
 
-            // Combat Phase
             currentPhase = GamePhase.Combat;
             Debug.Log("Current Phase: " + currentPhase);
-            List<Card> aiBoard = GenerateAIBoard(turnNumber);
-            int damage = CombatManager.SimulateBattle(tavern.board, aiBoard, tavern.currentTavernTier, "player1", "player2");
-            health -= damage;
-            Debug.Log("Simulating combat... Player Board: " + string.Join(", ", tavern.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " | AI Board: " + string.Join(", ", aiBoard.Select(c => c.cardName + " (Tier " + c.tier + ")")));
-            Debug.Log("Combat outcome: Player takes " + damage + " damage. Health remaining: " + health);
-            Debug.Log($"Turn {turnNumber}");
-            yield return new WaitForSeconds(5f);
-
+            List<int> activePlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
+            if (activePlayers.Count == 1)
+            {
+                Debug.Log($"Game Over: Player {activePlayers[0] + 1} wins!");
+                break;
+            }
+            List<(int, int)> battles = GeneratePairwiseBattles(activePlayers);
+            foreach (var (p1, p2) in battles)
+            {
+                if (p1 >= 0 && p2 >= 0)
+                {
+                    var board1 = players[p1].board;
+                    var board2 = p2 < playerCount ? players[p2].board : GenerateAIBoard(turnNumber, players[p1].currentTavernTier);
+                    string p2Name = p2 < playerCount ? $"Player {p2 + 1}" : "AI";
+                    int damage = CombatManager.SimulateBattle(board1, board2, players[p1].currentTavernTier, $"Player {p1 + 1}", p2Name);
+                    playerHealths[p1] -= damage;
+                    if (p2 < playerCount) playerHealths[p2] -= damage;
+                    Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
+                    Debug.Log($"Combat outcome: Player {p1 + 1} takes {damage} damage. Health remaining: {playerHealths[p1]}");
+                    if (p2 < playerCount)
+                        Debug.Log($"Combat outcome: Player {p2 + 1} takes {damage} damage. Health remaining: {playerHealths[p2]}");
+                }
+            }
             turnNumber++;
-            if (health <= 0) { Debug.Log("Game Over"); break; }
+            if (playerHealths.All(h => h <= 0))
+            {
+                Debug.Log("Game Over: All players defeated");
+                break;
+            }
+            yield return new WaitForSeconds(5f);
+        }
+    }
+
+    private List<(int, int)> GeneratePairwiseBattles(List<int> activePlayers)
+    {
+        List<(int, int)> battles = new List<(int, int)>();
+        if (activePlayers.Count % 2 != 0)
+        {
+            activePlayers.Add(playerCount); // AI opponent for odd number
+        }
+        activePlayers = activePlayers.OrderBy(x => Random.value).ToList();
+        for (int i = 0; i < activePlayers.Count; i += 2)
+        {
+            battles.Add((activePlayers[i], activePlayers[i + 1]));
+        }
+        return battles;
+    }
+
+    private IEnumerator RecruitPhase()
+    {
+        currentPhase = GamePhase.Recruit;
+        Debug.Log("Current Phase: " + currentPhase);
+        float timer = recruitTimer;
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (playerHealths[i] <= 0) continue;
+            var player = players[i];
+            player.ResetUpgradeCostReduction();
+            SimulateAI();
+            Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
+            int expectedCoins = Mathf.Min(3 + (turnNumber - 1), 10);
+            player.RefreshShop(turnNumber);
+            Debug.Log($"Player {i + 1} Recruit Start: Coins = {player.coins}/{expectedCoins}, Upgrade Cost = {player.GetUpgradeCost()}, Current Tier = {player.currentTavernTier}, Hand Size = {player.hand.Count}, Board Size = {player.board.Count}");
+        }
+        int lastLoggedSecond = Mathf.FloorToInt(timer);
+        while (timer > 0)
+        {
+            int currentSecond = Mathf.FloorToInt(timer);
+            if (currentSecond < lastLoggedSecond)
+            {
+                Debug.Log($"Recruit Phase: {timer:F1}s remaining");
+                lastLoggedSecond = currentSecond;
+            }
+            timer -= Time.deltaTime;
+            yield return null;
+        }
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (playerHealths[i] <= 0) continue;
+            var player = players[i];
+            player.EndRecruitPhase();
+            Debug.Log($"Player {i + 1} Shop Offered: " + string.Join(", ", TavernManager.Instance.availableCards[i + 1].Select(c => c.cardName + " (Tier " + c.tier + ")")));
+            Debug.Log($"Player {i + 1} Hand: " + string.Join(", ", player.hand.Select(c => c.cardName)));
+            Debug.Log($"Player {i + 1} Board: " + string.Join(", ", player.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " Size " + player.board.Count);
         }
     }
 
@@ -65,20 +142,74 @@ public class GameManager : MonoBehaviour
         Debug.Log("AI opponent: Randomly buying and positioning cards (placeholder).");
     }
 
-    private List<Card> GenerateAIBoard(int turnNumber)
+    private List<Card> GenerateAIBoard(int turnNumber, int playerTier)
     {
-        List<Card> ai = new List<Card>();
+        List<Card> aiBoard = new List<Card>();
         int aiSize = Mathf.Min(turnNumber + Random.Range(0, 2), 7);
-        List<Card> filteredPool = tavern.GetFullPool().Where(c => c.tier <= tavern.currentTavernTier + 1).ToList();
+        List<Card> filteredPool = TavernManager.Instance.GetFullPool().Where(c => c.tier <= playerTier + 1).ToList();
         for (int i = 0; i < aiSize; i++)
         {
-            if (filteredPool.Count > 0)
-            {
-                int idx = Random.Range(0, filteredPool.Count);
-                ai.Add(filteredPool[idx]);
-                filteredPool.RemoveAt(idx);
-            }
+            if (filteredPool.Count == 0) break;
+            int idx = Random.Range(0, filteredPool.Count);
+            Card aiCard = filteredPool[idx].Clone();
+            aiBoard.Add(aiCard);
+            TavernManager.Instance.RemoveCardFromPool(aiCard);
+            filteredPool.RemoveAt(idx);
         }
-        return ai;
+        return aiBoard;
+    }
+
+    void OnGUI()
+    {
+        for (int i = 0; i < playerCount; i++)
+        {
+            float y = 10 + i * 30;
+            if (GUI.Button(new Rect(10, y, 100, 20), $"P{i+1} Buy"))
+            {
+                Debug.Log($"Player {i + 1} attempting to buy card");
+                players[i].BuyCard(0);
+            }
+            if (GUI.Button(new Rect(120, y, 100, 20), $"P{i+1} Refresh"))
+            {
+                Debug.Log($"Player {i + 1} attempting to refresh shop");
+                players[i].RefreshTavernShop();
+            }
+            if (GUI.Button(new Rect(230, y, 100, 20), $"P{i+1} Play"))
+            {
+                Debug.Log($"Player {i + 1} attempting to play card");
+                players[i].PlayCard(0, players[i].board.Count);
+            }
+            if (GUI.Button(new Rect(340, y, 100, 20), $"P{i+1} Sell"))
+            {
+                Debug.Log($"Player {i + 1} attempting to sell card");
+                players[i].SellCard(0);
+            }
+            if (GUI.Button(new Rect(450, y, 100, 20), $"P{i+1} Upgrade"))
+            {
+                Debug.Log($"Player {i + 1} attempting to upgrade tavern");
+                players[i].UpgradeTavern();
+            }
+            if (GUI.Button(new Rect(560, y, 100, 20), $"P{i+1} EndPhase"))
+            {
+                Debug.Log($"Player {i + 1} attempting to end recruit phase");
+                players[i].EndRecruitPhase();
+            }
+            if (GUI.Button(new Rect(670, y, 100, 20), $"P{i+1} LogPool"))
+            {
+                Debug.Log($"Player {i + 1} logging pool");
+                TavernManager.Instance.LogPool();
+            }
+            GUI.Label(new Rect(890, y, 120, 20), $"P{i+1} Time: {(currentPhase == GamePhase.Recruit ? Mathf.FloorToInt(recruitTimer) : 0)}s, Coins: {players[i].coins}");
+        }
+    }
+
+    void ForceBuy(Player player, string cardName, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            int index = TavernManager.Instance.availableCards[player.playerId].FindIndex(c => c.cardName == cardName);
+            if (index >= 0) player.BuyCard(index);
+            player.RefreshTavernShop();
+        }
     }
 }

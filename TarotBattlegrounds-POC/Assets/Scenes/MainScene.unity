@@ -152,16 +152,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   masterCards:
-  - {fileID: 11400000, guid: 249c02eb0e0264cb5a01970155050b37, type: 2}
-  - {fileID: 11400000, guid: 1b6999a510ab94681b9ed65364875c9a, type: 2}
-  - {fileID: 11400000, guid: 52540b6e8b9964b13b01312fea780565, type: 2}
-  - {fileID: 11400000, guid: 102a7f73b4c08453a99a0acbe7ff035c, type: 2}
-  - {fileID: 11400000, guid: 75094a2a776cb46e08c74e177d8ca58c, type: 2}
-  - {fileID: 11400000, guid: 061efab5627e84a5790f89c64797ae8f, type: 2}
-  availableCards: []
-  coins: 3
-  board: []
-  currentTavernTier: 1
+  - {fileID: 11400000, guid: ec34e959e9b0d490f907626a5b4459f0, type: 2}
+  - {fileID: 11400000, guid: c549c04f848e04b6d8b79dd0fa45d51b, type: 2}
+  - {fileID: 11400000, guid: c444a572b6829495784839a2f77a331c, type: 2}
+  - {fileID: 11400000, guid: 7708a2f0df86440de9fca8bedf88f788, type: 2}
+  - {fileID: 11400000, guid: b4216ab14ad7c407d9b2a3739dea90d2, type: 2}
 --- !u!4 &474272206
 Transform:
   m_ObjectHideFlags: 0
@@ -269,6 +264,202 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &542628350
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 542628352}
+  - component: {fileID: 542628351}
+  m_Layer: 0
+  m_Name: Player (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &542628351
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 542628350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d535f9d0e444340f6a518ea3fb422f8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerId: 0
+  hand: []
+  board: []
+  coins: 0
+  currentTavernTier: 1
+--- !u!4 &542628352
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 542628350}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.13903494, y: 0.22238228, z: -0.0024369592}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &809146110
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 809146112}
+  - component: {fileID: 809146111}
+  m_Layer: 0
+  m_Name: Player
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &809146111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 809146110}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d535f9d0e444340f6a518ea3fb422f8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerId: 0
+  hand: []
+  board: []
+  coins: 0
+  currentTavernTier: 1
+--- !u!4 &809146112
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 809146110}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.13903494, y: 0.22238228, z: -0.0024369592}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &843916745
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 843916747}
+  - component: {fileID: 843916746}
+  m_Layer: 0
+  m_Name: Player (3)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &843916746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 843916745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d535f9d0e444340f6a518ea3fb422f8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerId: 0
+  hand: []
+  board: []
+  coins: 0
+  currentTavernTier: 1
+--- !u!4 &843916747
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 843916745}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.13903494, y: 0.22238228, z: -0.0024369592}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &877346820
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 877346822}
+  - component: {fileID: 877346821}
+  m_Layer: 0
+  m_Name: Player (2)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &877346821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 877346820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d535f9d0e444340f6a518ea3fb422f8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerId: 0
+  hand: []
+  board: []
+  coins: 0
+  currentTavernTier: 1
+--- !u!4 &877346822
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 877346820}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.13903494, y: 0.22238228, z: -0.0024369592}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1070726475
 GameObject:
   m_ObjectHideFlags: 0
@@ -293,21 +484,13 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1070726475}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9f1f10623223642c79bfbad2dbb9c1db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerBoard:
-  - {fileID: 11400000, guid: b06120802f6664315a37294069b38c84, type: 2}
-  - {fileID: 11400000, guid: fa4994ac24fe34e799974890e1ea4add, type: 2}
-  - {fileID: 11400000, guid: 19726133ff51b4f138fa9d5388b9f93b, type: 2}
-  - {fileID: 11400000, guid: 5eefdd61548204335beed70b4d30819c, type: 2}
-  aiBoard:
-  - {fileID: 11400000, guid: cf2add7c76c61437c9c67cbbf36cd4a8, type: 2}
-  - {fileID: 11400000, guid: 1d0e1c77d96c94286a3dbac184d931ac, type: 2}
-  - {fileID: 11400000, guid: 2879dc455c19a49b69ab8dac8dd9830f, type: 2}
-  - {fileID: 11400000, guid: 0555f6ebc5c8c4003915920f3cd032b2, type: 2}
+  playerBoard: []
+  aiBoard: []
   simulationRuns: 100
   tavernTier: 1
   playerName: ofek
@@ -366,12 +549,17 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2079854029}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0df6ffec1497c415e8cea3e681281706, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tavern: {fileID: 474272205}
+  players:
+  - {fileID: 809146111}
+  - {fileID: 542628351}
+  - {fileID: 877346821}
+  - {fileID: 843916746}
+  playerCount: 4
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -380,3 +568,7 @@ SceneRoots:
   - {fileID: 2079854031}
   - {fileID: 474272206}
   - {fileID: 1070726477}
+  - {fileID: 809146112}
+  - {fileID: 542628352}
+  - {fileID: 877346822}
+  - {fileID: 843916747}

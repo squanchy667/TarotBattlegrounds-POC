@@ -1,60 +1,7 @@
-Name,Faction,Tier,Attack,Health,Ability
-Spark of Inspiration,Wands,1,1,2,Buffs adjacent minions’ attack
-Impulsive Apprentice,Wands,1,2,1,"Quick attacker, low HP"
-Flame Dancer,Wands,2,3,3,Grants +1/+1 to other Wands minions
-Torch Bearer,Wands,2,2,4,Gains power each round survived
-Blazing Knight,Wands,3,4,3,Gains attack after killing a minion
-Fiery Alchemist,Wands,3,3,5,Combines two weaker minions into a stronger one
-Phoenix Hatchling,Wands,4,5,5,Revives once with reduced stats
-The Magician's Disciple,Wands,4,4,6,Temporary buffs to allies
-Volcanic Sage,Wands,5,7,5,AoE damage at combat start
-Solar Warrior,Wands,5,6,7,Buffs during daytime rounds
-Dragon of Creation,Wands,6,8,8,Buffs all Wands minions upon entry
-Ace of Wands,Wands,6,10,7,Multiplies damage of adjacent allies significantly
-Minor Healer,Cups,1,1,3,Small HP regeneration each round
-Intuitive Novice,Cups,1,2,2,Predicts and reduces incoming damage
-Soothing Siren,Cups,2,2,4,Prevents enemy attacks briefly
-Peaceful Poet,Cups,2,3,3,Buffs ally defense when another minion dies
-Moonlit Priestess,Cups,3,3,6,Heals entire party at end of round
-Empathic Guardian,Cups,3,4,5,Takes damage for adjacent minions
-Oracle of Cups,Cups,4,4,7,Negates first hit each round
-Mystical Swan,Cups,4,3,8,Provides healing aura
-Serpent of the Depths,Cups,5,6,7,Lifesteal shared with allies
-Queen of Cups,Cups,5,5,9,"Massive healing, temporary invulnerability"
-Ace of Cups,Cups,6,7,9,Revives fallen minions mid-combat
-Leviathan Spirit,Cups,6,8,10,Transfers enemy healing effects
-Quickblade Scout,Swords,1,3,1,"High speed, low stats"
-Strategist’s Acolyte,Swords,1,2,2,Bonus damage vs damaged enemies
-Cunning Duelist,Swords,2,4,2,Increased damage after taking a hit
-Blade Juggler,Swords,2,3,3,Hits multiple random enemies
-Storm Rider,Swords,3,5,3,Initial strike ignores defense
-Ruthless Mercenary,Swords,3,4,4,Gains strength after ally falls
-Wind Assassin,Swords,4,5,5,Chance to instantly remove weak enemies
-Master of Blades,Swords,4,6,4,Gains damage per enemy killed
-Sky Commander,Swords,5,7,5,Boosts allies’ initiative
-Queen of Swords,Swords,5,6,7,Weakens enemy's strongest minion
-Ace of Swords,Swords,6,9,6,Instantly eliminates weakened minions
-Storm Dragon,Swords,6,8,8,AoE ignores defense
-Steadfast Farmer,Pentacles,1,1,4,"High HP, minimal attack"
-Novice Herbalist,Pentacles,1,1,3,Buffs ally defense slightly
-Armored Guard,Pentacles,2,2,5,Absorbs damage for allies
-Young Druid,Pentacles,2,2,4,Healing aura and defense boost
-Stone Golem,Pentacles,3,4,6,Immune to small damage
-Wealthy Trader,Pentacles,3,3,5,Generates additional resources
-Forest Guardian,Pentacles,4,4,8,Shields from AoE attacks
-King’s Treasurer,Pentacles,4,3,9,Enhances tier upgrades cheaply
-Colossus,Pentacles,5,5,10,Splits into smaller minions when defeated
-Queen of Pentacles,Pentacles,5,4,11,Massively boosts allies' health
-Ace of Pentacles,Pentacles,6,7,11,Grants immunity for one round
-Ancient World Tree,Pentacles,6,6,12,Revives fallen allies periodically
-Alchemist,Wands/Pentacles,2,3,4,Converts received damage into gold
-Battle Cleric,Cups/Swords,3,4,4,Deals damage and heals allies slightly
-Spellsword,Swords/Wands,4,5,5,"Inflicts damage, increases own power each hit"
-Earth Shaman,Pentacles/Cups,5,5,8,"Defense, regenerates party health"
-Avatar of Balance,All Suits,6,9,9,Gains power from presence of multiple suits
-The Fool’s Pet,Neutral,1,2,2,"Simple stats, quick reinforcement"
-Traveler,Neutral,2,3,3,Random minor buffs to nearby minions
-Wheel of Fortune,Neutral,3,4,4,Random effects (buff/debuff) each round
-The Hermit,Neutral,4,4,6,Temporarily removes enemy minions from combat
-Strength,Neutral,5,6,6,Buffs all adjacent minions significantly
-Judgment,Neutral,6,8,8,Revives fallen minions with reduced stats
+Tribe Desscription,Name,Faction,Tier,Attack,Health,Ability,EffectType,EffectParameter
+"Wands (Fire): Symbolizing creativity and passion, this faction could feature heroes like 'The Innovator' or 'The Visionary,' embodying artistic and entrepreneurial spirits.",,,,,,,,
+,Spark of Inspiration,Wands,1,1,2,Buffs adjacent minions' attack,Summoning,BuffAttack:2
+,Impulsive Apprentice,Wands,1,2,1,"Quick attacker, low HP",Guardian,
+,Flame Dancer,Wands,2,3,3,Grants +1/+1 to other Wands minions,LastReading,BuffWands:1
+,Blazing Knight,Wands,3,4,3,Gains attack after killing a minion,Echo,BuffSelfAttack:2
+,Intuitive Novice,Cups,1,2,2,Predicts and reduces incoming damage,Aegis,
