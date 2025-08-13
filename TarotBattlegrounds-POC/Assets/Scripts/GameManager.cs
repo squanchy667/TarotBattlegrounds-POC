@@ -67,7 +67,7 @@ public class GameManager : MonoBehaviour
                     int damage = CombatManager.SimulateBattle(board1, board2, players[p1].currentTavernTier, $"Player {p1 + 1}", p2Name);
                     playerHealths[p1] -= damage;
                     if (p2 < playerCount) playerHealths[p2] -= damage;
-                    Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
+                    Debug.Log($"Simulation complete... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
                     Debug.Log($"Combat outcome: Player {p1 + 1} takes {damage} damage. Health remaining: {playerHealths[p1]}");
                     if (p2 < playerCount)
                         Debug.Log($"Combat outcome: Player {p2 + 1} takes {damage} damage. Health remaining: {playerHealths[p2]}");
@@ -88,7 +88,7 @@ public class GameManager : MonoBehaviour
         List<(int, int)> battles = new List<(int, int)>();
         if (activePlayers.Count % 2 != 0)
         {
-            activePlayers.Add(playerCount); // AI opponent for odd number
+            activePlayers.Add(playerCount); 
         }
         activePlayers = activePlayers.OrderBy(x => Random.value).ToList();
         for (int i = 0; i < activePlayers.Count; i += 2)
@@ -108,7 +108,6 @@ public class GameManager : MonoBehaviour
             if (playerHealths[i] <= 0) continue;
             var player = players[i];
             player.ResetUpgradeCostReduction();
-            SimulateAI();
             Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
             int expectedCoins = Mathf.Min(3 + (turnNumber - 1), 10);
             player.RefreshShop(turnNumber);
@@ -188,11 +187,6 @@ public class GameManager : MonoBehaviour
             {
                 Debug.Log($"Player {i + 1} attempting to upgrade tavern");
                 players[i].UpgradeTavern();
-            }
-            if (GUI.Button(new Rect(560, y, 100, 20), $"P{i+1} EndPhase"))
-            {
-                Debug.Log($"Player {i + 1} attempting to end recruit phase");
-                players[i].EndRecruitPhase();
             }
             if (GUI.Button(new Rect(670, y, 100, 20), $"P{i+1} LogPool"))
             {

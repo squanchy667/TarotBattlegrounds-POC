@@ -56,16 +56,13 @@ public class TavernManager : MonoBehaviour
         List<Card> fullPool = new List<Card>();
         foreach (Card uniqueCard in masterCards)
         {
-            Debug.Log($"uniqe card: {uniqueCard.cardName}");
-            Debug.Log($"uniqe card tier: {uniqueCard.tier}");
             int copies = tierCopies.ContainsKey(uniqueCard.tier) ? tierCopies[uniqueCard.tier] : 1;
-            Debug.Log($"copies: {copies}");
             for (int i = 0; i < copies; i++)
             {
                 fullPool.Add(uniqueCard);
             }
         }
-        Debug.Log($"Generated full pool size: {fullPool.Count}, Tier 1 count: {fullPool.Count(c => c.tier == 1)}");
+        Debug.Log($"Generated full pool size: {fullPool.Count}");
         return fullPool;
     }
 

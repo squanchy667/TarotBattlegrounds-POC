@@ -175,6 +175,10 @@ public class Player : MonoBehaviour
             currentTavernTier++;
             Debug.Log($"Player {playerId}: Upgraded to Tavern Tier {currentTavernTier} for {cost} coins. Coins left: {coins}");
         }
+        else 
+        {
+            Debug.Log($"Player {playerId}: Cannot upgrade: Coins = {coins}, Cost = {cost}");
+        }
     }
 
     public int GetUpgradeCost()
@@ -197,7 +201,7 @@ public class Player : MonoBehaviour
             return;
         }
         int oldCoins = coins;
-        upgradeCostReduction = 0;
+        upgradeCostReduction = 1;
         coins = Mathf.Min(3 + (gameTurn - 1), 10);
         tavern.RefreshPlayerShop(playerId, currentTavernTier);
         Debug.Log($"Player {playerId}: Tavern refreshed: Game Turn {gameTurn}, Available cards: {tavern.availableCards[playerId].Count}, Coins: {oldCoins} -> {coins}, Tier: {currentTavernTier}, Upgrade Cost: {GetUpgradeCost()}");

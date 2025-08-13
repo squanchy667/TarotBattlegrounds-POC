@@ -9,6 +9,11 @@ public static class CombatManager
         Debug.Log($"CombatManager: Simulating battle with {pName}={pBoard.Count}, {aName}={aBoard.Count}, Tavern Tier={tavernTier}");
         List<Card> pBoardCopy = pBoard.Select(c => c.Clone()).ToList();
         List<Card> aBoardCopy = aBoard.Select(c => c.Clone()).ToList();
+        if (pBoardCopy.Count == 0 && aBoardCopy.Count == 0)
+        {
+            Debug.Log($"Both boards empty, Tie");
+            return 0;
+        }
         bool pFirst = Random.value > 0.5f;
         string firstPlayer = pFirst ? pName : aName;
         string secondPlayer = pFirst ? aName : pName;
