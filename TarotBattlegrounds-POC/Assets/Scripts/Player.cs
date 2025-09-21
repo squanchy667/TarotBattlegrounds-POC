@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,13 +10,17 @@ public class Player : MonoBehaviour
     public List<Card> board = new List<Card>();
     public int coins = 0;
     public int currentTavernTier = 1;
-    private int upgradeCostReduction = 0;
     private TavernManager tavern;
-
-    void Awake()
+    // Dictionary for base upgrade costs: key = target tier, value = base cost
+    private Dictionary<int, int> baseUpgradeCosts = new Dictionary<int, int>()
     {
-        // Remove tavern initialization from Awake
-    }
+        {2, 6}, {3, 8}, {4, 9}, {5, 10}, {6, 11}
+    };
+    // Dictionary to track turns since each tier was reached
+    private Dictionary<int, int> tierTurnCounter = new Dictionary<int, int>()
+    {
+        {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0}
+    };
 
     void Start()
     {
@@ -77,7 +82,6 @@ public class Player : MonoBehaviour
         board.RemoveAt(index);
         Debug.Log($"Player {playerId}: Sold {card.cardName} (Tier {card.tier}) for {value} coins. Coins: {coins}, Pool size: {tavern.GetFullPool().Count}");
     }
-
 
     public void PlayCard(int handIndex, int boardIndex)
     {
@@ -173,24 +177,27 @@ public class Player : MonoBehaviour
         {
             coins -= cost;
             currentTavernTier++;
-            Debug.Log($"Player {playerId}: Upgraded to Tavern Tier {currentTavernTier} for {cost} coins. Coins left: {coins}");
+            tierTurnCounter[currentTavernTier] = 0; // Reset turn counter for new tier
+            Debug.Log($"Player {playerId}: Upgraded to Tavern Tier {currentTavernTier} for {cost} coins. Coins left: {coins}, Next Upgrade Cost: {GetUpgradeCost()}");
         }
-        else 
+        else
         {
-            Debug.Log($"Player {playerId}: Cannot upgrade: Coins = {coins}, Cost = {cost}");
+            Debug.Log($"Player {playerId}: Cannot upgrade tavern: Coins = {coins}, Required = {cost}");
         }
     }
 
     public int GetUpgradeCost()
     {
-        int cost = Mathf.Max(5 - upgradeCostReduction, 1);
+        int nextTier = currentTavernTier + 1;
+        if (!baseUpgradeCosts.ContainsKey(nextTier))
+        {
+            Debug.LogWarning($"Player {playerId}: No upgrade cost defined for Tier {nextTier}");
+            return 999; // Prevent upgrading beyond max tier
+        }
+        int baseCost = baseUpgradeCosts[nextTier];
+        int turnsElapsed = tierTurnCounter[currentTavernTier];
+        int cost = Mathf.Max(baseCost - turnsElapsed, 1);
         return cost;
-    }
-
-    public void ResetUpgradeCostReduction()
-    {
-        upgradeCostReduction = 0;
-        Debug.Log($"Player {playerId}: Reset upgradeCostReduction to {upgradeCostReduction}");
     }
 
     public void RefreshShop(int gameTurn)
@@ -201,8 +208,8 @@ public class Player : MonoBehaviour
             return;
         }
         int oldCoins = coins;
-        upgradeCostReduction = 1;
         coins = Mathf.Min(3 + (gameTurn - 1), 10);
+        tierTurnCounter[currentTavernTier] = tierTurnCounter.ContainsKey(currentTavernTier) ? tierTurnCounter[currentTavernTier] + 1 : 1;
         tavern.RefreshPlayerShop(playerId, currentTavernTier);
         Debug.Log($"Player {playerId}: Tavern refreshed: Game Turn {gameTurn}, Available cards: {tavern.availableCards[playerId].Count}, Coins: {oldCoins} -> {coins}, Tier: {currentTavernTier}, Upgrade Cost: {GetUpgradeCost()}");
     }
@@ -218,7 +225,7 @@ public class Player : MonoBehaviour
         {
             coins -= 1;
             tavern.RefreshPlayerShop(playerId, currentTavernTier);
-            Debug.Log($"Player {playerId}: Tavern shop rerolled: Available cards: {tavern.availableCards[playerId].Count}, Coins: {coins}, Tier: {currentTavernTier}");
+            Debug.Log($"Player {playerId}: Tavern shop rerolled: Available cards: {tavern.availableCards[playerId].Count}, Coins: {coins}, Tier: {currentTavernTier}, Upgrade Cost: {GetUpgradeCost()}");
         }
         else
         {

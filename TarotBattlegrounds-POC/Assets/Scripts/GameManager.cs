@@ -27,11 +27,15 @@ public class GameManager : MonoBehaviour
                 Debug.LogError($"Player {i + 1} is null in GameManager.players!");
                 return;
             }
-            players[i].playerId = i + 1; // 1-based playerId
+            players[i].playerId = i + 1;
             Debug.Log($"Player {i + 1}: {players[i].gameObject.name}, Instance ID: {players[i].GetInstanceID()}");
             if (TavernManager.Instance != null)
             {
-                TavernManager.Instance.availableCards[i + 1] = new List<Card>(); // Initialize shop
+                if (!TavernManager.Instance.availableCards.ContainsKey(i + 1))
+                {
+                    TavernManager.Instance.availableCards[i + 1] = new List<Card>();
+                }
+                players[i].RefreshShop(1);
             }
             else
             {
@@ -47,7 +51,6 @@ public class GameManager : MonoBehaviour
         while (playerHealths.Any(h => h > 0))
         {
             yield return StartCoroutine(RecruitPhase());
-
             currentPhase = GamePhase.Combat;
             Debug.Log("Current Phase: " + currentPhase);
             List<int> activePlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
@@ -64,13 +67,32 @@ public class GameManager : MonoBehaviour
                     var board1 = players[p1].board;
                     var board2 = p2 < playerCount ? players[p2].board : GenerateAIBoard(turnNumber, players[p1].currentTavernTier);
                     string p2Name = p2 < playerCount ? $"Player {p2 + 1}" : "AI";
-                    int damage = CombatManager.SimulateBattle(board1, board2, players[p1].currentTavernTier, $"Player {p1 + 1}", p2Name);
-                    playerHealths[p1] -= damage;
-                    if (p2 < playerCount) playerHealths[p2] -= damage;
-                    Debug.Log($"Simulation complete... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
-                    Debug.Log($"Combat outcome: Player {p1 + 1} takes {damage} damage. Health remaining: {playerHealths[p1]}");
-                    if (p2 < playerCount)
-                        Debug.Log($"Combat outcome: Player {p2 + 1} takes {damage} damage. Health remaining: {playerHealths[p2]}");
+                    var (damage, winner) = CombatManager.SimulateBattle(board1, board2, players[p1].currentTavernTier, $"Player {p1 + 1}", p2Name);
+                    if (winner == "Tie")
+                    {
+                        playerHealths[p1] -= damage;
+                        if (p2 < playerCount) playerHealths[p2] -= damage;
+                        Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
+                        Debug.Log($"Combat outcome: Tie - Player {p1 + 1} takes {damage} damage. Health remaining: {playerHealths[p1]}");
+                        if (p2 < playerCount)
+                            Debug.Log($"Combat outcome: Tie - {p2Name} takes {damage} damage. Health remaining: {playerHealths[p2]}");
+                    }
+                    else if (winner == $"Player {p1 + 1}")
+                    {
+                        if (p2 < playerCount) playerHealths[p2] -= damage;
+                        Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
+                        Debug.Log($"Combat outcome: Player {p1 + 1} wins, Health unchanged: {playerHealths[p1]}");
+                        if (p2 < playerCount)
+                            Debug.Log($"Combat outcome: {p2Name} takes {damage} damage. Health remaining: {playerHealths[p2]}");
+                    }
+                    else
+                    {
+                        playerHealths[p1] -= damage;
+                        Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
+                        Debug.Log($"Combat outcome: {p2Name} wins, Player {p1 + 1} takes {damage} damage. Health remaining: {playerHealths[p1]}");
+                        if (p2 < playerCount)
+                            Debug.Log($"Combat outcome: {p2Name} Health unchanged: {playerHealths[p2]}");
+                    }
                 }
             }
             turnNumber++;
@@ -88,7 +110,7 @@ public class GameManager : MonoBehaviour
         List<(int, int)> battles = new List<(int, int)>();
         if (activePlayers.Count % 2 != 0)
         {
-            activePlayers.Add(playerCount); 
+            activePlayers.Add(playerCount);
         }
         activePlayers = activePlayers.OrderBy(x => Random.value).ToList();
         for (int i = 0; i < activePlayers.Count; i += 2)
@@ -107,10 +129,12 @@ public class GameManager : MonoBehaviour
         {
             if (playerHealths[i] <= 0) continue;
             var player = players[i];
-            player.ResetUpgradeCostReduction();
             Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
             int expectedCoins = Mathf.Min(3 + (turnNumber - 1), 10);
-            player.RefreshShop(turnNumber);
+            if (turnNumber > 1)
+            {
+                player.RefreshShop(turnNumber);
+            }
             Debug.Log($"Player {i + 1} Recruit Start: Coins = {player.coins}/{expectedCoins}, Upgrade Cost = {player.GetUpgradeCost()}, Current Tier = {player.currentTavernTier}, Hand Size = {player.hand.Count}, Board Size = {player.board.Count}");
         }
         int lastLoggedSecond = Mathf.FloorToInt(timer);
@@ -192,6 +216,13 @@ public class GameManager : MonoBehaviour
             {
                 Debug.Log($"Player {i + 1} logging pool");
                 TavernManager.Instance.LogPool();
+            }
+            if (GUI.Button(new Rect(560, y, 100, 20), $"P{i+1} Logshop"))
+            {
+
+                Debug.Log($"Cards in shop");
+                
+                
             }
             GUI.Label(new Rect(890, y, 120, 20), $"P{i+1} Time: {(currentPhase == GamePhase.Recruit ? Mathf.FloorToInt(recruitTimer) : 0)}s, Coins: {players[i].coins}");
         }

@@ -119,4 +119,17 @@ public class TavernManager : MonoBehaviour
             Debug.Log($"Card: {card.Key}, Count: {card.Count()}");
         }
     }
+
+    // public List<Card> LogShop(int playerNum)
+    // {
+    //     Debug.Log($"player num:{playerNum}");
+    //     foreach (var obj in availableCards)
+    //     {
+    //         if(obj.Key == playerNum){
+    //             return obj.Value;
+    //         }
+    //     }
+        
+    // }
 }
+
