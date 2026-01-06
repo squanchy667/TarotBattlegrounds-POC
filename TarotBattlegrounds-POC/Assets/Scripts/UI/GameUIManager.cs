@@ -29,6 +29,7 @@ public class GameUIManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private ShopUI shopUI;
     [SerializeField] private HandUI handUI;
+    [SerializeField] private BoardUI boardUI;
 
     private int activePlayerIndex = 0;
 
@@ -133,7 +134,21 @@ public class GameUIManager : MonoBehaviour
                 }
                 break;
             case "Sell":
-                player.SellCard(0);
+                if (boardUI != null)
+                {
+                    int selectedIndex = boardUI.GetSelectedCardIndex();
+                    if (selectedIndex >= 0)
+                    {
+                        player.SellCard(selectedIndex);
+                        boardUI.RefreshBoardDisplay();
+                    }
+                    else
+                        Debug.Log("Select a card from your board first!");
+                }
+                else
+                {
+                    player.SellCard(0);
+                }
                 break;
             case "Play":
                 if (handUI != null)
@@ -143,6 +158,7 @@ public class GameUIManager : MonoBehaviour
                     {
                         player.PlayCard(selectedIndex, player.board.Count);
                         handUI.RefreshHandDisplay();
+                        boardUI?.RefreshBoardDisplay();
                     }
                     else
                         Debug.Log("Select a card from your hand first!");
@@ -195,8 +211,7 @@ public class GameUIManager : MonoBehaviour
 
         if (Instance == this) Instance = null;
     }
-
-    public ShopUI GetShopUI()
+        public ShopUI GetShopUI()
     {
         return shopUI;
     }
@@ -205,4 +220,10 @@ public class GameUIManager : MonoBehaviour
     {
         return handUI;
     }
+    
+    public BoardUI GetBoardUI()
+    {
+        return boardUI;
+    }
+
 }
