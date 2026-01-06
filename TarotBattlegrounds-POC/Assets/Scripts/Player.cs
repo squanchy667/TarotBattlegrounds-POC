@@ -232,4 +232,25 @@ public class Player : MonoBehaviour
             Debug.Log($"Player {playerId}: Cannot reroll: Coins = {coins}");
         }
     }
+
+    public void LogBoardState()
+    {
+        if (board.Count == 0)
+        {
+            Debug.Log($"Player {playerId}: Board is empty.");
+            return;
+        }
+
+        string boardLog = $"Player {playerId} Board (Size: {board.Count}/7):\n";
+        for (int i = 0; i < board.Count; i++)
+        {
+            Card card = board[i];
+            string leftNeighbor = (i > 0) ? board[i - 1].cardName : "None";
+            string rightNeighbor = (i < board.Count - 1) ? board[i + 1].cardName : "None";
+            boardLog += $"  Position {i}: {card.cardName} (Tier {card.tier}) | Attack: {card.attack} | Health: {card.health} " +
+                        $"| Tribe: {card.tribe} | Effect: {card.effectType} " +
+                        $"| Left: {leftNeighbor} | Right: {rightNeighbor}\n";
+        }
+        Debug.Log(boardLog.TrimEnd());
+    }
 }

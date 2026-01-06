@@ -5,6 +5,7 @@ using System.Linq;
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance { get; private set; }
     public enum GamePhase { Recruit, Combat }
     public List<Player> players;
     public int playerCount = 4;
@@ -182,6 +183,26 @@ public class GameManager : MonoBehaviour
         return aiBoard;
     }
 
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this.gameObject);
+            return;
+        }
+
+        Instance = this;
+        // Optional: Uncomment the line below if GameManager should persist across scene loads
+        // DontDestroyOnLoad(this.gameObject);
+    }
+    private void OnDestroy()
+{
+    if (Instance == this)
+    {
+        Instance = null;
+    }
+}      
+
     void OnGUI()
     {
         for (int i = 0; i < playerCount; i++)
@@ -217,12 +238,9 @@ public class GameManager : MonoBehaviour
                 Debug.Log($"Player {i + 1} logging pool");
                 TavernManager.Instance.LogPool();
             }
-            if (GUI.Button(new Rect(560, y, 100, 20), $"P{i+1} Logshop"))
+            if (GUI.Button(new Rect(560, y, 120, 20), $"P{i+1} Log Board"))
             {
-
-                Debug.Log($"Cards in shop");
-                
-                
+                players[i].LogBoardState();
             }
             GUI.Label(new Rect(890, y, 120, 20), $"P{i+1} Time: {(currentPhase == GamePhase.Recruit ? Mathf.FloorToInt(recruitTimer) : 0)}s, Coins: {players[i].coins}");
         }
