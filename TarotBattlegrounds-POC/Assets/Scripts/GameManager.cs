@@ -14,6 +14,16 @@ public class GameManager : MonoBehaviour
     private int turnNumber = 1;
     private float recruitTimer = 35f;
 
+    public GamePhase CurrentPhase => currentPhase;
+    public int TurnNumber => turnNumber;
+
+    public int GetPlayerHealth(int index)
+    {
+        if (index >= 0 && index < playerHealths.Count)
+            return playerHealths[index];
+        return 0;
+    }
+
     void Start()
     {
         if (players == null || players.Count != playerCount)
@@ -141,15 +151,24 @@ public class GameManager : MonoBehaviour
         int lastLoggedSecond = Mathf.FloorToInt(timer);
         while (timer > 0)
         {
-            int currentSecond = Mathf.FloorToInt(timer);
-            if (currentSecond < lastLoggedSecond)
-            {
-                Debug.Log($"Recruit Phase: {timer:F1}s remaining");
-                lastLoggedSecond = currentSecond;
-            }
+            // Update UI timer
+            if (GameUIManager.Instance != null)
+                GameUIManager.Instance.UpdateTimer(timer);
+            
             timer -= Time.deltaTime;
             yield return null;
         }
+        // while (timer > 0)
+        // {
+        //     int currentSecond = Mathf.FloorToInt(timer);
+        //     if (currentSecond < lastLoggedSecond)
+        //     {
+        //         Debug.Log($"Recruit Phase: {timer:F1}s remaining");
+        //         lastLoggedSecond = currentSecond;
+        //     }
+        //     timer -= Time.deltaTime;
+        //     yield return null;
+        // }
         for (int i = 0; i < playerCount; i++)
         {
             if (playerHealths[i] <= 0) continue;
@@ -203,56 +222,4 @@ public class GameManager : MonoBehaviour
     }
 }      
 
-    void OnGUI()
-    {
-        for (int i = 0; i < playerCount; i++)
-        {
-            float y = 10 + i * 30;
-            if (GUI.Button(new Rect(10, y, 100, 20), $"P{i+1} Buy"))
-            {
-                Debug.Log($"Player {i + 1} attempting to buy card");
-                players[i].BuyCard(0);
-            }
-            if (GUI.Button(new Rect(120, y, 100, 20), $"P{i+1} Refresh"))
-            {
-                Debug.Log($"Player {i + 1} attempting to refresh shop");
-                players[i].RefreshTavernShop();
-            }
-            if (GUI.Button(new Rect(230, y, 100, 20), $"P{i+1} Play"))
-            {
-                Debug.Log($"Player {i + 1} attempting to play card");
-                players[i].PlayCard(0, players[i].board.Count);
-            }
-            if (GUI.Button(new Rect(340, y, 100, 20), $"P{i+1} Sell"))
-            {
-                Debug.Log($"Player {i + 1} attempting to sell card");
-                players[i].SellCard(0);
-            }
-            if (GUI.Button(new Rect(450, y, 100, 20), $"P{i+1} Upgrade"))
-            {
-                Debug.Log($"Player {i + 1} attempting to upgrade tavern");
-                players[i].UpgradeTavern();
-            }
-            if (GUI.Button(new Rect(670, y, 100, 20), $"P{i+1} LogPool"))
-            {
-                Debug.Log($"Player {i + 1} logging pool");
-                TavernManager.Instance.LogPool();
-            }
-            if (GUI.Button(new Rect(560, y, 120, 20), $"P{i+1} Log Board"))
-            {
-                players[i].LogBoardState();
-            }
-            GUI.Label(new Rect(890, y, 120, 20), $"P{i+1} Time: {(currentPhase == GamePhase.Recruit ? Mathf.FloorToInt(recruitTimer) : 0)}s, Coins: {players[i].coins}");
-        }
-    }
-
-    void ForceBuy(Player player, string cardName, int count)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            int index = TavernManager.Instance.availableCards[player.playerId].FindIndex(c => c.cardName == cardName);
-            if (index >= 0) player.BuyCard(index);
-            player.RefreshTavernShop();
-        }
-    }
 }
