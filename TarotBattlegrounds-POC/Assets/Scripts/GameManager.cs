@@ -148,6 +148,8 @@ public class GameManager : MonoBehaviour
             }
             Debug.Log($"Player {i + 1} Recruit Start: Coins = {player.coins}/{expectedCoins}, Upgrade Cost = {player.GetUpgradeCost()}, Current Tier = {player.currentTavernTier}, Hand Size = {player.hand.Count}, Board Size = {player.board.Count}");
         }
+        if (GameUIManager.Instance != null && GameUIManager.Instance.GetShopUI() != null)
+            GameUIManager.Instance.GetShopUI().RefreshShopDisplay();
         int lastLoggedSecond = Mathf.FloorToInt(timer);
         while (timer > 0)
         {

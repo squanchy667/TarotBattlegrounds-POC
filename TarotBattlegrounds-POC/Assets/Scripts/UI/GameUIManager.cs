@@ -26,6 +26,9 @@ public class GameUIManager : MonoBehaviour
     [SerializeField] private Button upgradeButton;
     [SerializeField] private Button switchPlayerButton;
 
+    [Header("References")]
+    [SerializeField] private ShopUI shopUI;
+
     private int activePlayerIndex = 0;
 
     private void Awake()
@@ -111,7 +114,18 @@ public class GameUIManager : MonoBehaviour
         switch (action)
         {
             case "Buy":
-                player.BuyCard(0);
+                if (shopUI != null)
+                {
+                    int selectedIndex = shopUI.GetSelectedCardIndex();
+                    if (selectedIndex >= 0)
+                        player.BuyCard(selectedIndex);
+                    else
+                        Debug.Log("Select a card from the shop first!");
+                }
+                else
+                {
+                    player.BuyCard(0);
+                }
                 break;
             case "Sell":
                 player.SellCard(0);
@@ -161,5 +175,10 @@ public class GameUIManager : MonoBehaviour
         switchPlayerButton?.onClick.RemoveAllListeners();
 
         if (Instance == this) Instance = null;
+    }
+
+    public ShopUI GetShopUI()
+    {
+        return shopUI;
     }
 }
