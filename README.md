@@ -90,3 +90,246 @@ Key Decisions Along the Way:
 
 ## Contributors
 - Developed with assistance from Grok (xAI).
+
+# Tarot Battlegrounds POC
+
+A tarot-themed auto-battler inspired by Hearthstone Battlegrounds, built in Unity.
+
+## Project Overview
+
+- **Genre**: Auto-battler / Battle Royale card game
+- **Engine**: Unity 2023 LTS (2D)
+- **Platform**: PC (mobile-ready architecture)
+- **Networking**: Mirror (ready for multiplayer)
+- **Current Phase**: Phase 4 - UI System (Step 6 pending)
+
+## Game Concept
+
+- 4-8 player lobby (currently 2 for local testing)
+- Recruit phase: Buy/sell/position tarot cards
+- Combat phase: Auto-battles between players
+- Last hero standing wins
+- Tarot theme: Suits as tribes (Pentacles, Cups, Swords, Wands), Major Arcana as heroes
+
+---
+
+## Current Status
+
+### Last Session: January 6, 2026
+
+**Completed:**
+- Main Menu scene with Play/Quit buttons
+- Game UI framework replacing OnGUI debug buttons
+- Shop UI - displays available cards, click to select, buy selected
+- Hand UI - displays purchased cards, click to select, play to board
+- Board UI - displays played cards, click to select, sell selected
+- Player info panel (coins, tier, health, upgrade cost)
+- Phase/Turn/Timer display
+- Action buttons (Buy, Sell, Play, Refresh, Upgrade, Switch Player)
+
+**Next Session - TODO:**
+- Step 6: Player switching UI refresh (all panels update when switching players)
+- Card asset system (see priorities below)
+
+---
+
+## Priority Roadmap
+
+### High Priority
+1. **Player Switch UI Refresh** - When switching players, refresh Shop/Hand/Board displays
+2. **Card Asset System** - Create proper card assets with:
+   - Card image/artwork field
+   - Visual card template showing art, stats, tribe, tier
+   - Currently have 1 card per tier (Tier 1-6) as base
+3. **Full Gameplay Loop** - Ensure buy/sell/play/upgrade/reroll all work perfectly
+4. **Multi-turn Testing** - Verify game flows through multiple recruit/combat phases
+
+### Medium Priority
+5. **UI Polish** - Card hover effects, better visual feedback, animations
+6. **Player 2 Board Display** - Show opponent's board during combat
+7. **Combat Log** - Text display of combat actions
+
+### Low Priority (Deferred)
+8. **Combat Visualization** - Animated battles (auto-combat works, just not visual)
+9. **Sound Effects** - Audio feedback
+10. **Card Effects Visualization** - Show abilities triggering
+
+---
+
+## Architecture
+
+### Core Scripts (`Assets/Scripts/`)
+
+| Script | Type | Purpose |
+|--------|------|---------|
+| `GameManager.cs` | Singleton | Game loop, phase management, player coordination |
+| `TavernManager.cs` | Singleton | Card pool, shop generation, tier system |
+| `Player.cs` | MonoBehaviour | Player state, coins, hand, board, actions |
+| `CombatManager.cs` | Static | Auto-battle simulation, damage calculation |
+
+### UI Scripts (`Assets/Scripts/UI/`)
+
+| Script | Purpose |
+|--------|---------|
+| `MainMenuManager.cs` | Main menu buttons, scene loading |
+| `GameUIManager.cs` | Central UI controller, action buttons |
+| `ShopUI.cs` | Shop card display and selection |
+| `ShopCardUI.cs` | Individual shop card component |
+| `HandUI.cs` | Hand card display and selection |
+| `HandCardUI.cs` | Individual hand card component |
+| `BoardUI.cs` | Board card display and selection |
+| `BoardCardUI.cs` | Individual board card component |
+
+### Prefabs (`Assets/Prefabs/UI/`)
+
+| Prefab | Purpose |
+|--------|---------|
+| `ShopCard` | Card display for shop |
+| `HandCard` | Card display for hand |
+| `BoardCard` | Card display for board |
+
+*Note: These will be consolidated into a single `CardDisplay` prefab during refactor*
+
+### Scenes (`Assets/Scenes/`)
+
+| Scene | Purpose |
+|-------|---------|
+| `MainMenu` | Title screen, play button |
+| `Game` | Main gameplay |
+
+---
+
+## Card System (Current)
+
+### Card ScriptableObject (`Assets/Cards/Card.cs`)
+- cardName, tier, tribe, attack, health
+- effectType, effectParameter
+- buyCostModifier, sellValueModifier
+
+### Existing Cards
+- 1 card per tier (Tier 1-6) for testing
+
+### Planned Card Asset Improvements
+- Add `Sprite cardImage` field for artwork
+- Create visual card template with art display
+- Design cards for each tribe (Pentacles, Cups, Swords, Wands)
+- Major Arcana as special/hero cards
+
+---
+
+## Completed Features
+
+### Phase 1: Core Systems ✅
+- Unity project setup, Git repo
+- GameManager with Recruit/Combat phase loop
+- Singleton pattern on managers
+
+### Phase 2: Card System ✅
+- Card ScriptableObject with full properties
+- TavernManager with tier-based pool generation
+- Buy (3g) / Sell (1g) / Reroll (1g) mechanics
+- Shop size scaling by tier (3→6 cards)
+- Coin progression (3→10 cap)
+- Tavern tier upgrades with cost reduction
+
+### Phase 3: Combat System ✅
+- Turn-based auto-battle with random first attacker
+- Counterattack damage
+- Card effects: Guardian (taunt), Aegis (divine shield), Echo (deathrattle buff)
+- Health system (40 HP start)
+
+### Phase 4: UI System 🔄 IN PROGRESS
+- [x] Step 1: Main Menu scene
+- [x] Step 2: Game UI framework (replaced OnGUI)
+- [x] Step 3: Shop UI
+- [x] Step 4: Hand UI
+- [x] Step 5: Board UI
+- [ ] Step 6: Player switching refresh
+- [ ] Step 7: Combat UI (low priority)
+- [ ] Step 8: Polish & cleanup
+
+---
+
+## How to Run
+
+1. Open project in Unity 2023 LTS
+2. Open `MainMenu` scene
+3. Press Play
+4. Click "PLAY" to start game
+5. Use buttons to: Buy cards, Play to board, Sell, Refresh shop, Upgrade tier
+6. "Switch P" button toggles between Player 1 and Player 2
+
+---
+
+## Known Issues
+
+- Player switch doesn't refresh UI panels (Step 6 fix)
+- Cards use placeholder colors, no artwork yet
+- 7 dark slots visible from old BoardPanel (cleanup needed)
+- Combat phase has no visualization (works in background)
+
+---
+
+## Tech Decisions
+
+| Decision | Choice | Reason |
+|----------|--------|--------|
+| UI Framework | uGUI (Canvas) | Built-in, well-documented, mobile-friendly |
+| Networking | Mirror | Free, open-source, good for lobbies |
+| Text | TextMesh Pro | Superior text rendering |
+| Architecture | Singletons + Events | Simple for POC, easy to refactor |
+
+---
+
+## Future Refactoring
+
+- Consolidate `ShopCardUI`, `HandCardUI`, `BoardCardUI` into single `CardDisplayUI`
+- Create reusable card prefab for all contexts
+- Clean up old BoardManager/CardUI code
+
+---
+
+## File Structure
+
+```
+Assets/
+├── Cards/
+│   └── Card.cs
+├── Scenes/
+│   ├── MainMenu.unity
+│   └── Game.unity
+├── Scripts/
+│   ├── Core/
+│   │   ├── GameManager.cs
+│   │   ├── TavernManager.cs
+│   │   ├── Player.cs
+│   │   └── CombatManager.cs
+│   └── UI/
+│       ├── MainMenuManager.cs
+│       ├── GameUIManager.cs
+│       ├── ShopUI.cs
+│       ├── ShopCardUI.cs
+│       ├── HandUI.cs
+│       ├── HandCardUI.cs
+│       ├── BoardUI.cs
+│       └── BoardCardUI.cs
+├── Prefabs/
+│   └── UI/
+│       ├── ShopCard.prefab
+│       ├── HandCard.prefab
+│       └── BoardCard.prefab
+└── Resources/
+    └── Cards/
+```
+
+---
+
+## Contributors
+
+- Game Design & Development: [Your Name]
+- AI Assistance: Claude (Anthropic), Grok (xAI)
+
+---
+
+## Last Updated
+January 6, 2026 - Phase 4 UI Steps 1-5 complete, Step 6 pending
