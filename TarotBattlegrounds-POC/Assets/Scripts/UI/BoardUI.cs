@@ -7,7 +7,7 @@ public class BoardUI : MonoBehaviour
 {
     [Header("Board Container")]
     [SerializeField] private Transform boardSlotsContainer;
-    [SerializeField] private GameObject boardCardPrefab;
+    [SerializeField] private GameObject cardDisplayPrefab;
 
     [Header("Board Info")]
     [SerializeField] private TMP_Text boardCountText;
@@ -27,11 +27,9 @@ public class BoardUI : MonoBehaviour
         Player activePlayer = GetActivePlayer();
         if (activePlayer == null) return;
 
-        // Update board count
         if (boardCountText != null)
             boardCountText.text = $"Board: {activePlayer.board.Count}/7";
 
-        // Create card displays
         for (int i = 0; i < activePlayer.board.Count; i++)
         {
             CreateBoardCard(activePlayer.board[i], i);
@@ -40,15 +38,16 @@ public class BoardUI : MonoBehaviour
 
     private void CreateBoardCard(Card card, int index)
     {
-        if (boardCardPrefab == null || boardSlotsContainer == null) return;
+        if (cardDisplayPrefab == null || boardSlotsContainer == null) return;
 
-        GameObject cardObj = Instantiate(boardCardPrefab, boardSlotsContainer);
+        GameObject cardObj = Instantiate(cardDisplayPrefab, boardSlotsContainer);
         currentBoardCards.Add(cardObj);
 
-        BoardCardUI cardUI = cardObj.GetComponent<BoardCardUI>();
+        CardDisplayUI cardUI = cardObj.GetComponent<CardDisplayUI>();
         if (cardUI != null)
         {
             cardUI.Setup(card, index, OnCardClicked);
+            cardUI.SetCostVisible(false); // No cost on board
         }
     }
 
@@ -69,27 +68,11 @@ public class BoardUI : MonoBehaviour
 
         for (int i = 0; i < currentBoardCards.Count; i++)
         {
-            BoardCardUI cardUI = currentBoardCards[i].GetComponent<BoardCardUI>();
+            CardDisplayUI cardUI = currentBoardCards[i].GetComponent<CardDisplayUI>();
             if (cardUI != null)
             {
                 cardUI.SetSelected(i == selectedCardIndex);
             }
-        }
-    }
-
-    public void SellSelectedCard()
-    {
-        if (selectedCardIndex < 0)
-        {
-            Debug.Log("No board card selected to sell");
-            return;
-        }
-
-        Player activePlayer = GetActivePlayer();
-        if (activePlayer != null)
-        {
-            activePlayer.SellCard(selectedCardIndex);
-            RefreshBoardDisplay();
         }
     }
 

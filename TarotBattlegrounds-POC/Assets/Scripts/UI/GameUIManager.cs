@@ -186,6 +186,12 @@ public class GameUIManager : MonoBehaviour
         activePlayerIndex = (activePlayerIndex + 1) % playerCount;
         
         Debug.Log($"Switched to Player {activePlayerIndex + 1}");
+        
+        // Refresh all UI panels
+        shopUI?.RefreshShopDisplay();
+        handUI?.RefreshHandDisplay();
+        boardUI?.RefreshBoardDisplay();
+        
         UpdateAllUI();
     }
 

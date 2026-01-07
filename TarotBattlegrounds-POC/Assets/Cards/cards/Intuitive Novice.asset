@@ -17,8 +17,9 @@ MonoBehaviour:
   tribe: Cups
   attack: 2
   health: 2
+  cardImage: {fileID: 21300000, guid: 13ba34da9011744c884f459ce4699444, type: 3}
   ability: Predicts and reduces incoming damage
-  buyCostModifier: 0
-  sellValueModifier: 0
   effectType: 4
   effectParameter: 
+  buyCostModifier: 0
+  sellValueModifier: 0

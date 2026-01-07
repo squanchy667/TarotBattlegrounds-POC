@@ -7,7 +7,7 @@ public class HandUI : MonoBehaviour
 {
     [Header("Hand Container")]
     [SerializeField] private Transform handSlotsContainer;
-    [SerializeField] private GameObject handCardPrefab;
+    [SerializeField] private GameObject cardDisplayPrefab;
 
     [Header("Hand Info")]
     [SerializeField] private TMP_Text handCountText;
@@ -27,11 +27,9 @@ public class HandUI : MonoBehaviour
         Player activePlayer = GetActivePlayer();
         if (activePlayer == null) return;
 
-        // Update hand count
         if (handCountText != null)
             handCountText.text = $"Hand: {activePlayer.hand.Count}/10";
 
-        // Create card displays
         for (int i = 0; i < activePlayer.hand.Count; i++)
         {
             CreateHandCard(activePlayer.hand[i], i);
@@ -40,15 +38,16 @@ public class HandUI : MonoBehaviour
 
     private void CreateHandCard(Card card, int index)
     {
-        if (handCardPrefab == null || handSlotsContainer == null) return;
+        if (cardDisplayPrefab == null || handSlotsContainer == null) return;
 
-        GameObject cardObj = Instantiate(handCardPrefab, handSlotsContainer);
+        GameObject cardObj = Instantiate(cardDisplayPrefab, handSlotsContainer);
         currentHandCards.Add(cardObj);
 
-        HandCardUI cardUI = cardObj.GetComponent<HandCardUI>();
+        CardDisplayUI cardUI = cardObj.GetComponent<CardDisplayUI>();
         if (cardUI != null)
         {
             cardUI.Setup(card, index, OnCardClicked);
+            cardUI.SetCostVisible(false); // No cost in hand
         }
     }
 
@@ -69,27 +68,11 @@ public class HandUI : MonoBehaviour
 
         for (int i = 0; i < currentHandCards.Count; i++)
         {
-            HandCardUI cardUI = currentHandCards[i].GetComponent<HandCardUI>();
+            CardDisplayUI cardUI = currentHandCards[i].GetComponent<CardDisplayUI>();
             if (cardUI != null)
             {
                 cardUI.SetSelected(i == selectedCardIndex);
             }
-        }
-    }
-
-    public void PlaySelectedCard()
-    {
-        if (selectedCardIndex < 0)
-        {
-            Debug.Log("No hand card selected to play");
-            return;
-        }
-
-        Player activePlayer = GetActivePlayer();
-        if (activePlayer != null)
-        {
-            activePlayer.PlayCard(selectedCardIndex, activePlayer.board.Count);
-            RefreshHandDisplay();
         }
     }
 

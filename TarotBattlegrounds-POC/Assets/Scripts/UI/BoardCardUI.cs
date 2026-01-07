@@ -11,6 +11,7 @@ public class BoardCardUI : MonoBehaviour
     [SerializeField] private TMP_Text healthText;
     [SerializeField] private TMP_Text tierText;
     [SerializeField] private TMP_Text tribeText;
+    [SerializeField] private Image cardArtwork;
 
     [Header("Visual")]
     [SerializeField] private Image cardBackground;
@@ -36,6 +37,7 @@ public class BoardCardUI : MonoBehaviour
         if (healthText != null) healthText.text = card.health.ToString();
         if (tierText != null) tierText.text = $"T{card.tier}";
         if (tribeText != null) tribeText.text = card.tribe;
+        if (cardArtwork != null && card.cardImage != null) cardArtwork.sprite = card.cardImage;
 
         if (cardButton != null)
             cardButton.onClick.AddListener(OnCardClicked);

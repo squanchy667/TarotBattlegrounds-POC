@@ -17,8 +17,9 @@ MonoBehaviour:
   tribe: Wands
   attack: 2
   health: 1
+  cardImage: {fileID: 21300000, guid: 98e5384f27ebd4efb8f234d5df4dd774, type: 3}
   ability: 
-  buyCostModifier: 0
-  sellValueModifier: 0
   effectType: 3
   effectParameter: 
+  buyCostModifier: 0
+  sellValueModifier: 0

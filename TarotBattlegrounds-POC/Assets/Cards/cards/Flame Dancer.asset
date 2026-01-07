@@ -17,8 +17,9 @@ MonoBehaviour:
   tribe: Wands
   attack: 3
   health: 3
+  cardImage: {fileID: 21300000, guid: a831949095ca7406a8fbe184a06b4dae, type: 3}
   ability: Grants +1/+1 to other Wands minions
-  buyCostModifier: 0
-  sellValueModifier: 0
   effectType: 2
   effectParameter: BuffWands:1
+  buyCostModifier: 0
+  sellValueModifier: 0

@@ -17,8 +17,9 @@ MonoBehaviour:
   tribe: Wands
   attack: 4
   health: 3
+  cardImage: {fileID: 21300000, guid: 8579b03b8669d407a89bb688e42d853a, type: 3}
   ability: Gains attack after killing a minion
-  buyCostModifier: 0
-  sellValueModifier: 0
   effectType: 5
   effectParameter: BuffSelfAttack:2
+  buyCostModifier: 0
+  sellValueModifier: 0
