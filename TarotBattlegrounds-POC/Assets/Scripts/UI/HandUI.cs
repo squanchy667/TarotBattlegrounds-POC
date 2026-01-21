@@ -122,6 +122,7 @@ public class HandUI : MonoBehaviour
                 cardUI.SetSelected(i == selectedCardIndex);
             }
         }
+        GameUIManager.Instance?.UpdateButtons();
     }
     
     public int GetSelectedCardIndex()

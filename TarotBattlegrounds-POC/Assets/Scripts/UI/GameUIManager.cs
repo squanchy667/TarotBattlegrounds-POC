@@ -368,6 +368,11 @@ public class GameUIManager : MonoBehaviour
         UpdateAllUI();
         currentPlayer?.NotifyAllStateChanged();
     }
+
+    public void UpdateButtons()
+    {
+        UpdateButtonStates();
+    }
     
     public Player GetActivePlayer()
     {
