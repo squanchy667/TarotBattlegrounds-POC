@@ -162,7 +162,10 @@ public static class CombatManager
                     }
                     
                     Debug.Log($"Run Attack - {attacker.cardName} ({attackerName}) targets {target.cardName} ({targetName}), damage {attacker.attack}");
-                    
+
+                    // Trigger OnAttack abilities
+                    TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target, attackers, targetBoard);
+
                     // Apply attack damage
                     if (target.hasAegis)
                     {
@@ -247,16 +250,19 @@ public static class CombatManager
                             TurnNumber = turnCount
                         });
                         
-                        // Echo effect
+                        // Echo effect (legacy)
                         if (target.effectType == Card.EffectType.Echo)
                         {
                             TriggerEcho(target, targetBoard, targetName, turnCount);
                         }
-                        
+
+                        // Trigger Deathrattle abilities
+                        TriggerCombatAbility(AbilityTrigger.Deathrattle, target, null, targetBoard, attackers);
+
                         targetBoard.Remove(target);
                         Debug.Log($"{target.cardName} removed from {targetName} board");
                     }
-                    
+
                     // Handle attacker death
                     if (attacker.health <= 0)
                     {
@@ -268,13 +274,16 @@ public static class CombatManager
                             Message = $"{attacker.cardName} is destroyed!",
                             TurnNumber = turnCount
                         });
-                        
-                        // Echo effect
+
+                        // Echo effect (legacy)
                         if (attacker.effectType == Card.EffectType.Echo)
                         {
                             TriggerEcho(attacker, attackers, attackerName, turnCount);
                         }
-                        
+
+                        // Trigger Deathrattle abilities
+                        TriggerCombatAbility(AbilityTrigger.Deathrattle, attacker, null, attackers, targetBoard);
+
                         attackers.Remove(attacker);
                         Debug.Log($"{attacker.cardName} removed from {attackerName} board");
                     }
@@ -354,6 +363,22 @@ public static class CombatManager
         }
     }
     
+    /// <summary>
+    /// Trigger abilities during combat (OnAttack, Deathrattle, etc.)
+    /// </summary>
+    private static void TriggerCombatAbility(AbilityTrigger trigger, Card source, Card target, List<Card> ownerBoard, List<Card> enemyBoard)
+    {
+        var context = new AbilityContext
+        {
+            SourceCard = source,
+            TargetCard = target,
+            OwnerBoard = ownerBoard,
+            EnemyBoard = enemyBoard,
+            Owner = null // Combat uses cloned cards, no player reference
+        };
+        AbilityManager.TriggerAbilities(trigger, context);
+    }
+
     private static int CalculateDamage(List<Card> survivingBoard, int tavernTier)
     {
         int tierSum = survivingBoard.Sum(c => c.tier) + tavernTier;
