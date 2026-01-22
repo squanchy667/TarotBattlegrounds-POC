@@ -216,6 +216,9 @@ public class Player : MonoBehaviour
         hand.RemoveAt(handIndex);
         TriggerSummoning(card);
 
+        // Register card's ability (new ability system)
+        card.RegisterAbility();
+
         // Trigger Battlecry abilities (new ability system)
         var battlecryContext = AbilityManager.CreateBattlecryContext(card, this);
         AbilityManager.TriggerAbilities(AbilityTrigger.Battlecry, battlecryContext);
