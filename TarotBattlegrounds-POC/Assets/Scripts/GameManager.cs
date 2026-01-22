@@ -82,7 +82,12 @@ public class GameManager : MonoBehaviour
                     if (winner == "Tie")
                     {
                         playerHealths[p1] -= damage;
-                        if (p2 < playerCount) playerHealths[p2] -= damage;
+                        players[p1].Health = playerHealths[p1]; // Sync to Player.Health to fire OnHealthChanged
+                        if (p2 < playerCount)
+                        {
+                            playerHealths[p2] -= damage;
+                            players[p2].Health = playerHealths[p2]; // Sync to Player.Health to fire OnHealthChanged
+                        }
                         Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
                         Debug.Log($"Combat outcome: Tie - Player {p1 + 1} takes {damage} damage. Health remaining: {playerHealths[p1]}");
                         if (p2 < playerCount)
@@ -90,7 +95,11 @@ public class GameManager : MonoBehaviour
                     }
                     else if (winner == $"Player {p1 + 1}")
                     {
-                        if (p2 < playerCount) playerHealths[p2] -= damage;
+                        if (p2 < playerCount)
+                        {
+                            playerHealths[p2] -= damage;
+                            players[p2].Health = playerHealths[p2]; // Sync to Player.Health to fire OnHealthChanged
+                        }
                         Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
                         Debug.Log($"Combat outcome: Player {p1 + 1} wins, Health unchanged: {playerHealths[p1]}");
                         if (p2 < playerCount)
@@ -99,6 +108,7 @@ public class GameManager : MonoBehaviour
                     else
                     {
                         playerHealths[p1] -= damage;
+                        players[p1].Health = playerHealths[p1]; // Sync to Player.Health to fire OnHealthChanged
                         Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
                         Debug.Log($"Combat outcome: {p2Name} wins, Player {p1 + 1} takes {damage} damage. Health remaining: {playerHealths[p1]}");
                         if (p2 < playerCount)
