@@ -155,6 +155,7 @@ public class Player : MonoBehaviour
         Card card = board[index];
         int value = 1 + card.sellValueModifier;
         coins += value; // This triggers OnCoinsChanged via property setter
+        AbilityManager.UnregisterCard(card); // Clean up abilities
         tavern.ReturnCardToPool(card);
         board.RemoveAt(index);
 
@@ -182,6 +183,7 @@ public class Player : MonoBehaviour
         Card card = hand[index];
         int value = 1 + card.sellValueModifier;
         coins += value; // This triggers OnCoinsChanged via property setter
+        AbilityManager.UnregisterCard(card); // Clean up abilities
         tavern.ReturnCardToPool(card);
         hand.RemoveAt(index);
 
@@ -213,12 +215,16 @@ public class Player : MonoBehaviour
         board.Insert(boardIndex, card);
         hand.RemoveAt(handIndex);
         TriggerSummoning(card);
-        
+
+        // Trigger Battlecry abilities (new ability system)
+        var battlecryContext = AbilityManager.CreateBattlecryContext(card, this);
+        AbilityManager.TriggerAbilities(AbilityTrigger.Battlecry, battlecryContext);
+
         // Fire events
         OnHandChanged?.Invoke();
         OnBoardChanged?.Invoke();
         OnAnyPlayerStateChanged?.Invoke(this);
-        
+
         Debug.Log($"Player {playerId}: Played {card.cardName} (Tier {card.tier}) to board position {boardIndex}. Board size: {board.Count}, Hand size: {hand.Count}");
     }
     
