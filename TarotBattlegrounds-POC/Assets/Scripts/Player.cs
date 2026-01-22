@@ -145,24 +145,51 @@ public class Player : MonoBehaviour
             Debug.LogError($"Player {playerId}: Cannot sell card, TavernManager not found!");
             return;
         }
-        
+
         if (index < 0 || index >= board.Count)
         {
             Debug.LogWarning($"Player {playerId}: Invalid board index: {index}");
             return;
         }
-        
+
         Card card = board[index];
         int value = 1 + card.sellValueModifier;
         coins += value; // This triggers OnCoinsChanged via property setter
         tavern.ReturnCardToPool(card);
         board.RemoveAt(index);
-        
+
         // Fire events
         OnBoardChanged?.Invoke();
         OnAnyPlayerStateChanged?.Invoke(this);
-        
+
         Debug.Log($"Player {playerId}: Sold {card.cardName} (Tier {card.tier}) for {value} coins. Coins: {coins}, Pool size: {tavern.GetFullPool().Count}");
+    }
+
+    public void SellCardFromHand(int index)
+    {
+        if (tavern == null)
+        {
+            Debug.LogError($"Player {playerId}: Cannot sell card, TavernManager not found!");
+            return;
+        }
+
+        if (index < 0 || index >= hand.Count)
+        {
+            Debug.LogWarning($"Player {playerId}: Invalid hand index: {index}");
+            return;
+        }
+
+        Card card = hand[index];
+        int value = 1 + card.sellValueModifier;
+        coins += value; // This triggers OnCoinsChanged via property setter
+        tavern.ReturnCardToPool(card);
+        hand.RemoveAt(index);
+
+        // Fire events
+        OnHandChanged?.Invoke();
+        OnAnyPlayerStateChanged?.Invoke(this);
+
+        Debug.Log($"Player {playerId}: Sold {card.cardName} (Tier {card.tier}) from hand for {value} coins. Coins: {coins}, Pool size: {tavern.GetFullPool().Count}");
     }
     
     public void PlayCard(int handIndex, int boardIndex)

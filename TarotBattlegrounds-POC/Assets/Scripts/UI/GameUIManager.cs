@@ -228,11 +228,12 @@ public class GameUIManager : MonoBehaviour
             buyButton.interactable = isRecruitPhase && shopIndex >= 0 && player.coins >= buyCost && player.hand.Count < 10;
         }
         
-        // Sell button: enabled if recruit phase and board card selected
+        // Sell button: enabled if recruit phase and board OR hand card selected
         if (sellButton != null)
         {
             int boardIndex = boardUI != null ? boardUI.GetSelectedCardIndex() : -1;
-            sellButton.interactable = isRecruitPhase && boardIndex >= 0;
+            int handIndex = handUI != null ? handUI.GetSelectedCardIndex() : -1;
+            sellButton.interactable = isRecruitPhase && (boardIndex >= 0 || handIndex >= 0);
         }
         
         // Play button: enabled if recruit phase, hand card selected, and board not full
@@ -287,18 +288,23 @@ public class GameUIManager : MonoBehaviour
                 break;
                 
             case "Sell":
-                if (boardUI != null)
+                // Check board first, then hand
+                int boardSellIndex = boardUI != null ? boardUI.GetSelectedCardIndex() : -1;
+                int handSellIndex = handUI != null ? handUI.GetSelectedCardIndex() : -1;
+
+                if (boardSellIndex >= 0)
                 {
-                    int selectedIndex = boardUI.GetSelectedCardIndex();
-                    if (selectedIndex >= 0)
-                    {
-                        player.SellCard(selectedIndex);
-                        // Events will handle UI refresh
-                    }
-                    else
-                    {
-                        Debug.Log("Select a card from your board first!");
-                    }
+                    player.SellCard(boardSellIndex);
+                    // Events will handle UI refresh
+                }
+                else if (handSellIndex >= 0)
+                {
+                    player.SellCardFromHand(handSellIndex);
+                    // Events will handle UI refresh
+                }
+                else
+                {
+                    Debug.Log("Select a card from your board or hand first!");
                 }
                 break;
                 
