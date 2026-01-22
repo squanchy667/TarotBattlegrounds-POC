@@ -22,33 +22,16 @@ public class BoardUI : MonoBehaviour
     private List<GameObject> currentBoardCards = new List<GameObject>();
     private List<GameObject> emptySlots = new List<GameObject>();
     private int selectedCardIndex = -1;
-    
-    private Player cachedPlayer;
-    
+
     private void Start()
     {
-        SubscribeToPlayerEvents();
+        // Initial refresh with delay to ensure everything is initialized
+        // Note: GameUIManager handles event subscriptions and calls RefreshBoardDisplay()
         Invoke(nameof(RefreshBoardDisplay), 0.1f);
     }
-    
-    private void SubscribeToPlayerEvents()
-    {
-        var player = GetActivePlayer();
-        if (player != null && player != cachedPlayer)
-        {
-            if (cachedPlayer != null)
-            {
-                cachedPlayer.OnBoardChanged -= RefreshBoardDisplay;
-            }
-            
-            player.OnBoardChanged += RefreshBoardDisplay;
-            cachedPlayer = player;
-        }
-    }
-    
+
     public void RefreshBoardDisplay()
     {
-        SubscribeToPlayerEvents();
         ClearBoardDisplay();
         
         Player activePlayer = GetActivePlayer();
@@ -147,11 +130,4 @@ public class BoardUI : MonoBehaviour
         return GameUIManager.Instance.GetActivePlayer();
     }
     
-    private void OnDestroy()
-    {
-        if (cachedPlayer != null)
-        {
-            cachedPlayer.OnBoardChanged -= RefreshBoardDisplay;
-        }
-    }
 }

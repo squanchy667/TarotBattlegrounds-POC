@@ -22,33 +22,16 @@ public class HandUI : MonoBehaviour
     private List<GameObject> currentHandCards = new List<GameObject>();
     private List<GameObject> emptySlots = new List<GameObject>();
     private int selectedCardIndex = -1;
-    
-    private Player cachedPlayer;
-    
+
     private void Start()
     {
-        SubscribeToPlayerEvents();
+        // Initial refresh with delay to ensure everything is initialized
+        // Note: GameUIManager handles event subscriptions and calls RefreshHandDisplay()
         Invoke(nameof(RefreshHandDisplay), 0.1f);
     }
-    
-    private void SubscribeToPlayerEvents()
-    {
-        var player = GetActivePlayer();
-        if (player != null && player != cachedPlayer)
-        {
-            if (cachedPlayer != null)
-            {
-                cachedPlayer.OnHandChanged -= RefreshHandDisplay;
-            }
-            
-            player.OnHandChanged += RefreshHandDisplay;
-            cachedPlayer = player;
-        }
-    }
-    
+
     public void RefreshHandDisplay()
     {
-        SubscribeToPlayerEvents();
         ClearHandDisplay();
         
         Player activePlayer = GetActivePlayer();
@@ -147,11 +130,4 @@ public class HandUI : MonoBehaviour
         return GameUIManager.Instance.GetActivePlayer();
     }
     
-    private void OnDestroy()
-    {
-        if (cachedPlayer != null)
-        {
-            cachedPlayer.OnHandChanged -= RefreshHandDisplay;
-        }
-    }
 }

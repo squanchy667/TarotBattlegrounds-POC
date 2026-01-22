@@ -23,41 +23,16 @@ public class ShopUI : MonoBehaviour
     private List<GameObject> currentShopCards = new List<GameObject>();
     private List<GameObject> emptySlots = new List<GameObject>();
     private int selectedCardIndex = -1;
-    
-    private Player cachedPlayer;
-    
+
     private void Start()
     {
-        // Subscribe to player events when available
-        SubscribeToPlayerEvents();
-        
         // Initial refresh with delay to ensure everything is initialized
+        // Note: GameUIManager handles event subscriptions and calls RefreshShopDisplay()
         Invoke(nameof(RefreshShopDisplay), 0.1f);
     }
-    
-    private void SubscribeToPlayerEvents()
-    {
-        var player = GetActivePlayer();
-        if (player != null && player != cachedPlayer)
-        {
-            // Unsubscribe from old player
-            if (cachedPlayer != null)
-            {
-                cachedPlayer.OnShopRefreshed -= RefreshShopDisplay;
-                cachedPlayer.OnTierChanged -= RefreshShopDisplay;
-            }
-            
-            // Subscribe to new player
-            player.OnShopRefreshed += RefreshShopDisplay;
-            player.OnTierChanged += RefreshShopDisplay;
-            cachedPlayer = player;
-        }
-    }
-    
+
     public void RefreshShopDisplay()
     {
-        // Update subscription if player changed
-        SubscribeToPlayerEvents();
         
         ClearShopDisplay();
         
@@ -177,12 +152,4 @@ public class ShopUI : MonoBehaviour
         return GameUIManager.Instance.GetActivePlayer();
     }
     
-    private void OnDestroy()
-    {
-        if (cachedPlayer != null)
-        {
-            cachedPlayer.OnShopRefreshed -= RefreshShopDisplay;
-            cachedPlayer.OnTierChanged -= RefreshShopDisplay;
-        }
-    }
 }
