@@ -154,10 +154,24 @@ public class Player : MonoBehaviour
 
         Card card = board[index];
         int value = 1 + card.sellValueModifier;
+
+        // Apply synergy sell bonus (e.g., Pentacles)
+        if (SynergyManager.Instance != null)
+        {
+            int synergyBonus = SynergyManager.Instance.GetSellBonus(card);
+            value += synergyBonus;
+            if (synergyBonus > 0)
+                Debug.Log($"[Synergy] Sell bonus: +{synergyBonus} gold");
+        }
+
         coins += value; // This triggers OnCoinsChanged via property setter
         AbilityManager.UnregisterCard(card); // Clean up abilities
         tavern.ReturnCardToPool(card);
         board.RemoveAt(index);
+
+        // Update synergy counts after board change
+        if (SynergyManager.Instance != null)
+            SynergyManager.Instance.UpdateTribeCounts(board);
 
         // Fire events
         OnBoardChanged?.Invoke();
@@ -223,6 +237,10 @@ public class Player : MonoBehaviour
         var battlecryContext = AbilityManager.CreateBattlecryContext(card, this);
         AbilityManager.TriggerAbilities(AbilityTrigger.Battlecry, battlecryContext);
 
+        // Update synergy counts after board change
+        if (SynergyManager.Instance != null)
+            SynergyManager.Instance.UpdateTribeCounts(board);
+
         // Fire events
         OnHandChanged?.Invoke();
         OnBoardChanged?.Invoke();
@@ -240,7 +258,14 @@ public class Player : MonoBehaviour
                 TriggerLastReading(card);
             }
         }
-        Debug.Log($"Player {playerId}: Recruit phase ended. LastReading effects triggered.");
+
+        // Trigger EndOfTurn synergies
+        if (SynergyManager.Instance != null)
+        {
+            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.EndOfTurn, board, this);
+        }
+
+        Debug.Log($"Player {playerId}: Recruit phase ended. LastReading and synergy effects triggered.");
     }
     
     private void TriggerSummoning(Card card)

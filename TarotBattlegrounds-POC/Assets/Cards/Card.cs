@@ -6,6 +6,13 @@ public class Card : ScriptableObject
     [Header("Card Info")]
     public string cardName;
     public int tier;
+
+    [Header("Tribe System (Phase 4+)")]
+    [Tooltip("Tribes this card belongs to (supports multi-tribe)")]
+    public TribeType[] tribes = new TribeType[0];
+
+    [Header("Legacy Tribe (Phase 1-3)")]
+    [Tooltip("Legacy string tribe - kept for backwards compatibility")]
     public string tribe;
 
     [Header("Stats")]
@@ -120,6 +127,16 @@ public class Card : ScriptableObject
         clone.cardName = this.cardName;
         clone.tier = this.tier;
         clone.tribe = this.tribe;
+        // Clone tribes array (Phase 4+)
+        if (this.tribes != null && this.tribes.Length > 0)
+        {
+            clone.tribes = new TribeType[this.tribes.Length];
+            System.Array.Copy(this.tribes, clone.tribes, this.tribes.Length);
+        }
+        else
+        {
+            clone.tribes = new TribeType[0];
+        }
         clone.attack = this.attack;
         clone.health = this.health;
         clone.cardImage = this.cardImage;
@@ -136,6 +153,27 @@ public class Card : ScriptableObject
         // Register abilities for cloned card (needed for combat simulation)
         clone.RegisterAbility();
         return clone;
+    }
+
+    /// <summary>
+    /// Check if this card belongs to a specific tribe.
+    /// </summary>
+    public bool HasTribe(TribeType tribeType)
+    {
+        if (tribes == null || tribes.Length == 0) return false;
+        foreach (var t in tribes)
+        {
+            if (t == tribeType) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Get all tribes this card belongs to.
+    /// </summary>
+    public TribeType[] GetTribes()
+    {
+        return tribes ?? new TribeType[0];
     }
 
     public virtual void OnAttack(Card defender) { }

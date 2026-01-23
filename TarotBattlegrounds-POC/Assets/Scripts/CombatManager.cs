@@ -94,6 +94,17 @@ public static class CombatManager
             return (damage, pName);
         }
         
+        // Trigger StartOfCombat synergies on cloned boards
+        if (SynergyManager.Instance != null)
+        {
+            // Update synergy counts for combat (using cloned boards)
+            SynergyManager.Instance.UpdateTribeCounts(pBoardCopy);
+            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, pBoardCopy, null);
+
+            SynergyManager.Instance.UpdateTribeCounts(aBoardCopy);
+            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, aBoardCopy, null);
+        }
+
         // Determine who attacks first
         bool pFirst = UnityEngine.Random.value > 0.5f;
         string firstPlayer = pFirst ? pName : aName;
