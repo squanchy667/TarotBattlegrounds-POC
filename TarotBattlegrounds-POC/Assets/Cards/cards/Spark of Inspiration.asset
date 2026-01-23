@@ -21,5 +21,8 @@ MonoBehaviour:
   ability: Buffs adjacent minions' attack
   effectType: 1
   effectParameter: BuffAttack:2
+  abilityTrigger: 1
+  abilityEffect: 6
+  abilityValue: 1
   buyCostModifier: 0
   sellValueModifier: 0

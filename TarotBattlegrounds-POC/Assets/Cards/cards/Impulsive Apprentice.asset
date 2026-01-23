@@ -21,5 +21,8 @@ MonoBehaviour:
   ability: 
   effectType: 3
   effectParameter: 
+  abilityTrigger: 5
+  abilityEffect: 4
+  abilityValue: 1
   buyCostModifier: 0
   sellValueModifier: 0
