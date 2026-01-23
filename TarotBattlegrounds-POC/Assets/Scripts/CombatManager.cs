@@ -106,8 +106,11 @@ public static class CombatManager
             TurnNumber = 0
         });
         
-        Debug.Log($"Entering attack phase: {firstPlayer} attacks first, {pName}={pBoardCopy.Count}, {aName}={aBoardCopy.Count}");
-        
+        Debug.Log($"=== COMBAT START ===");
+        Debug.Log($"pName={pName} (board: {pBoardCopy.Count}), aName={aName} (board: {aBoardCopy.Count})");
+        Debug.Log($"pFirst={pFirst}, so firstPlayer={firstPlayer}");
+        Debug.Log($"Entering attack phase: {firstPlayer} attacks first");
+
         // Setup attack sides
         List<(List<Card> attackers, List<Card> targetBoard, bool isP, string attackerName, string targetName)> sides = 
             new List<(List<Card>, List<Card>, bool, string, string)>
@@ -119,22 +122,28 @@ public static class CombatManager
         int currentSide = pFirst ? 0 : 1;
         int turnCount = 1;
         bool hasValidAttack = true;
-        
+
+        Debug.Log($"Starting combat loop: currentSide={currentSide}, turnCount={turnCount}");
+
         while (hasValidAttack)
         {
             hasValidAttack = false;
             var (attackers, targetBoard, isP, attackerName, targetName) = sides[currentSide];
-            
+
+            Debug.Log($"--- TURN {turnCount} START ---");
+            Debug.Log($"currentSide={currentSide}, attackerName={attackerName}, targetName={targetName}");
+            Debug.Log($"attackers count: {attackers.Count(c => c.health > 0)} alive, targets count: {targetBoard.Count(c => c.health > 0)} alive");
+
             var attacker = attackers.FirstOrDefault(c => c.health > 0);
-            
+
+            Debug.Log($"[BEFORE_LOGENTRY] About to log Turn {turnCount}: {attackerName}'s turn");
             LogEntry(new CombatLogEntry
             {
                 Type = CombatLogEntry.LogType.TurnStart,
                 Message = $"Turn {turnCount}: {attackerName}'s turn",
                 TurnNumber = turnCount
             });
-            
-            Debug.Log($"Turn {turnCount}: {attackerName}'s turn");
+            Debug.Log($"[AFTER_LOGENTRY] Done logging Turn {turnCount}: {attackerName}'s turn");
             
             if (attacker != null)
             {
@@ -294,15 +303,22 @@ public static class CombatManager
                 }
             }
             
+            Debug.Log($"--- TURN {turnCount} END ---");
             currentSide = 1 - currentSide;
             turnCount++;
-            
+            Debug.Log($"After turn: currentSide now {currentSide}, turnCount now {turnCount}");
+
             // Check if battle should end
-            if (!sides[0].attackers.Any(c => c.health > 0) || !sides[1].attackers.Any(c => c.health > 0))
+            int side0Alive = sides[0].attackers.Count(c => c.health > 0);
+            int side1Alive = sides[1].attackers.Count(c => c.health > 0);
+            Debug.Log($"Board state: sides[0]={side0Alive} alive, sides[1]={side1Alive} alive");
+
+            if (side0Alive == 0 || side1Alive == 0)
             {
                 hasValidAttack = false;
+                Debug.Log($"Battle ending: one side has no cards");
             }
-            
+
             // Safety limit to prevent infinite loops
             if (turnCount > 100)
             {
@@ -387,6 +403,7 @@ public static class CombatManager
     
     private static void LogEntry(CombatLogEntry entry)
     {
+        Debug.Log($"[LogEntry] Invoking event for: {entry.Message} (Turn {entry.TurnNumber})");
         OnCombatLogEntry?.Invoke(entry);
     }
 }

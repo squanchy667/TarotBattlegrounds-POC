@@ -49,13 +49,14 @@ public class CombatLogUI : MonoBehaviour
     /// </summary>
     public void OnCombatStart(string player1, string player2)
     {
+        Debug.Log($"[CombatLogUI.OnCombatStart] START - {player1} vs {player2}");
         currentPlayer1 = player1;
         currentPlayer2 = player2;
-        
+
         // Show panel
         if (combatLogPanel != null)
             combatLogPanel.SetActive(true);
-        
+
         // Clear previous entries
         ClearLog();
         
@@ -113,9 +114,11 @@ public class CombatLogUI : MonoBehaviour
     /// </summary>
     public void AddLogEntry(CombatLogEntry entry)
     {
+        Debug.Log($"[CombatLogUI.AddLogEntry] Received: {entry.Message} (Turn {entry.TurnNumber}, Type: {entry.Type})");
+
         if (logEntryPrefab == null || logEntriesContainer == null)
         {
-            Debug.Log($"[Combat Log] {entry.Message}");
+            Debug.Log($"[Combat Log] FALLBACK - prefab or container null: {entry.Message}");
             return;
         }
         
@@ -227,6 +230,7 @@ public class CombatLogUI : MonoBehaviour
     /// </summary>
     public void ClearLog()
     {
+        Debug.Log($"[CombatLogUI.ClearLog] Clearing {logEntries.Count} entries");
         foreach (var entry in logEntries)
         {
             if (entry != null)
