@@ -117,6 +117,14 @@ public class GameManager : MonoBehaviour
                 }
             }
             turnNumber++;
+
+            // Check for eliminations and game end AFTER combat
+            List<int> remainingPlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
+            if (remainingPlayers.Count == 1)
+            {
+                Debug.Log($"Game Over: Player {remainingPlayers[0] + 1} wins!");
+                break;
+            }
             if (playerHealths.All(h => h <= 0))
             {
                 Debug.Log("Game Over: All players defeated");
