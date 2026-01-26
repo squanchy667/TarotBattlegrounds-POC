@@ -231,7 +231,7 @@ public class AIController : MonoBehaviour
             score += 2f;
 
         // Effect bonus (legacy system)
-        if (card.effectType != Card.EffectType.None)
+        if (card.effectType != Card.EffectType.NoEffect)
             score += 1.5f;
 
         return score;
@@ -296,8 +296,7 @@ public class AIController : MonoBehaviour
         // - Buff cards = place next to targets
 
         // Taunt goes to front
-        if (card.effectType == Card.EffectType.Guardian ||
-            (card.abilityTrigger != AbilityTrigger.None && card.abilityTarget == AbilityTarget.Self))
+        if (card.effectType == Card.EffectType.Guardian)
         {
             return 0;
         }

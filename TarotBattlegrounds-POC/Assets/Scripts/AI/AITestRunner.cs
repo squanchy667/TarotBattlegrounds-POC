@@ -99,7 +99,7 @@ public class AITestRunner : MonoBehaviour
             yield return new WaitForSeconds(delayBetweenGames);
         }
 
-        avgGameLength = gameLengths.Count > 0 ? gameLengths.Average() : 0f;
+        avgGameLength = gameLengths.Count > 0 ? (float)gameLengths.Average() : 0f;
         isRunning = false;
         PrintResults();
     }
