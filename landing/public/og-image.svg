@@ -1,0 +1,18 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#121620"/>
+  <rect x="80" y="70" width="1040" height="490" rx="36" fill="#1F2A38" stroke="#C0A060" stroke-width="2"/>
+  <circle cx="930" cy="190" r="90" stroke="#4090FF" stroke-width="2" stroke-dasharray="6 10"/>
+  <circle cx="930" cy="190" r="52" stroke="#C0A060" stroke-width="2"/>
+  <text x="140" y="210" fill="#F4E5C3" font-family="Georgia, serif" font-size="56" letter-spacing="1">
+    Tarot Battlegrounds
+  </text>
+  <text x="140" y="270" fill="#C0A060" font-family="Georgia, serif" font-size="28" letter-spacing="3">
+    STAR-FORGE BETA
+  </text>
+  <text x="140" y="350" fill="#F4E5C3" font-family="Arial, sans-serif" font-size="28">
+    The Universe is a Machine. Take the Controls.
+  </text>
+  <text x="140" y="400" fill="#D2C7B0" font-family="Arial, sans-serif" font-size="22">
+    Enter the Star-Forge and calibrate your Fate Keys.
+  </text>
+</svg>
