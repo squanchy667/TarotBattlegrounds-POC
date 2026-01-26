@@ -69,6 +69,8 @@ public class ShopCardUI : MonoBehaviour
         }
     }
 
+    public Card GetCard() => card;
+
     private void OnDestroy()
     {
         if (cardButton != null)
