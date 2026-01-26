@@ -65,6 +65,8 @@ public class BoardCardUI : MonoBehaviour
         if (healthText != null) healthText.text = health.ToString();
     }
 
+    public Card GetCard() => card;
+
     private void OnDestroy()
     {
         if (cardButton != null)

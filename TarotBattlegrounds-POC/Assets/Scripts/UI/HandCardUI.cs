@@ -59,6 +59,8 @@ public class HandCardUI : MonoBehaviour
             cardBackground.color = selected ? selectedColor : normalColor;
     }
 
+    public Card GetCard() => card;
+
     private void OnDestroy()
     {
         if (cardButton != null)
