@@ -14,6 +14,15 @@ public class GameManager : MonoBehaviour
     private int turnNumber = 1;
     private float recruitTimer = 35f;
 
+    [Header("AI Settings")]
+    [Tooltip("Index 0 = human player, others are AI")]
+    public int humanPlayerIndex = 0;
+    public AIDifficulty ai1Difficulty = AIDifficulty.Easy;
+    public AIDifficulty ai2Difficulty = AIDifficulty.Medium;
+    public AIDifficulty ai3Difficulty = AIDifficulty.Hard;
+
+    private Dictionary<int, AIController> aiControllers = new Dictionary<int, AIController>();
+
     public GamePhase CurrentPhase => currentPhase;
     public int TurnNumber => turnNumber;
 
@@ -52,6 +61,31 @@ public class GameManager : MonoBehaviour
             {
                 Debug.LogError($"TavernManager.Instance is null during GameManager Start!");
             }
+
+            // Setup AI controllers for non-human players
+            if (i != humanPlayerIndex)
+            {
+                AIController ai = players[i].GetComponent<AIController>();
+                if (ai == null)
+                {
+                    ai = players[i].gameObject.AddComponent<AIController>();
+                }
+
+                // Initialize the AI with player reference
+                ai.Initialize(players[i]);
+
+                // Assign difficulty based on player index
+                if (i == 1) ai.difficulty = ai1Difficulty;
+                else if (i == 2) ai.difficulty = ai2Difficulty;
+                else if (i == 3) ai.difficulty = ai3Difficulty;
+
+                aiControllers[i] = ai;
+                Debug.Log($"[GameManager] Player {i + 1} is AI ({ai.difficulty})");
+            }
+            else
+            {
+                Debug.Log($"[GameManager] Player {i + 1} is HUMAN");
+            }
         }
         playerHealths = new List<int>(Enumerable.Repeat(40, playerCount).ToArray());
         StartCoroutine(GameLoop());
@@ -73,46 +107,36 @@ public class GameManager : MonoBehaviour
             List<(int, int)> battles = GeneratePairwiseBattles(activePlayers);
             foreach (var (p1, p2) in battles)
             {
-                if (p1 >= 0 && p2 >= 0)
+                if (p1 >= 0 && p2 >= 0 && p1 < playerCount && p2 < playerCount)
                 {
                     var board1 = players[p1].board;
-                    var board2 = p2 < playerCount ? players[p2].board : GenerateAIBoard(turnNumber, players[p1].currentTavernTier);
-                    string p2Name = p2 < playerCount ? $"Player {p2 + 1}" : "AI";
-                    var (damage, winner) = CombatManager.SimulateBattle(board1, board2, players[p1].currentTavernTier, $"Player {p1 + 1}", p2Name);
+                    var board2 = players[p2].board;
+                    string p1Name = $"Player {p1 + 1}" + (p1 != humanPlayerIndex ? " (AI)" : " (You)");
+                    string p2Name = $"Player {p2 + 1}" + (p2 != humanPlayerIndex ? " (AI)" : " (You)");
+                    var (damage, winner) = CombatManager.SimulateBattle(board1, board2, Mathf.Max(players[p1].currentTavernTier, players[p2].currentTavernTier), p1Name, p2Name);
+                    Debug.Log($"[Combat] {p1Name} vs {p2Name}");
+                    Debug.Log($"  {p1Name} Board: " + string.Join(", ", board1.Select(c => c.cardName)));
+                    Debug.Log($"  {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName)));
+
                     if (winner == "Tie")
                     {
                         playerHealths[p1] -= damage;
-                        players[p1].Health = playerHealths[p1]; // Sync to Player.Health to fire OnHealthChanged
-                        if (p2 < playerCount)
-                        {
-                            playerHealths[p2] -= damage;
-                            players[p2].Health = playerHealths[p2]; // Sync to Player.Health to fire OnHealthChanged
-                        }
-                        Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
-                        Debug.Log($"Combat outcome: Tie - Player {p1 + 1} takes {damage} damage. Health remaining: {playerHealths[p1]}");
-                        if (p2 < playerCount)
-                            Debug.Log($"Combat outcome: Tie - {p2Name} takes {damage} damage. Health remaining: {playerHealths[p2]}");
+                        playerHealths[p2] -= damage;
+                        players[p1].Health = playerHealths[p1];
+                        players[p2].Health = playerHealths[p2];
+                        Debug.Log($"[Combat] TIE! Both take {damage} damage. {p1Name}: {playerHealths[p1]} HP, {p2Name}: {playerHealths[p2]} HP");
                     }
-                    else if (winner == $"Player {p1 + 1}")
+                    else if (winner == p1Name)
                     {
-                        if (p2 < playerCount)
-                        {
-                            playerHealths[p2] -= damage;
-                            players[p2].Health = playerHealths[p2]; // Sync to Player.Health to fire OnHealthChanged
-                        }
-                        Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
-                        Debug.Log($"Combat outcome: Player {p1 + 1} wins, Health unchanged: {playerHealths[p1]}");
-                        if (p2 < playerCount)
-                            Debug.Log($"Combat outcome: {p2Name} takes {damage} damage. Health remaining: {playerHealths[p2]}");
+                        playerHealths[p2] -= damage;
+                        players[p2].Health = playerHealths[p2];
+                        Debug.Log($"[Combat] {p1Name} WINS! {p2Name} takes {damage} damage. Health: {playerHealths[p2]}");
                     }
                     else
                     {
                         playerHealths[p1] -= damage;
-                        players[p1].Health = playerHealths[p1]; // Sync to Player.Health to fire OnHealthChanged
-                        Debug.Log($"Simulating combat... Player {p1 + 1} Board: " + string.Join(", ", board1.Select(c => c.cardName + " (Tier " + c.tier + ")")) + $" | {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName + " (Tier " + c.tier + ")")));
-                        Debug.Log($"Combat outcome: {p2Name} wins, Player {p1 + 1} takes {damage} damage. Health remaining: {playerHealths[p1]}");
-                        if (p2 < playerCount)
-                            Debug.Log($"Combat outcome: {p2Name} Health unchanged: {playerHealths[p2]}");
+                        players[p1].Health = playerHealths[p1];
+                        Debug.Log($"[Combat] {p2Name} WINS! {p1Name} takes {damage} damage. Health: {playerHealths[p1]}");
                     }
                 }
             }
@@ -137,14 +161,22 @@ public class GameManager : MonoBehaviour
     private List<(int, int)> GeneratePairwiseBattles(List<int> activePlayers)
     {
         List<(int, int)> battles = new List<(int, int)>();
-        if (activePlayers.Count % 2 != 0)
+
+        // Clone and shuffle the list
+        var shuffled = activePlayers.OrderBy(x => Random.value).ToList();
+
+        // Handle odd number of players - one gets a bye (no battle)
+        if (shuffled.Count % 2 != 0)
         {
-            activePlayers.Add(playerCount);
+            int byePlayer = shuffled[shuffled.Count - 1];
+            shuffled.RemoveAt(shuffled.Count - 1);
+            Debug.Log($"[GameManager] Player {byePlayer + 1} gets a bye this round");
         }
-        activePlayers = activePlayers.OrderBy(x => Random.value).ToList();
-        for (int i = 0; i < activePlayers.Count; i += 2)
+
+        // Pair up remaining players
+        for (int i = 0; i < shuffled.Count; i += 2)
         {
-            battles.Add((activePlayers[i], activePlayers[i + 1]));
+            battles.Add((shuffled[i], shuffled[i + 1]));
         }
         return battles;
     }
@@ -166,6 +198,18 @@ public class GameManager : MonoBehaviour
             }
             Debug.Log($"Player {i + 1} Recruit Start: Coins = {player.coins}/{expectedCoins}, Upgrade Cost = {player.GetUpgradeCost()}, Current Tier = {player.currentTavernTier}, Hand Size = {player.hand.Count}, Board Size = {player.board.Count}");
         }
+
+        // AI players make their decisions at start of recruit phase
+        foreach (var kvp in aiControllers)
+        {
+            int playerIndex = kvp.Key;
+            if (playerHealths[playerIndex] <= 0) continue;
+
+            AIController ai = kvp.Value;
+            Debug.Log($"[GameManager] AI Player {playerIndex + 1} executing turn...");
+            ai.ExecuteTurn();
+        }
+
         if (GameUIManager.Instance != null && GameUIManager.Instance.GetShopUI() != null)
             GameUIManager.Instance.GetShopUI().RefreshShopDisplay();
         int lastLoggedSecond = Mathf.FloorToInt(timer);
@@ -174,7 +218,7 @@ public class GameManager : MonoBehaviour
             // Update UI timer
             if (GameUIManager.Instance != null)
                 GameUIManager.Instance.UpdateTimer(timer);
-            
+
             timer -= Time.deltaTime;
             yield return null;
         }

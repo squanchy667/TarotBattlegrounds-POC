@@ -57,6 +57,17 @@ public class AIController : MonoBehaviour
     }
 
     /// <summary>
+    /// Initialize the AI controller with required references.
+    /// Call this after adding the component dynamically.
+    /// </summary>
+    public void Initialize(Player playerRef)
+    {
+        player = playerRef;
+        tavern = TavernManager.Instance;
+        Debug.Log($"[AIController] Initialized for Player {player.playerId}");
+    }
+
+    /// <summary>
     /// Execute full AI turn. Call this during recruit phase.
     /// </summary>
     public void ExecuteTurn()

@@ -197,7 +197,7 @@ GameObject:
   - component: {fileID: 53587814}
   - component: {fileID: 53587813}
   m_Layer: 0
-  m_Name: Player2
+  m_Name: PlayerAI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1516,6 +1516,55 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 500271375}
   m_CullTransparentMesh: 1
+--- !u!1 &510140393
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 510140395}
+  - component: {fileID: 510140394}
+  m_Layer: 0
+  m_Name: PlayerAI (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &510140394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 510140393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d535f9d0e444340f6a518ea3fb422f8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerId: 0
+  hand: []
+  board: []
+  _coins: 0
+  _currentTavernTier: 1
+--- !u!4 &510140395
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 510140393}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.13903494, y: 0.22238228, z: -0.0024369592}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -1805,6 +1854,55 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &607134215
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 607134217}
+  - component: {fileID: 607134216}
+  m_Layer: 0
+  m_Name: PlayerAI (2)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &607134216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607134215}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d535f9d0e444340f6a518ea3fb422f8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerId: 0
+  hand: []
+  board: []
+  _coins: 0
+  _currentTavernTier: 1
+--- !u!4 &607134217
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607134215}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.13903494, y: 0.22238228, z: -0.0024369592}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6196,6 +6294,10 @@ MonoBehaviour:
   - {fileID: 809146111}
   - {fileID: 53587813}
   playerCount: 2
+  humanPlayerIndex: 0
+  ai1Difficulty: 0
+  ai2Difficulty: 1
+  ai3Difficulty: 2
 --- !u!1 &2142708791
 GameObject:
   m_ObjectHideFlags: 0
@@ -6246,6 +6348,8 @@ SceneRoots:
   - {fileID: 1070726477}
   - {fileID: 809146112}
   - {fileID: 53587814}
+  - {fileID: 510140395}
+  - {fileID: 607134217}
   - {fileID: 1987329472}
   - {fileID: 597926345}
   - {fileID: 246104548}
