@@ -1,0 +1,382 @@
+/* ========================================
+   Mechanical Gears - Star-Forge Aesthetic
+   ======================================== */
+
+/* Gearbox Container */
+.gearbox {
+  position: relative;
+  pointer-events: none;
+}
+
+.gearbox-sm {
+  width: 120px;
+  height: 120px;
+}
+
+.gearbox-md {
+  width: 200px;
+  height: 200px;
+}
+
+.gearbox-lg {
+  width: 300px;
+  height: 300px;
+}
+
+/* Base Gear Styles */
+.gear {
+  position: absolute;
+  background: linear-gradient(145deg,
+    rgba(192, 160, 96, 0.9),
+    rgba(143, 116, 62, 0.9)
+  );
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    inset 0 2px 0 rgba(212, 188, 130, 0.3),
+    0 0 20px rgba(192, 160, 96, 0.3);
+}
+
+.gear::before {
+  content: '';
+  position: absolute;
+  inset: 15%;
+  background: linear-gradient(145deg, #121620, #1F2A38);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(192, 160, 96, 0.3);
+}
+
+.gear::after {
+  content: '';
+  position: absolute;
+  inset: 35%;
+  background: radial-gradient(circle,
+    rgba(64, 144, 255, 0.3) 0%,
+    rgba(192, 160, 96, 0.8) 50%,
+    rgba(143, 116, 62, 1) 100%
+  );
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 5px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(64, 144, 255, 0.3);
+}
+
+/* Gear Inner (holds the bars/teeth) */
+.gear-inner {
+  position: absolute;
+  inset: 0;
+  animation: gear-spin 4s linear infinite;
+}
+
+/* Gear Teeth (bars) */
+.gear-inner .bar {
+  position: absolute;
+  top: -8%;
+  left: 50%;
+  width: 18%;
+  height: 116%;
+  margin-left: -9%;
+  background: linear-gradient(90deg,
+    rgba(143, 116, 62, 1) 0%,
+    rgba(192, 160, 96, 1) 30%,
+    rgba(212, 188, 130, 1) 50%,
+    rgba(192, 160, 96, 1) 70%,
+    rgba(143, 116, 62, 1) 100%
+  );
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 3px rgba(0, 0, 0, 0.3),
+    0 0 5px rgba(192, 160, 96, 0.2);
+}
+
+.gear-inner .bar:nth-child(2) {
+  transform: rotate(60deg);
+}
+
+.gear-inner .bar:nth-child(3) {
+  transform: rotate(120deg);
+}
+
+.gear-inner .bar:nth-child(4) {
+  transform: rotate(30deg);
+}
+
+.gear-inner .bar:nth-child(5) {
+  transform: rotate(90deg);
+}
+
+.gear-inner .bar:nth-child(6) {
+  transform: rotate(150deg);
+}
+
+/* Gear Positions - Small */
+.gearbox-sm .gear-one {
+  width: 40px;
+  height: 40px;
+  top: 10px;
+  left: 10px;
+}
+
+.gearbox-sm .gear-two {
+  width: 30px;
+  height: 30px;
+  top: 45px;
+  left: 40px;
+}
+
+.gearbox-sm .gear-two .gear-inner {
+  animation-direction: reverse;
+  animation-duration: 3s;
+}
+
+.gearbox-sm .gear-three {
+  width: 25px;
+  height: 25px;
+  top: 15px;
+  left: 55px;
+}
+
+.gearbox-sm .gear-three .gear-inner {
+  animation-duration: 2.5s;
+}
+
+.gearbox-sm .gear-four {
+  width: 60px;
+  height: 60px;
+  top: 50px;
+  left: 55px;
+}
+
+.gearbox-sm .gear-four .gear-inner {
+  animation-direction: reverse;
+  animation-duration: 6s;
+}
+
+/* Gear Positions - Medium */
+.gearbox-md .gear-one {
+  width: 60px;
+  height: 60px;
+  top: 20px;
+  left: 20px;
+}
+
+.gearbox-md .gear-two {
+  width: 50px;
+  height: 50px;
+  top: 70px;
+  left: 65px;
+}
+
+.gearbox-md .gear-two .gear-inner {
+  animation-direction: reverse;
+  animation-duration: 3.33s;
+}
+
+.gearbox-md .gear-three {
+  width: 40px;
+  height: 40px;
+  top: 25px;
+  left: 90px;
+}
+
+.gearbox-md .gear-three .gear-inner {
+  animation-duration: 2.67s;
+}
+
+.gearbox-md .gear-four {
+  width: 90px;
+  height: 90px;
+  top: 85px;
+  left: 90px;
+}
+
+.gearbox-md .gear-four .gear-inner {
+  animation-direction: reverse;
+  animation-duration: 6s;
+}
+
+/* Gear Positions - Large */
+.gearbox-lg .gear-one {
+  width: 80px;
+  height: 80px;
+  top: 30px;
+  left: 30px;
+}
+
+.gearbox-lg .gear-two {
+  width: 70px;
+  height: 70px;
+  top: 100px;
+  left: 90px;
+}
+
+.gearbox-lg .gear-two .gear-inner {
+  animation-direction: reverse;
+  animation-duration: 3.5s;
+}
+
+.gearbox-lg .gear-three {
+  width: 55px;
+  height: 55px;
+  top: 35px;
+  left: 125px;
+}
+
+.gearbox-lg .gear-three .gear-inner {
+  animation-duration: 2.75s;
+}
+
+.gearbox-lg .gear-four {
+  width: 120px;
+  height: 120px;
+  top: 130px;
+  left: 130px;
+}
+
+.gearbox-lg .gear-four .gear-inner {
+  animation-direction: reverse;
+  animation-duration: 6s;
+}
+
+/* Keyframes */
+@keyframes gear-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================================
+   Single Gear Component
+   ======================================== */
+
+.single-gear {
+  position: relative;
+  width: var(--gear-size, 60px);
+  height: var(--gear-size, 60px);
+  background: linear-gradient(145deg,
+    rgba(192, 160, 96, 0.9),
+    rgba(143, 116, 62, 0.9)
+  );
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    inset 0 2px 0 rgba(212, 188, 130, 0.3),
+    0 0 20px rgba(192, 160, 96, 0.3);
+}
+
+.single-gear::before {
+  content: '';
+  position: absolute;
+  inset: 15%;
+  background: linear-gradient(145deg, #121620, #1F2A38);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(192, 160, 96, 0.3);
+}
+
+.single-gear::after {
+  content: '';
+  position: absolute;
+  inset: 35%;
+  background: radial-gradient(circle,
+    rgba(64, 144, 255, 0.4) 0%,
+    rgba(192, 160, 96, 0.9) 60%
+  );
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 5px rgba(0, 0, 0, 0.5),
+    0 0 15px rgba(64, 144, 255, 0.4);
+}
+
+.single-gear .gear-inner {
+  position: absolute;
+  inset: 0;
+  animation: gear-spin var(--gear-speed, 4s) linear infinite var(--gear-direction, normal);
+}
+
+.single-gear .gear-inner .bar {
+  position: absolute;
+  top: -10%;
+  left: 50%;
+  width: 20%;
+  height: 120%;
+  margin-left: -10%;
+  background: linear-gradient(90deg,
+    rgba(143, 116, 62, 1) 0%,
+    rgba(192, 160, 96, 1) 30%,
+    rgba(212, 188, 130, 1) 50%,
+    rgba(192, 160, 96, 1) 70%,
+    rgba(143, 116, 62, 1) 100%
+  );
+  border-radius: 4px;
+  transform: rotate(calc(180deg / var(--bar-count) * var(--bar-index)));
+  box-shadow:
+    inset 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   Gear Decoration Wrapper
+   ======================================== */
+
+.gear-decoration {
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ========================================
+   Sapphire Energy Variant
+   ======================================== */
+
+.gear-sapphire .gear {
+  background: linear-gradient(145deg,
+    rgba(64, 144, 255, 0.8),
+    rgba(32, 72, 128, 0.9)
+  );
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    inset 0 2px 0 rgba(96, 168, 255, 0.3),
+    0 0 30px rgba(64, 144, 255, 0.4);
+}
+
+.gear-sapphire .gear::after {
+  background: radial-gradient(circle,
+    rgba(192, 160, 96, 0.3) 0%,
+    rgba(64, 144, 255, 0.8) 50%,
+    rgba(32, 72, 128, 1) 100%
+  );
+  box-shadow:
+    inset 0 0 5px rgba(0, 0, 0, 0.5),
+    0 0 15px rgba(64, 144, 255, 0.5);
+}
+
+.gear-sapphire .gear-inner .bar {
+  background: linear-gradient(90deg,
+    rgba(32, 72, 128, 1) 0%,
+    rgba(64, 144, 255, 1) 30%,
+    rgba(96, 168, 255, 1) 50%,
+    rgba(64, 144, 255, 1) 70%,
+    rgba(32, 72, 128, 1) 100%
+  );
+}
+
+/* ========================================
+   Hover Effects for Interactive Gears
+   ======================================== */
+
+.gear-interactive:hover .gear-inner {
+  animation-duration: 1s;
+}
+
+.gear-interactive:hover .gear {
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    inset 0 2px 0 rgba(212, 188, 130, 0.5),
+    0 0 40px rgba(192, 160, 96, 0.6),
+    0 0 60px rgba(64, 144, 255, 0.3);
+}

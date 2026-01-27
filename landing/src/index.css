@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@400;500;600;700;800;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
 
 /* ========================================
    CSS Variables - The Star-Forge Palette
@@ -7,17 +7,17 @@
   /* Colors */
   --bg-void: #0a0c12;
   --bg-cosmos: #121620;
-  --bg-blueprint: #1a2030;
+  --bg-blueprint: #1F2A38;
   --bg-card: rgba(18, 22, 32, 0.85);
 
-  --brass: #c0a060;
+  --brass: #C0A060;
   --brass-light: #d4bc82;
   --brass-dark: #8f743e;
   --copper: #487068;
-  --sapphire: #4090ff;
+  --sapphire: #4090FF;
   --sapphire-light: #60a8ff;
-  --ruby: #a03030;
-  --violet: #8b5cf6;
+  --ruby: #A03030;
+  --violet: #8B5CF6;
 
   --text-primary: #f4e5c3;
   --text-secondary: rgba(231, 221, 199, 0.75);
@@ -26,9 +26,10 @@
   --glow-sapphire: rgba(64, 144, 255, 0.4);
   --glow-brass: rgba(192, 160, 96, 0.4);
 
-  /* Typography */
-  --font-display: 'Grenze Gotisch', Georgia, serif;
-  --font-body: 'Crimson Text', Georgia, serif;
+  /* Typography - Updated to Cinzel Decorative + Roboto Mono */
+  --font-display: 'Cinzel Decorative', Georgia, serif;
+  --font-tech: 'Roboto Mono', monospace;
+  --font-body: 'Roboto Mono', monospace;
 
   /* Transitions */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -1781,8 +1782,11 @@ a {
   margin-bottom: 1rem;
 }
 
-.tribe-symbol-svg {
-  filter: drop-shadow(0 0 15px currentColor);
+.tribe-symbol-img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.15));
 }
 
 /* Enhanced Tribe Cards with SVG symbols */
@@ -1823,5 +1827,483 @@ a {
   @keyframes cardFloat {
     0%, 100% { transform: translate(-50%, -50%) scale(0.85) translateY(0); }
     50% { transform: translate(-50%, -50%) scale(0.85) translateY(-8px); }
+  }
+}
+
+/* ========================================
+   Premium Landing Page Enhancements
+   ======================================== */
+
+/* Navigation Enhancements */
+.nav-scrolled {
+  background: rgba(10, 12, 18, 0.98);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile Navigation */
+.nav-mobile-toggle {
+  display: none;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 110;
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 24px;
+}
+
+.hamburger span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: var(--brass);
+  transition: all 0.3s ease;
+}
+
+.hamburger.open span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.open span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+.nav-mobile-menu {
+  position: fixed;
+  top: 80px;
+  left: 0;
+  right: 0;
+  background: rgba(10, 12, 18, 0.98);
+  backdrop-filter: blur(20px);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border-bottom: 1px solid rgba(192, 160, 96, 0.2);
+  z-index: 99;
+}
+
+.nav-mobile-menu button {
+  font-family: var(--font-tech);
+  font-size: 1rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: color 0.3s ease;
+}
+
+.nav-mobile-menu button:hover {
+  color: var(--sapphire-light);
+}
+
+@media (max-width: 900px) {
+  .nav-mobile-toggle {
+    display: block;
+  }
+}
+
+/* Hero Section Enhancements */
+.hero-title .word-wrapper {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.title-line {
+  display: block;
+}
+
+/* Section Tags - Technical Style */
+.section-tag {
+  font-family: var(--font-tech);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--sapphire);
+  margin-bottom: 1rem;
+  padding: 0.4rem 1rem;
+  border: 1px solid rgba(64, 144, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(64, 144, 255, 0.05);
+}
+
+/* Gameplay Connectors */
+.steps-connectors {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (min-width: 901px) {
+  .steps-connectors {
+    display: block;
+  }
+}
+
+/* Loop Diagram Enhancements */
+.loop-inner-ring {
+  position: absolute;
+  inset: 15%;
+  border: 1px solid rgba(64, 144, 255, 0.2);
+  border-radius: 50%;
+  animation: spin 25s linear infinite reverse;
+}
+
+.loop-center .loop-icon {
+  display: block;
+  font-size: 1.5rem;
+  color: var(--brass);
+  margin-bottom: 0.3rem;
+}
+
+/* Experience Card Glow */
+.exp-card-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  opacity: 0;
+  background: radial-gradient(circle at center, rgba(192, 160, 96, 0.1), transparent 70%);
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.exp-card:hover .exp-card-glow {
+  opacity: 1;
+}
+
+.exp-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Tribe Card Enhancements */
+.tribe-card-glare {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgba(255, 255, 255, 0.1),
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tribe-card:hover .tribe-card-glare {
+  opacity: 1;
+}
+
+/* Tribe Card Corners */
+.tribe-corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--tribe-color);
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.tribe-corner-tl {
+  top: 8px;
+  left: 8px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+.tribe-corner-tr {
+  top: 8px;
+  right: 8px;
+  border-top: 2px solid;
+  border-right: 2px solid;
+}
+
+.tribe-corner-bl {
+  bottom: 8px;
+  left: 8px;
+  border-bottom: 2px solid;
+  border-left: 2px solid;
+}
+
+.tribe-corner-br {
+  bottom: 8px;
+  right: 8px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+}
+
+.tribe-card:hover .tribe-corner {
+  opacity: 1;
+}
+
+/* Beta Section Success Animation */
+.success-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Footer Gear Decoration */
+.footer-gear {
+  position: absolute;
+  right: -100px;
+  bottom: -100px;
+  width: 300px;
+  height: 300px;
+  opacity: 0.1;
+  animation: spin 60s linear infinite;
+}
+
+.gear-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Button Shine Animation */
+.btn-primary .btn-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: none;
+}
+
+.btn-primary:hover .btn-shine {
+  animation: shinePass 0.6s ease forwards;
+}
+
+@keyframes shinePass {
+  from { left: -100%; }
+  to { left: 100%; }
+}
+
+/* Input Focus States */
+.beta-form input:focus,
+.beta-form select:focus {
+  border-color: var(--brass);
+  box-shadow: 0 0 20px rgba(192, 160, 96, 0.2);
+}
+
+/* Technical Typography Adjustments */
+h1, h2, h3 {
+  font-family: var(--font-display);
+}
+
+.section-tag,
+.stat-value,
+.stat-num,
+.step-num,
+.field-label,
+.chip,
+.bonus-text,
+.tribe-theme {
+  font-family: var(--font-tech);
+}
+
+/* Premium Button Large */
+.btn-lg {
+  padding: 1.25rem 3rem;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+/* Responsive Fixes */
+@media (max-width: 900px) {
+  .nav-links .nav-link {
+    display: none;
+  }
+
+  .hero-title {
+    font-size: clamp(2rem, 8vw, 3.5rem);
+  }
+
+  .section-header h2 {
+    font-size: clamp(1.8rem, 6vw, 2.8rem);
+  }
+
+  .steps-grid {
+    gap: 1.5rem;
+  }
+
+  .tribes-grid {
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .nav {
+    padding: 1rem 5vw;
+  }
+
+  .brand-text {
+    display: none;
+  }
+
+  .hero-chips {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chip {
+    justify-content: center;
+  }
+
+  .hero-cta {
+    flex-direction: column;
+  }
+
+  .hero-cta .btn {
+    width: 100%;
+  }
+
+  .beta-form {
+    padding: 1.5rem;
+  }
+
+  .tribes-tip {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+}
+
+/* Premium Word Reveal Animation Styles */
+.word-wrap {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.word {
+  display: inline-block;
+}
+
+/* Scroll Animation Helper */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+}
+
+.animate-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========================================
+   Holographic Tribe Cards
+   ======================================== */
+
+.tribe-card-holo {
+  text-align: center;
+}
+
+.tribe-card-content {
+  padding: 2rem 1.5rem;
+}
+
+.tribe-card-content h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+}
+
+.tribe-card-content .tribe-theme {
+  display: block;
+  font-family: var(--font-tech);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--tribe-color);
+  margin-bottom: 1rem;
+}
+
+.tribe-card-content p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.tribe-card-content .tribe-bonus {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tribe-card-content .bonus-label {
+  display: block;
+  font-family: var(--font-tech);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.tribe-card-content .bonus-text {
+  font-family: var(--font-tech);
+  font-size: 0.8rem;
+  color: var(--tribe-color);
+}
+
+/* Tribes Grid Update for Holo Cards */
+.tribes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+@media (max-width: 1100px) {
+  .tribes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .tribes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================
+   Page Gears Decoration
+   ======================================== */
+
+.page-gears {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.page-gear {
+  z-index: 0;
+}
+
+@media (max-width: 900px) {
+  .page-gears {
+    display: none;
   }
 }
