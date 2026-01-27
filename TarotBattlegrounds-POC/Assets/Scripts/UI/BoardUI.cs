@@ -96,7 +96,11 @@ public class BoardUI : MonoBehaviour
     {
         selectedCardIndex = index;
         Debug.Log($"Selected board card at index {index}");
-        
+
+        // Clear selections in other panels
+        if (SelectionManager.Instance != null)
+            SelectionManager.Instance.OnCardSelectedInPanel("Board");
+
         for (int i = 0; i < currentBoardCards.Count; i++)
         {
             CardDisplayUI cardUI = currentBoardCards[i].GetComponent<CardDisplayUI>();

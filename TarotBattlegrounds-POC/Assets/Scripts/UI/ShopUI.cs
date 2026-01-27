@@ -117,7 +117,11 @@ public class ShopUI : MonoBehaviour
     {
         selectedCardIndex = index;
         Debug.Log($"Selected shop card at index {index}");
-        
+
+        // Clear selections in other panels
+        if (SelectionManager.Instance != null)
+            SelectionManager.Instance.OnCardSelectedInPanel("Shop");
+
         // Update selection visuals
         for (int i = 0; i < currentShopCards.Count; i++)
         {
