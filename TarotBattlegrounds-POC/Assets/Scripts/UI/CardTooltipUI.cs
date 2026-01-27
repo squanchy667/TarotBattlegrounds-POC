@@ -117,23 +117,29 @@ public class CardTooltipUI : MonoBehaviour
 
     private void PopulateTooltip(Card card)
     {
-        // Card Name
+        // Card Name - bold and larger style via rich text
         if (cardNameText != null)
-            cardNameText.text = card.cardName;
+            cardNameText.text = $"<b>{card.cardName}</b>";
 
-        // Stats
+        // Stats with icons/colors
         if (statsText != null)
-            statsText.text = $"ATK: {card.attack}  HP: {card.health}";
+            statsText.text = $"<color=#FF6B6B>ATK: {card.attack}</color>  |  <color=#6BCB77>HP: {card.health}</color>";
 
-        // Tier
+        // Tier with star indicator
         if (tierText != null)
-            tierText.text = $"Tier {card.tier}";
+        {
+            string stars = new string('*', card.tier);
+            tierText.text = $"<color=#FFD93D>Tier {card.tier}</color> {stars}";
+        }
 
-        // Tribes
+        // Tribes with colored badges
         if (tribesText != null)
         {
             string tribeStr = GetTribesString(card);
-            tribesText.text = string.IsNullOrEmpty(tribeStr) ? "No Tribe" : tribeStr;
+            if (string.IsNullOrEmpty(tribeStr))
+                tribesText.text = "<color=#888888>No Tribe</color>";
+            else
+                tribesText.text = $"<color=#4ECDC4>{tribeStr}</color>";
         }
 
         // New Ability System
@@ -144,13 +150,19 @@ public class CardTooltipUI : MonoBehaviour
         if (hasAbility)
         {
             if (abilityTriggerText != null)
-                abilityTriggerText.text = GetTriggerName(card.abilityTrigger);
+                abilityTriggerText.text = $"<size=90%>{GetTriggerName(card.abilityTrigger)}</size>";
 
             if (abilityEffectText != null)
-                abilityEffectText.text = GetEffectDescription(card.abilityEffect, card.abilityValue);
+                abilityEffectText.text = $"<i>{GetEffectDescription(card.abilityEffect, card.abilityValue)}</i>";
 
             if (abilityDescriptionText != null)
-                abilityDescriptionText.text = card.ability;
+            {
+                string desc = card.ability;
+                if (!string.IsNullOrEmpty(desc))
+                    abilityDescriptionText.text = $"<color=#CCCCCC><size=85%>\"{desc}\"</size></color>";
+                else
+                    abilityDescriptionText.text = "";
+            }
         }
 
         // Legacy Effect System
