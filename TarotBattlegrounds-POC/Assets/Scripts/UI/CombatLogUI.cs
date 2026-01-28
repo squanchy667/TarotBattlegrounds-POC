@@ -26,7 +26,6 @@ public class CombatLogUI : MonoBehaviour, IThemeable
 
     [Header("Settings")]
     [SerializeField] private int maxLogEntries = 50;
-    [SerializeField] private float autoScrollDelay = 0.1f;
 
     [Header("Entry Colors (overridden by theme)")]
     [SerializeField] private Color attackColor = new Color(1f, 0.5f, 0.5f);

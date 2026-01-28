@@ -197,6 +197,27 @@ public class Card : ScriptableObject
         return tribes ?? new TribeType[0];
     }
 
+    /// <summary>
+    /// Get the primary (first) tribe of this card.
+    /// Returns TribeType.None if the card has no tribes.
+    /// </summary>
+    public TribeType GetPrimaryTribe()
+    {
+        // Check new tribes array first
+        if (tribes != null && tribes.Length > 0 && tribes[0] != TribeType.None)
+        {
+            return tribes[0];
+        }
+
+        // Fallback to legacy tribe string using ThemeManager
+        if (!string.IsNullOrEmpty(tribe))
+        {
+            return ThemeManager.ParseTribeName(tribe);
+        }
+
+        return TribeType.None;
+    }
+
     public virtual void OnAttack(Card defender) { }
     public virtual void OnDeath() { }
     public virtual void OnSurvive() { }
