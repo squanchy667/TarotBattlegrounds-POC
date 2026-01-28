@@ -8,23 +8,30 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
     public enum GamePhase { Recruit, Combat }
     public List<Player> players;
-    public int playerCount = 4;
+
+    [Header("Player Settings (Auto-configured from GameConfig)")]
+    [Tooltip("Number of active players (read from GameConfig)")]
+    public int playerCount = 2;
+
     private List<int> playerHealths;
     private GamePhase currentPhase = GamePhase.Recruit;
     private int turnNumber = 1;
     private float recruitTimer = 35f;
 
-    [Header("AI Settings")]
-    [Tooltip("Index 0 = human player, others are AI")]
+    [Header("AI Settings (Legacy - use GameConfig instead)")]
+    [Tooltip("These are now read from GameConfig automatically")]
     public int humanPlayerIndex = 0;
-    public AIDifficulty ai1Difficulty = AIDifficulty.Easy;
-    public AIDifficulty ai2Difficulty = AIDifficulty.Medium;
-    public AIDifficulty ai3Difficulty = AIDifficulty.Hard;
+    public AIDifficulty defaultAIDifficulty = AIDifficulty.Medium;
 
     private Dictionary<int, AIController> aiControllers = new Dictionary<int, AIController>();
 
     public GamePhase CurrentPhase => currentPhase;
     public int TurnNumber => turnNumber;
+
+    /// <summary>
+    /// Check if a player is human-controlled.
+    /// </summary>
+    public bool IsHumanPlayer(int playerIndex) => GameConfig.IsHumanPlayer(playerIndex);
 
     public int GetPlayerHealth(int index)
     {
@@ -35,12 +42,21 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        if (players == null || players.Count != playerCount)
+        // Load settings from GameConfig
+        playerCount = GameConfig.PlayerCount;
+        humanPlayerIndex = GameConfig.HumanPlayerIndex;
+        defaultAIDifficulty = GameConfig.DefaultAIDifficulty;
+
+        GameConfig.LogConfig();
+
+        if (players == null || players.Count < playerCount)
         {
-            Debug.LogError($"GameManager requires exactly {playerCount} Player instances!");
+            Debug.LogError($"GameManager requires at least {playerCount} Player instances! Found: {players?.Count ?? 0}");
             return;
         }
-        for (int i = 0; i < players.Count; i++)
+
+        // Only use the configured number of players
+        for (int i = 0; i < playerCount; i++)
         {
             if (players[i] == null)
             {
@@ -49,6 +65,7 @@ public class GameManager : MonoBehaviour
             }
             players[i].playerId = i + 1;
             Debug.Log($"Player {i + 1}: {players[i].gameObject.name}, Instance ID: {players[i].GetInstanceID()}");
+
             if (TavernManager.Instance != null)
             {
                 if (!TavernManager.Instance.availableCards.ContainsKey(i + 1))
@@ -62,8 +79,8 @@ public class GameManager : MonoBehaviour
                 Debug.LogError($"TavernManager.Instance is null during GameManager Start!");
             }
 
-            // Setup AI controllers for non-human players
-            if (i != humanPlayerIndex)
+            // Setup AI controllers for non-human players (using GameConfig)
+            if (!GameConfig.IsHumanPlayer(i))
             {
                 AIController ai = players[i].GetComponent<AIController>();
                 if (ai == null)
@@ -73,11 +90,7 @@ public class GameManager : MonoBehaviour
 
                 // Initialize the AI with player reference
                 ai.Initialize(players[i]);
-
-                // Assign difficulty based on player index
-                if (i == 1) ai.difficulty = ai1Difficulty;
-                else if (i == 2) ai.difficulty = ai2Difficulty;
-                else if (i == 3) ai.difficulty = ai3Difficulty;
+                ai.difficulty = GameConfig.GetAIDifficulty(i);
 
                 aiControllers[i] = ai;
                 Debug.Log($"[GameManager] Player {i + 1} is AI ({ai.difficulty})");
@@ -87,6 +100,17 @@ public class GameManager : MonoBehaviour
                 Debug.Log($"[GameManager] Player {i + 1} is HUMAN");
             }
         }
+
+        // Disable unused player objects
+        for (int i = playerCount; i < players.Count; i++)
+        {
+            if (players[i] != null)
+            {
+                players[i].gameObject.SetActive(false);
+                Debug.Log($"[GameManager] Player {i + 1} disabled (not needed for {playerCount}-player game)");
+            }
+        }
+
         playerHealths = new List<int>(Enumerable.Repeat(40, playerCount).ToArray());
         StartCoroutine(GameLoop());
     }
