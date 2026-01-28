@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewCard", menuName = "Tarot/Card")]
+[CreateAssetMenu(fileName = "NewCard", menuName = "Game/Card")]
 public class Card : ScriptableObject
 {
     [Header("Card Info")]
@@ -179,21 +179,11 @@ public class Card : ScriptableObject
             }
         }
 
-        // Fallback to legacy tribe string
+        // Fallback to legacy tribe string using ThemeManager
         if (!string.IsNullOrEmpty(tribe))
         {
-            string normalized = tribe.Trim().ToLower();
-            switch (tribeType)
-            {
-                case TribeType.Pentacles:
-                    return normalized == "pentacles" || normalized == "pentacle";
-                case TribeType.Cups:
-                    return normalized == "cups" || normalized == "cup";
-                case TribeType.Swords:
-                    return normalized == "swords" || normalized == "sword";
-                case TribeType.Wands:
-                    return normalized == "wands" || normalized == "wand";
-            }
+            TribeType parsedTribe = ThemeManager.ParseTribeName(tribe);
+            return parsedTribe == tribeType;
         }
 
         return false;

@@ -58,29 +58,14 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Parse legacy tribe string to TribeType enum.
+    /// Uses ThemeManager for theme-agnostic parsing.
     /// </summary>
     private TribeType ParseLegacyTribe(string tribeName)
     {
         if (string.IsNullOrEmpty(tribeName)) return TribeType.None;
 
-        string normalized = tribeName.Trim().ToLower();
-        switch (normalized)
-        {
-            case "pentacles":
-            case "pentacle":
-                return TribeType.Pentacles;
-            case "cups":
-            case "cup":
-                return TribeType.Cups;
-            case "swords":
-            case "sword":
-                return TribeType.Swords;
-            case "wands":
-            case "wand":
-                return TribeType.Wands;
-            default:
-                return TribeType.None;
-        }
+        // Use ThemeManager for parsing (supports aliases from theme config)
+        return ThemeManager.ParseTribeName(tribeName);
     }
 
     /// <summary>
@@ -425,7 +410,7 @@ public class SynergyManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Calculate bonus sell value from synergies (e.g., Pentacles).
+    /// Calculate bonus sell value from synergies (e.g., economy-focused tribes).
     /// </summary>
     public int GetSellBonus(Card card)
     {

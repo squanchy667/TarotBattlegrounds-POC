@@ -305,28 +305,38 @@ public class Player : MonoBehaviour
     private void TriggerLastReading(Card card)
     {
         if (card.effectType != Card.EffectType.LastReading) return;
-        
+
         string[] param = card.effectParameter.Split(':');
         string effect = param[0];
         int value = param.Length > 1 && int.TryParse(param[1], out int v) ? v : 0;
-        
-        switch (effect)
+
+        // Legacy effects - "BuffTribe" pattern (e.g., "BuffWands", "BuffCups")
+        if (effect.StartsWith("Buff"))
         {
-            case "BuffWands":
+            string tribeName = effect.Substring(4); // Remove "Buff" prefix
+            TribeType targetTribe = ThemeManager.ParseTribeName(tribeName);
+
+            if (targetTribe != TribeType.None)
+            {
                 foreach (var c in board)
                 {
-                    if (c.tribe == "Wands")
+                    if (c.HasTribe(targetTribe))
                     {
                         c.attack += value;
                         c.health += value;
                         Debug.Log($"Player {playerId}: LastReading: {card.cardName} buffs {c.cardName} by {value}/{value} (New Stats: {c.attack}/{c.health})");
                     }
                 }
-                OnBoardChanged?.Invoke(); // Stats changed
-                break;
-            default:
-                Debug.LogWarning($"Player {playerId}: Unknown LastReading effect: {effect} for {card.cardName}");
-                break;
+                OnBoardChanged?.Invoke();
+            }
+            else
+            {
+                Debug.LogWarning($"Player {playerId}: Unknown tribe in LastReading effect: {tribeName}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"Player {playerId}: Unknown LastReading effect: {effect} for {card.cardName}");
         }
     }
     

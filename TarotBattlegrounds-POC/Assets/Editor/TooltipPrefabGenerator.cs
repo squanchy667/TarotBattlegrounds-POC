@@ -6,7 +6,7 @@ using TMPro;
 
 public class TooltipPrefabGenerator : EditorWindow
 {
-    [MenuItem("Tools/Tarot BG/Generate Tooltip UI")]
+    [MenuItem("Tools/Game/Generate Tooltip UI")]
     public static void GenerateTooltipUI()
     {
         // Find the Canvas in the scene
