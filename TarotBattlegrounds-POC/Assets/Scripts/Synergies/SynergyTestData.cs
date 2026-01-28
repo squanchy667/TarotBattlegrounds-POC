@@ -236,13 +236,16 @@ public static class SynergyTestData
     /// <summary>
     /// Initialize SynergyManager with test synergies at runtime.
     /// Call this from a MonoBehaviour.Start() or similar.
+    /// Auto-creates SynergyManager if it doesn't exist.
     /// </summary>
     public static void InitializeSynergyManager()
     {
+        // Auto-create SynergyManager if it doesn't exist
         if (SynergyManager.Instance == null)
         {
-            Debug.LogWarning("[SynergyTestData] SynergyManager.Instance is null. Create a SynergyManager in the scene.");
-            return;
+            Debug.Log("[SynergyTestData] SynergyManager not found, creating one...");
+            GameObject synergyManagerObj = new GameObject("SynergyManager");
+            synergyManagerObj.AddComponent<SynergyManager>();
         }
 
         SynergyManager.Instance.tribeSynergies = CreateAllTribeSynergies();

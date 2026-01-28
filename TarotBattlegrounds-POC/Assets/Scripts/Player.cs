@@ -166,6 +166,10 @@ public class Player : MonoBehaviour
 
         coins += value; // This triggers OnCoinsChanged via property setter
         AbilityManager.UnregisterCard(card); // Clean up abilities
+
+        // Reset card to base stats before returning to pool
+        card.ResetToBaseStats();
+
         tavern.ReturnCardToPool(card);
         board.RemoveAt(index);
 
@@ -198,6 +202,10 @@ public class Player : MonoBehaviour
         int value = 1 + card.sellValueModifier;
         coins += value; // This triggers OnCoinsChanged via property setter
         AbilityManager.UnregisterCard(card); // Clean up abilities
+
+        // Reset card to base stats before returning to pool
+        card.ResetToBaseStats();
+
         tavern.ReturnCardToPool(card);
         hand.RemoveAt(index);
 
@@ -262,6 +270,8 @@ public class Player : MonoBehaviour
         // Trigger EndOfTurn synergies
         if (SynergyManager.Instance != null)
         {
+            // Refresh tribe counts before triggering
+            SynergyManager.Instance.UpdateTribeCounts(board);
             SynergyManager.Instance.TriggerSynergies(SynergyTrigger.EndOfTurn, board, this);
         }
 

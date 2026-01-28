@@ -62,6 +62,11 @@ public class Card : ScriptableObject
 
     [System.NonSerialized] public bool hasAegis;
 
+    // Original stats for resetting when sold
+    [System.NonSerialized] private int _baseAttack;
+    [System.NonSerialized] private int _baseHealth;
+    [System.NonSerialized] private bool _hasStoredBaseStats = false;
+
     /// <summary>
     /// Create and register the ability for this card instance.
     /// Call this when the card enters play.
@@ -152,19 +157,45 @@ public class Card : ScriptableObject
         clone.abilityValue = this.abilityValue;
         // Register abilities for cloned card (needed for combat simulation)
         clone.RegisterAbility();
+
+        // Store base stats for the clone
+        clone.StoreBaseStats();
+
         return clone;
     }
 
     /// <summary>
     /// Check if this card belongs to a specific tribe.
+    /// Checks both new tribes array and legacy tribe string.
     /// </summary>
     public bool HasTribe(TribeType tribeType)
     {
-        if (tribes == null || tribes.Length == 0) return false;
-        foreach (var t in tribes)
+        // Check new tribes array
+        if (tribes != null && tribes.Length > 0)
         {
-            if (t == tribeType) return true;
+            foreach (var t in tribes)
+            {
+                if (t == tribeType) return true;
+            }
         }
+
+        // Fallback to legacy tribe string
+        if (!string.IsNullOrEmpty(tribe))
+        {
+            string normalized = tribe.Trim().ToLower();
+            switch (tribeType)
+            {
+                case TribeType.Pentacles:
+                    return normalized == "pentacles" || normalized == "pentacle";
+                case TribeType.Cups:
+                    return normalized == "cups" || normalized == "cup";
+                case TribeType.Swords:
+                    return normalized == "swords" || normalized == "sword";
+                case TribeType.Wands:
+                    return normalized == "wands" || normalized == "wand";
+            }
+        }
+
         return false;
     }
 
@@ -179,4 +210,40 @@ public class Card : ScriptableObject
     public virtual void OnAttack(Card defender) { }
     public virtual void OnDeath() { }
     public virtual void OnSurvive() { }
+
+    /// <summary>
+    /// Store the current stats as base stats.
+    /// Call this when the card is first acquired (bought/cloned).
+    /// </summary>
+    public void StoreBaseStats()
+    {
+        if (!_hasStoredBaseStats)
+        {
+            _baseAttack = attack;
+            _baseHealth = health;
+            _hasStoredBaseStats = true;
+            Debug.Log($"[Card] {cardName} base stats stored: {_baseAttack}/{_baseHealth}");
+        }
+    }
+
+    /// <summary>
+    /// Reset the card to its original base stats.
+    /// Call this when selling the card back to the pool.
+    /// </summary>
+    public void ResetToBaseStats()
+    {
+        if (_hasStoredBaseStats)
+        {
+            Debug.Log($"[Card] {cardName} reset from {attack}/{health} to base {_baseAttack}/{_baseHealth}");
+            attack = _baseAttack;
+            health = _baseHealth;
+        }
+
+        // Also reset any combat-related state
+        hasAegis = false;
+        _hasStoredBaseStats = false;
+
+        // Unregister abilities
+        AbilityManager.UnregisterCard(this);
+    }
 }
