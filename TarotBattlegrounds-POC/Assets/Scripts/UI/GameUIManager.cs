@@ -2,22 +2,25 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class GameUIManager : MonoBehaviour
+/// <summary>
+/// Main game UI manager with theming support.
+/// </summary>
+public class GameUIManager : MonoBehaviour, IThemeable
 {
     public static GameUIManager Instance { get; private set; }
-    
+
     [Header("Phase Display")]
     [SerializeField] private TMP_Text phaseText;
     [SerializeField] private TMP_Text timerText;
     [SerializeField] private TMP_Text turnText;
-    
+
     [Header("Active Player Display")]
     [SerializeField] private TMP_Text playerNameText;
     [SerializeField] private TMP_Text coinsText;
     [SerializeField] private TMP_Text tierText;
     [SerializeField] private TMP_Text upgradeCostText;
     [SerializeField] private TMP_Text healthText;
-    
+
     [Header("Action Buttons")]
     [SerializeField] private Button buyButton;
     [SerializeField] private Button sellButton;
@@ -25,19 +28,29 @@ public class GameUIManager : MonoBehaviour
     [SerializeField] private Button refreshButton;
     [SerializeField] private Button upgradeButton;
     [SerializeField] private Button switchPlayerButton;
-    
+
+    [Header("Button Labels (for theming)")]
+    [SerializeField] private TMP_Text buyButtonText;
+    [SerializeField] private TMP_Text sellButtonText;
+    [SerializeField] private TMP_Text playButtonText;
+    [SerializeField] private TMP_Text refreshButtonText;
+    [SerializeField] private TMP_Text upgradeButtonText;
+
     [Header("References")]
     [SerializeField] private ShopUI shopUI;
     [SerializeField] private HandUI handUI;
     [SerializeField] private BoardUI boardUI;
-    
-    // Combat log reference (NEW)
+
     [Header("Combat UI")]
     [SerializeField] private CombatLogUI combatLogUI;
-    
+
+    [Header("Panel Backgrounds (optional)")]
+    [SerializeField] private Image mainPanelBackground;
+
     private int activePlayerIndex = 0;
     private Player currentPlayer;
-    
+    private ThemeConfig currentTheme;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -46,6 +59,86 @@ public class GameUIManager : MonoBehaviour
             return;
         }
         Instance = this;
+    }
+
+    private void OnEnable()
+    {
+        // Subscribe to theme changes
+        ThemeManager.OnThemeChanged += ApplyTheme;
+
+        // Apply current theme if available
+        if (ThemeManager.ActiveTheme != null)
+        {
+            ApplyTheme(ThemeManager.ActiveTheme);
+        }
+    }
+
+    private void OnDisable()
+    {
+        ThemeManager.OnThemeChanged -= ApplyTheme;
+    }
+
+    /// <summary>
+    /// Apply theme to the game UI.
+    /// </summary>
+    public void ApplyTheme(ThemeConfig theme)
+    {
+        if (theme == null) return;
+        currentTheme = theme;
+
+        // Apply button text from theme
+        if (buyButtonText != null) buyButtonText.text = theme.buyButtonText;
+        if (sellButtonText != null) sellButtonText.text = theme.sellButtonText;
+        if (playButtonText != null) playButtonText.text = theme.playButtonText;
+        if (refreshButtonText != null) refreshButtonText.text = theme.rerollButtonText;
+        if (upgradeButtonText != null) upgradeButtonText.text = theme.upgradeButtonText;
+
+        // Apply colors to UI elements
+        ApplyThemeColors(theme);
+
+        // Re-update display to use themed labels
+        UpdatePlayerDisplay();
+        UpdatePhaseDisplay();
+    }
+
+    private void ApplyThemeColors(ThemeConfig theme)
+    {
+        // Apply primary color to buttons
+        Color buttonColor = theme.primaryColor;
+        ApplyButtonColor(buyButton, buttonColor);
+        ApplyButtonColor(sellButton, buttonColor);
+        ApplyButtonColor(playCardButton, buttonColor);
+        ApplyButtonColor(refreshButton, buttonColor);
+        ApplyButtonColor(upgradeButton, buttonColor);
+
+        // Apply panel background
+        if (mainPanelBackground != null)
+            mainPanelBackground.color = theme.secondaryColor;
+
+        // Apply text colors
+        Color lightText = theme.textColorLight;
+        if (phaseText != null) phaseText.color = lightText;
+        if (timerText != null) timerText.color = theme.accentColor;
+        if (turnText != null) turnText.color = lightText;
+        if (playerNameText != null) playerNameText.color = lightText;
+
+        // Stats with semantic colors
+        if (coinsText != null) coinsText.color = theme.accentColor;
+        if (healthText != null) healthText.color = theme.positiveColor;
+        if (tierText != null) tierText.color = lightText;
+        if (upgradeCostText != null) upgradeCostText.color = theme.accentColor;
+    }
+
+    private void ApplyButtonColor(Button button, Color color)
+    {
+        if (button == null) return;
+
+        var colors = button.colors;
+        colors.normalColor = color;
+        colors.highlightedColor = color * 1.1f;
+        colors.pressedColor = color * 0.9f;
+        colors.selectedColor = color;
+        button.colors = colors;
     }
     
     private void Start()
@@ -174,9 +267,21 @@ public class GameUIManager : MonoBehaviour
     private void UpdatePhaseDisplay()
     {
         if (GameManager.Instance == null) return;
-        
+
         if (phaseText != null)
-            phaseText.text = GameManager.Instance.CurrentPhase.ToString();
+        {
+            // Use themed phase names if available
+            if (currentTheme != null)
+            {
+                phaseText.text = GameManager.Instance.CurrentPhase == GameManager.GamePhase.Combat
+                    ? currentTheme.combatPhaseTitle
+                    : currentTheme.recruitPhaseTitle;
+            }
+            else
+            {
+                phaseText.text = GameManager.Instance.CurrentPhase.ToString();
+            }
+        }
         if (turnText != null)
             turnText.text = $"Turn {GameManager.Instance.TurnNumber}";
     }
@@ -185,21 +290,26 @@ public class GameUIManager : MonoBehaviour
     {
         var player = GetActivePlayer();
         if (player == null) return;
-        
+
+        // Get themed labels or use defaults
+        string coinsLabel = currentTheme != null ? currentTheme.coinsLabel : "Coins";
+        string tierLabel = currentTheme != null ? currentTheme.tierLabel : "Tier";
+        string healthLabel = currentTheme != null ? currentTheme.healthLabel : "Health";
+
         if (playerNameText != null)
             playerNameText.text = $"Player {player.playerId}";
         if (coinsText != null)
-            coinsText.text = $"Coins: {player.coins}";
+            coinsText.text = $"{coinsLabel}: {player.coins}";
         if (tierText != null)
-            tierText.text = $"Tier: {player.currentTavernTier}";
+            tierText.text = $"{tierLabel}: {player.currentTavernTier}";
         if (upgradeCostText != null)
             upgradeCostText.text = $"Upgrade: {player.GetUpgradeCost()}g";
-        
-        // Use player's Health property if available, otherwise fallback to GameManager
+
+        // Use player's Health property
         if (healthText != null)
         {
-            int health = player.Health; // Now using Player.Health property
-            healthText.text = $"Health: {health}";
+            int health = player.Health;
+            healthText.text = $"{healthLabel}: {health}";
         }
     }
     
@@ -403,7 +513,7 @@ public class GameUIManager : MonoBehaviour
             currentPlayer.OnHealthChanged -= OnPlayerHealthChanged;
             currentPlayer.OnShopRefreshed -= OnPlayerShopRefreshed;
         }
-        
+
         // Unsubscribe from combat events
         if (combatLogUI != null)
         {
@@ -411,7 +521,10 @@ public class GameUIManager : MonoBehaviour
             CombatManager.OnCombatStart -= combatLogUI.OnCombatStart;
             CombatManager.OnCombatEnd -= combatLogUI.OnCombatEnd;
         }
-        
+
+        // Unsubscribe from theme events
+        ThemeManager.OnThemeChanged -= ApplyTheme;
+
         // Clean up button listeners
         buyButton?.onClick.RemoveAllListeners();
         sellButton?.onClick.RemoveAllListeners();
@@ -419,7 +532,7 @@ public class GameUIManager : MonoBehaviour
         refreshButton?.onClick.RemoveAllListeners();
         upgradeButton?.onClick.RemoveAllListeners();
         switchPlayerButton?.onClick.RemoveAllListeners();
-        
+
         if (Instance == this)
             Instance = null;
     }

@@ -4,41 +4,82 @@ using TMPro;
 using System.Collections.Generic;
 
 /// <summary>
-/// Board UI with event-driven refresh support
+/// Board UI with event-driven refresh support and theming.
 /// </summary>
-public class BoardUI : MonoBehaviour
+public class BoardUI : MonoBehaviour, IThemeable
 {
     [Header("Board Container")]
     [SerializeField] private Transform boardSlotsContainer;
     [SerializeField] private GameObject cardDisplayPrefab;
-    
+
     [Header("Board Info")]
+    [SerializeField] private TMP_Text boardTitleText;
     [SerializeField] private TMP_Text boardCountText;
-    
+
+    [Header("Panel Visuals")]
+    [SerializeField] private Image panelBackground;
+
     [Header("Empty Slot Display")]
     [SerializeField] private GameObject emptySlotPrefab;
     [SerializeField] private int maxBoardSlots = 7;
-    
+
     private List<GameObject> currentBoardCards = new List<GameObject>();
     private List<GameObject> emptySlots = new List<GameObject>();
     private int selectedCardIndex = -1;
+    private ThemeConfig currentTheme;
 
     private void Start()
     {
         // Initial refresh with delay to ensure everything is initialized
-        // Note: GameUIManager handles event subscriptions and calls RefreshBoardDisplay()
         Invoke(nameof(RefreshBoardDisplay), 0.1f);
+    }
+
+    private void OnEnable()
+    {
+        ThemeManager.OnThemeChanged += ApplyTheme;
+        if (ThemeManager.ActiveTheme != null)
+            ApplyTheme(ThemeManager.ActiveTheme);
+    }
+
+    private void OnDisable()
+    {
+        ThemeManager.OnThemeChanged -= ApplyTheme;
+    }
+
+    /// <summary>
+    /// Apply theme to the board panel.
+    /// </summary>
+    public void ApplyTheme(ThemeConfig theme)
+    {
+        if (theme == null) return;
+        currentTheme = theme;
+
+        // Apply board title from theme
+        if (boardTitleText != null)
+            boardTitleText.text = theme.boardTitle;
+
+        // Apply colors
+        if (panelBackground != null)
+            panelBackground.color = theme.secondaryColor;
+
+        if (boardCountText != null)
+            boardCountText.color = theme.textColorLight;
+        if (boardTitleText != null)
+            boardTitleText.color = theme.primaryColor;
     }
 
     public void RefreshBoardDisplay()
     {
         ClearBoardDisplay();
-        
+
         Player activePlayer = GetActivePlayer();
         if (activePlayer == null) return;
-        
+
+        // Get themed label
+        string boardLabel = currentTheme != null ? currentTheme.boardTitle : "Board";
+
         if (boardCountText != null)
-            boardCountText.text = $"Board: {activePlayer.board.Count}/{maxBoardSlots}";
+            boardCountText.text = $"{boardLabel}: {activePlayer.board.Count}/{maxBoardSlots}";
         
         for (int i = 0; i < activePlayer.board.Count; i++)
         {

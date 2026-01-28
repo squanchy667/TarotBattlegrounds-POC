@@ -4,27 +4,31 @@ using TMPro;
 using System.Collections.Generic;
 
 /// <summary>
-/// UI component for displaying combat log during battles
+/// UI component for displaying combat log during battles with theming support.
 /// </summary>
-public class CombatLogUI : MonoBehaviour
+public class CombatLogUI : MonoBehaviour, IThemeable
 {
     [Header("Combat Log Panel")]
     [SerializeField] private GameObject combatLogPanel;
     [SerializeField] private Transform logEntriesContainer;
     [SerializeField] private GameObject logEntryPrefab;
     [SerializeField] private ScrollRect scrollRect;
-    
+
     [Header("Combat Info")]
+    [SerializeField] private TMP_Text combatTitleText;
     [SerializeField] private TMP_Text player1NameText;
     [SerializeField] private TMP_Text player2NameText;
     [SerializeField] private TMP_Text combatStatusText;
     [SerializeField] private TMP_Text resultText;
-    
+
+    [Header("Panel Visuals")]
+    [SerializeField] private Image panelBackground;
+
     [Header("Settings")]
     [SerializeField] private int maxLogEntries = 50;
     [SerializeField] private float autoScrollDelay = 0.1f;
-    
-    [Header("Entry Colors")]
+
+    [Header("Entry Colors (overridden by theme)")]
     [SerializeField] private Color attackColor = new Color(1f, 0.5f, 0.5f);
     [SerializeField] private Color counterattackColor = new Color(0.5f, 0.5f, 1f);
     [SerializeField] private Color deathColor = new Color(0.5f, 0.5f, 0.5f);
@@ -32,16 +36,58 @@ public class CombatLogUI : MonoBehaviour
     [SerializeField] private Color echoColor = new Color(0.5f, 1f, 0.5f);
     [SerializeField] private Color resultColor = new Color(1f, 0.8f, 0.2f);
     [SerializeField] private Color defaultColor = Color.white;
-    
+
     private List<GameObject> logEntries = new List<GameObject>();
     private string currentPlayer1;
     private string currentPlayer2;
-    
+    private ThemeConfig currentTheme;
+
     private void Awake()
     {
         // Hide panel initially
         if (combatLogPanel != null)
             combatLogPanel.SetActive(false);
+    }
+
+    private void OnEnable()
+    {
+        ThemeManager.OnThemeChanged += ApplyTheme;
+        if (ThemeManager.ActiveTheme != null)
+            ApplyTheme(ThemeManager.ActiveTheme);
+    }
+
+    private void OnDisable()
+    {
+        ThemeManager.OnThemeChanged -= ApplyTheme;
+    }
+
+    /// <summary>
+    /// Apply theme to combat log UI.
+    /// </summary>
+    public void ApplyTheme(ThemeConfig theme)
+    {
+        if (theme == null) return;
+        currentTheme = theme;
+
+        // Apply title from theme
+        if (combatTitleText != null)
+            combatTitleText.text = theme.combatPhaseTitle;
+
+        // Apply colors
+        if (panelBackground != null)
+            panelBackground.color = theme.secondaryColor;
+
+        // Use theme colors for combat entries
+        attackColor = theme.negativeColor;
+        resultColor = theme.accentColor;
+        echoColor = theme.positiveColor;
+        defaultColor = theme.textColorLight;
+
+        // Update text colors
+        if (combatTitleText != null) combatTitleText.color = theme.primaryColor;
+        if (combatStatusText != null) combatStatusText.color = theme.textColorLight;
+        if (player1NameText != null) player1NameText.color = theme.textColorLight;
+        if (player2NameText != null) player2NameText.color = theme.textColorLight;
     }
     
     /// <summary>
@@ -92,18 +138,20 @@ public class CombatLogUI : MonoBehaviour
     {
         if (combatStatusText != null)
             combatStatusText.text = "Combat finished!";
-        
+
         if (resultText != null)
         {
             resultText.gameObject.SetActive(true);
             if (winner == "Tie")
             {
-                resultText.text = "🤝 TIE - No damage dealt";
+                string tieText = currentTheme != null ? currentTheme.tieText : "Tie!";
+                resultText.text = $"🤝 {tieText} - No damage dealt";
                 resultText.color = defaultColor;
             }
             else
             {
-                resultText.text = $"🏆 {winner} WINS!\n💥 {damage} damage dealt";
+                string victoryText = currentTheme != null ? currentTheme.victoryText : "Victory!";
+                resultText.text = $"🏆 {winner} {victoryText}\n💥 {damage} damage dealt";
                 resultText.color = resultColor;
             }
         }

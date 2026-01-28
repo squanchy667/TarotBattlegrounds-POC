@@ -4,41 +4,82 @@ using TMPro;
 using System.Collections.Generic;
 
 /// <summary>
-/// Hand UI with event-driven refresh support
+/// Hand UI with event-driven refresh support and theming.
 /// </summary>
-public class HandUI : MonoBehaviour
+public class HandUI : MonoBehaviour, IThemeable
 {
     [Header("Hand Container")]
     [SerializeField] private Transform handSlotsContainer;
     [SerializeField] private GameObject cardDisplayPrefab;
-    
+
     [Header("Hand Info")]
+    [SerializeField] private TMP_Text handTitleText;
     [SerializeField] private TMP_Text handCountText;
-    
+
+    [Header("Panel Visuals")]
+    [SerializeField] private Image panelBackground;
+
     [Header("Empty Slot Display")]
     [SerializeField] private GameObject emptySlotPrefab;
     [SerializeField] private int maxHandSlots = 10;
-    
+
     private List<GameObject> currentHandCards = new List<GameObject>();
     private List<GameObject> emptySlots = new List<GameObject>();
     private int selectedCardIndex = -1;
+    private ThemeConfig currentTheme;
 
     private void Start()
     {
         // Initial refresh with delay to ensure everything is initialized
-        // Note: GameUIManager handles event subscriptions and calls RefreshHandDisplay()
         Invoke(nameof(RefreshHandDisplay), 0.1f);
+    }
+
+    private void OnEnable()
+    {
+        ThemeManager.OnThemeChanged += ApplyTheme;
+        if (ThemeManager.ActiveTheme != null)
+            ApplyTheme(ThemeManager.ActiveTheme);
+    }
+
+    private void OnDisable()
+    {
+        ThemeManager.OnThemeChanged -= ApplyTheme;
+    }
+
+    /// <summary>
+    /// Apply theme to the hand panel.
+    /// </summary>
+    public void ApplyTheme(ThemeConfig theme)
+    {
+        if (theme == null) return;
+        currentTheme = theme;
+
+        // Apply hand title from theme
+        if (handTitleText != null)
+            handTitleText.text = theme.handTitle;
+
+        // Apply colors
+        if (panelBackground != null)
+            panelBackground.color = theme.secondaryColor;
+
+        if (handCountText != null)
+            handCountText.color = theme.textColorLight;
+        if (handTitleText != null)
+            handTitleText.color = theme.primaryColor;
     }
 
     public void RefreshHandDisplay()
     {
         ClearHandDisplay();
-        
+
         Player activePlayer = GetActivePlayer();
         if (activePlayer == null) return;
-        
+
+        // Get themed label
+        string handLabel = currentTheme != null ? currentTheme.handTitle : "Hand";
+
         if (handCountText != null)
-            handCountText.text = $"Hand: {activePlayer.hand.Count}/{maxHandSlots}";
+            handCountText.text = $"{handLabel}: {activePlayer.hand.Count}/{maxHandSlots}";
         
         for (int i = 0; i < activePlayer.hand.Count; i++)
         {

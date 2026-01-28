@@ -135,13 +135,42 @@ public class ThemeManager : MonoBehaviour
         config.gameName = "Tarot Battlegrounds";
         config.themeId = "Tarot";
 
+        // Tarot-specific UI text
+        config.shopTitle = "Tavern";
+        config.handTitle = "Hand";
+        config.boardTitle = "Battlefield";
+        config.coinsLabel = "Gold";
+        config.healthLabel = "Life";
+        config.tierLabel = "Tier";
+        config.buyButtonText = "Buy";
+        config.sellButtonText = "Sell";
+        config.playButtonText = "Deploy";
+        config.rerollButtonText = "Reroll";
+        config.upgradeButtonText = "Upgrade";
+        config.endTurnButtonText = "End Turn";
+        config.combatPhaseTitle = "Combat Phase";
+        config.recruitPhaseTitle = "Recruit Phase";
+        config.victoryText = "Victory!";
+        config.defeatText = "Defeat!";
+        config.tieText = "Draw!";
+
+        // Tarot color palette
+        config.primaryColor = new Color(0.6f, 0.4f, 0.8f);
+        config.secondaryColor = new Color(0.15f, 0.12f, 0.2f);
+        config.accentColor = new Color(1f, 0.8f, 0.2f);
+        config.textColorLight = Color.white;
+        config.textColorDark = new Color(0.1f, 0.1f, 0.15f);
+        config.positiveColor = new Color(0.3f, 0.8f, 0.3f);
+        config.negativeColor = new Color(0.9f, 0.3f, 0.3f);
+        config.cardBackgroundColor = new Color(0.12f, 0.1f, 0.18f);
+
         config.tribes = new TribeThemeData[]
         {
             new TribeThemeData
             {
                 tribeName = "Pentacles",
                 description = "The suit of Earth and material wealth. Grants economic advantages.",
-                themeColor = new Color(0.8f, 0.6f, 0.2f),
+                themeColor = new Color(0.85f, 0.65f, 0.2f),
                 aliases = new string[] { "pentacle", "earth", "coins" }
             },
             new TribeThemeData
@@ -155,7 +184,7 @@ public class ThemeManager : MonoBehaviour
             {
                 tribeName = "Swords",
                 description = "The suit of Air and conflict. Deals devastating damage.",
-                themeColor = new Color(0.7f, 0.7f, 0.8f),
+                themeColor = new Color(0.75f, 0.75f, 0.85f),
                 aliases = new string[] { "sword", "air", "blade" }
             },
             new TribeThemeData

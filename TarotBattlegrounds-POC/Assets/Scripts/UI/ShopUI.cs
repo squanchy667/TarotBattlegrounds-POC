@@ -4,44 +4,87 @@ using TMPro;
 using System.Collections.Generic;
 
 /// <summary>
-/// Shop UI with event-driven refresh support
+/// Shop UI with event-driven refresh support and theming.
 /// </summary>
-public class ShopUI : MonoBehaviour
+public class ShopUI : MonoBehaviour, IThemeable
 {
     [Header("Shop Container")]
     [SerializeField] private Transform shopSlotsContainer;
     [SerializeField] private GameObject cardDisplayPrefab;
-    
+
     [Header("Shop Info")]
+    [SerializeField] private TMP_Text shopTitleText;
     [SerializeField] private TMP_Text shopTierText;
     [SerializeField] private TMP_Text shopCountText;
-    
+
+    [Header("Panel Visuals")]
+    [SerializeField] private Image panelBackground;
+
     [Header("Empty Slot Display")]
     [SerializeField] private GameObject emptySlotPrefab;
     [SerializeField] private int maxShopSlots = 6;
-    
+
     private List<GameObject> currentShopCards = new List<GameObject>();
     private List<GameObject> emptySlots = new List<GameObject>();
     private int selectedCardIndex = -1;
+    private ThemeConfig currentTheme;
 
     private void Start()
     {
         // Initial refresh with delay to ensure everything is initialized
-        // Note: GameUIManager handles event subscriptions and calls RefreshShopDisplay()
         Invoke(nameof(RefreshShopDisplay), 0.1f);
+    }
+
+    private void OnEnable()
+    {
+        ThemeManager.OnThemeChanged += ApplyTheme;
+        if (ThemeManager.ActiveTheme != null)
+            ApplyTheme(ThemeManager.ActiveTheme);
+    }
+
+    private void OnDisable()
+    {
+        ThemeManager.OnThemeChanged -= ApplyTheme;
+    }
+
+    /// <summary>
+    /// Apply theme to the shop panel.
+    /// </summary>
+    public void ApplyTheme(ThemeConfig theme)
+    {
+        if (theme == null) return;
+        currentTheme = theme;
+
+        // Apply shop title from theme
+        if (shopTitleText != null)
+            shopTitleText.text = theme.shopTitle;
+
+        // Apply colors
+        if (panelBackground != null)
+            panelBackground.color = theme.secondaryColor;
+
+        if (shopTierText != null)
+            shopTierText.color = theme.textColorLight;
+        if (shopCountText != null)
+            shopCountText.color = theme.textColorLight;
+        if (shopTitleText != null)
+            shopTitleText.color = theme.primaryColor;
     }
 
     public void RefreshShopDisplay()
     {
-        
         ClearShopDisplay();
-        
+
         Player activePlayer = GetActivePlayer();
         if (activePlayer == null) return;
-        
+
+        // Get themed labels
+        string shopLabel = currentTheme != null ? currentTheme.shopTitle : "Shop";
+        string tierLabel = currentTheme != null ? currentTheme.tierLabel : "Tier";
+
         // Update tier display
         if (shopTierText != null)
-            shopTierText.text = $"Shop (Tier {activePlayer.currentTavernTier})";
+            shopTierText.text = $"{shopLabel} ({tierLabel} {activePlayer.currentTavernTier})";
         
         if (TavernManager.Instance == null) return;
         if (!TavernManager.Instance.availableCards.ContainsKey(activePlayer.playerId)) return;
