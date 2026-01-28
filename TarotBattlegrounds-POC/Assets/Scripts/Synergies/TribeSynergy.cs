@@ -29,7 +29,7 @@ public class SynergyTier
 /// ScriptableObject defining a tribe's synergy bonuses.
 /// Supports tiered thresholds (2/4/6) and cross-tribe combos.
 /// </summary>
-[CreateAssetMenu(fileName = "NewTribeSynergy", menuName = "TarotBG/Tribe Synergy")]
+[CreateAssetMenu(fileName = "NewTribeSynergy", menuName = "Game/Tribe Synergy")]
 public class TribeSynergy : ScriptableObject
 {
     [Header("Tribe Identity")]
