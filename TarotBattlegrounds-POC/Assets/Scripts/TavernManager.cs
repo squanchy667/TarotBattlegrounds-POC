@@ -38,6 +38,25 @@ public class TavernManager : MonoBehaviour
         {
             ResetPool();
         }
+
+        // Initialize synergy system
+        InitializeSynergies();
+    }
+
+    private void InitializeSynergies()
+    {
+        // Auto-create SynergyManager if it doesn't exist
+        if (SynergyManager.Instance == null)
+        {
+            Debug.Log("[TavernManager] Creating SynergyManager...");
+            GameObject synergyObj = new GameObject("SynergyManager");
+            synergyObj.AddComponent<SynergyManager>();
+        }
+
+        // Load synergy data and reinitialize cache
+        SynergyManager.Instance.tribeSynergies = SynergyTestData.CreateAllTribeSynergies();
+        SynergyManager.Instance.InitializeSynergyCache();
+        Debug.Log("[TavernManager] Synergies initialized with 4 tribe synergies");
     }
 
     public void ResetPool()
