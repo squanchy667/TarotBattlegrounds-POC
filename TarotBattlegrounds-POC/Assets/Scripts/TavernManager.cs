@@ -6,7 +6,7 @@ public class TavernManager : MonoBehaviour
 {
     public static TavernManager Instance { get; private set; }
     public List<Card> masterCards; // Assign 10 Tier 1 cards in Inspector
-    private static List<Card> allCards = new List<Card>();
+    private List<Card> allCards = new List<Card>();
     public Dictionary<int, List<Card>> availableCards = new Dictionary<int, List<Card>>();
     private Dictionary<int, int> tierCopies = new Dictionary<int, int>()
     {
@@ -22,7 +22,11 @@ public class TavernManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            // Only persist across scenes in offline mode
+            if (GameConfig.CurrentGameMode != GameConfig.GameMode.Multiplayer)
+            {
+                DontDestroyOnLoad(gameObject);
+            }
             Debug.Log($"TavernManager initialized, Instance ID: {GetInstanceID()}, GameObject: {gameObject.name}");
         }
         else
@@ -162,6 +166,22 @@ public class TavernManager : MonoBehaviour
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Set shop contents from network data (client-side).
+    /// Uses playerIndex (0-based) which maps to playerId (1-based).
+    /// </summary>
+    public void SetShopFromNetwork(int playerIndex, List<Card> shopCards)
+    {
+        int playerId = playerIndex + 1;
+        if (!availableCards.ContainsKey(playerId))
+        {
+            availableCards[playerId] = new List<Card>();
+        }
+        availableCards[playerId].Clear();
+        availableCards[playerId].AddRange(shopCards);
+        Debug.Log($"[TavernManager] Shop set from network for player {playerId}: {shopCards.Count} cards");
     }
 
     public void LogPool()

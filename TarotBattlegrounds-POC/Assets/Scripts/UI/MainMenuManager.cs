@@ -53,7 +53,7 @@ public class MainMenuManager : MonoBehaviour
         if (gameModeDropdown != null)
         {
             gameModeDropdown.ClearOptions();
-            gameModeDropdown.AddOptions(new System.Collections.Generic.List<string> { "Human vs AI", "AI vs AI (Spectate)" });
+            gameModeDropdown.AddOptions(new System.Collections.Generic.List<string> { "Human vs AI", "AI vs AI (Spectate)", "Multiplayer (Online)" });
             gameModeDropdown.onValueChanged.AddListener(OnGameModeChanged);
         }
 
@@ -106,6 +106,15 @@ public class MainMenuManager : MonoBehaviour
             GameConfig.CurrentGameMode = defaultGameMode;
         if (difficultyDropdown == null)
             GameConfig.DefaultAIDifficulty = defaultDifficulty;
+
+        // If Multiplayer mode, load Lobby scene instead of Game scene
+        if (GameConfig.CurrentGameMode == GameConfig.GameMode.Multiplayer)
+        {
+            GameConfig.Save();
+            Debug.Log("[MainMenu] Loading Lobby for multiplayer...");
+            SceneManager.LoadScene("Lobby");
+            return;
+        }
 
         // Human is always player 1 (index 0) in HumanVsAI mode
         GameConfig.HumanPlayerIndex = 0;

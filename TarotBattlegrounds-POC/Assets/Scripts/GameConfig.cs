@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
 /// Static configuration for game settings.
@@ -11,6 +12,12 @@ public static class GameConfig
     private const string KEY_HUMAN_PLAYER_INDEX = "GameConfig_HumanPlayerIndex";
     private const string KEY_GAME_MODE = "GameConfig_GameMode";
     private const string KEY_AI_DIFFICULTY = "GameConfig_AIDifficulty";
+    private const string KEY_PLAYER_NAME = "GameConfig_PlayerName";
+
+    /// <summary>
+    /// Human-controlled slots in multiplayer mode (0-based indices).
+    /// </summary>
+    private static HashSet<int> _multiplayerHumanSlots = new HashSet<int>();
 
     /// <summary>
     /// Game modes available.
@@ -60,6 +67,15 @@ public static class GameConfig
     }
 
     /// <summary>
+    /// Player display name for online multiplayer.
+    /// </summary>
+    public static string PlayerName
+    {
+        get => PlayerPrefs.GetString(KEY_PLAYER_NAME, "");
+        set => PlayerPrefs.SetString(KEY_PLAYER_NAME, value);
+    }
+
+    /// <summary>
     /// Check if a player index is controlled by a human.
     /// </summary>
     public static bool IsHumanPlayer(int playerIndex)
@@ -68,8 +84,28 @@ public static class GameConfig
             return false;
         if (CurrentGameMode == GameMode.HumanVsAI)
             return playerIndex == HumanPlayerIndex;
-        // Multiplayer mode - could extend this
+        // Multiplayer mode - check the assigned human slots
+        if (CurrentGameMode == GameMode.Multiplayer)
+            return _multiplayerHumanSlots.Contains(playerIndex);
         return playerIndex == HumanPlayerIndex;
+    }
+
+    /// <summary>
+    /// Set which player slots are human-controlled in multiplayer mode.
+    /// Called by NetworkGameSetup when assigning Photon players to slots.
+    /// </summary>
+    public static void SetMultiplayerHumanSlots(HashSet<int> humanSlots)
+    {
+        _multiplayerHumanSlots = humanSlots ?? new HashSet<int>();
+        Debug.Log($"[GameConfig] Multiplayer human slots set: {string.Join(", ", _multiplayerHumanSlots)}");
+    }
+
+    /// <summary>
+    /// Get the set of human-controlled slots in multiplayer mode.
+    /// </summary>
+    public static HashSet<int> GetMultiplayerHumanSlots()
+    {
+        return _multiplayerHumanSlots;
     }
 
     /// <summary>

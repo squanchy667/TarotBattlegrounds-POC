@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Photon.Pun;
 
 /// <summary>
 /// Data for the game over event.
@@ -44,6 +45,19 @@ public class GameManager : MonoBehaviour
 
     public GamePhase CurrentPhase => currentPhase;
     public int TurnNumber => turnNumber;
+
+    /// <summary>
+    /// True if we are in an online multiplayer game.
+    /// </summary>
+    public bool IsOnlineMode => GameConfig.CurrentGameMode == GameConfig.GameMode.Multiplayer;
+
+    /// <summary>
+    /// True if this client is the authoritative host (MasterClient) in online mode.
+    /// Always true in offline mode.
+    /// </summary>
+    public bool IsHost => !IsOnlineMode || PhotonNetwork.IsMasterClient;
+
+    private bool networkSetupComplete = false;
 
     /// <summary>
     /// Mark a player as ready to move to combat. The recruit phase ends early
@@ -134,7 +148,73 @@ public class GameManager : MonoBehaviour
             Debug.Log($"  #{i + 1}: Player {standings[i] + 1}");
         }
 
+        // Broadcast game over to clients
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+            NetworkGameBridge.Instance.BroadcastGameOver(data);
+
         OnGameOver?.Invoke(data);
+    }
+
+    /// <summary>
+    /// Invoke game over from network RPC (client-side).
+    /// </summary>
+    public static void InvokeGameOverFromNetwork(GameOverData data)
+    {
+        OnGameOver?.Invoke(data);
+    }
+
+    /// <summary>
+    /// Apply a full player state received from the network (client-side).
+    /// </summary>
+    public void ApplyNetworkPlayerState(NetworkPlayerState state)
+    {
+        if (state.playerIndex < 0 || state.playerIndex >= players.Count) return;
+
+        Player player = players[state.playerIndex];
+
+        // Update basic stats (bypass events temporarily to avoid spam)
+        player.coins = state.coins;
+        player.currentTavernTier = state.tavernTier;
+        player.Health = state.health;
+        player.ShopFrozen = state.shopFrozen;
+
+        // Update health tracking
+        if (state.playerIndex < playerHealths.Count)
+            playerHealths[state.playerIndex] = state.health;
+
+        // Reconstruct hand
+        player.hand.Clear();
+        if (state.hand != null)
+        {
+            foreach (var cardData in state.hand)
+            {
+                Card card = cardData.ToCard();
+                if (card != null)
+                    player.hand.Add(card);
+            }
+        }
+
+        // Reconstruct board
+        player.board.Clear();
+        if (state.board != null)
+        {
+            foreach (var cardData in state.board)
+            {
+                Card card = cardData.ToCard();
+                if (card != null)
+                    player.board.Add(card);
+            }
+        }
+
+        // Reconstruct shop
+        if (state.shopCards != null && TavernManager.Instance != null)
+        {
+            List<Card> shopCards = NetworkCardData.ToCardList(state.shopCards);
+            TavernManager.Instance.SetShopFromNetwork(state.playerIndex, shopCards);
+        }
+
+        // Notify UI
+        player.NotifyAllStateChanged();
     }
 
     /// <summary>
@@ -164,7 +244,26 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        // Only use the configured number of players
+        // In online mode, wait for NetworkGameSetup to finish slot assignment
+        if (IsOnlineMode)
+        {
+            Debug.Log("[GameManager] Online mode: waiting for network setup...");
+            InitializePlayers();
+            // Don't start game loop yet — OnNetworkSetupComplete() will do it on host
+            return;
+        }
+
+        // Offline mode: normal initialization
+        InitializePlayers();
+        InitializeAI();
+        StartCoroutine(GameLoop());
+    }
+
+    /// <summary>
+    /// Initialize player objects and tavern slots (shared between online/offline).
+    /// </summary>
+    private void InitializePlayers()
+    {
         for (int i = 0; i < playerCount; i++)
         {
             if (players[i] == null)
@@ -181,32 +280,10 @@ public class GameManager : MonoBehaviour
                 {
                     TavernManager.Instance.availableCards[i + 1] = new List<Card>();
                 }
-                players[i].RefreshShop(1);
             }
             else
             {
                 Debug.LogError($"TavernManager.Instance is null during GameManager Start!");
-            }
-
-            // Setup AI controllers for non-human players (using GameConfig)
-            if (!GameConfig.IsHumanPlayer(i))
-            {
-                AIController ai = players[i].GetComponent<AIController>();
-                if (ai == null)
-                {
-                    ai = players[i].gameObject.AddComponent<AIController>();
-                }
-
-                // Initialize the AI with player reference
-                ai.Initialize(players[i]);
-                ai.difficulty = GameConfig.GetAIDifficulty(i);
-
-                aiControllers[i] = ai;
-                Debug.Log($"[GameManager] Player {i + 1} is AI ({ai.difficulty})");
-            }
-            else
-            {
-                Debug.Log($"[GameManager] Player {i + 1} is HUMAN");
             }
         }
 
@@ -221,7 +298,68 @@ public class GameManager : MonoBehaviour
         }
 
         playerHealths = new List<int>(Enumerable.Repeat(40, playerCount).ToArray());
-        StartCoroutine(GameLoop());
+    }
+
+    /// <summary>
+    /// Initialize AI controllers for non-human players.
+    /// </summary>
+    private void InitializeAI()
+    {
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (!GameConfig.IsHumanPlayer(i))
+            {
+                AIController ai = players[i].GetComponent<AIController>();
+                if (ai == null)
+                {
+                    ai = players[i].gameObject.AddComponent<AIController>();
+                }
+
+                ai.Initialize(players[i]);
+                ai.difficulty = GameConfig.GetAIDifficulty(i);
+
+                aiControllers[i] = ai;
+                Debug.Log($"[GameManager] Player {i + 1} is AI ({ai.difficulty})");
+            }
+            else
+            {
+                Debug.Log($"[GameManager] Player {i + 1} is HUMAN");
+            }
+        }
+
+        // Refresh shops for all players (offline) or host-side (online)
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (playerHealths[i] > 0)
+                players[i].RefreshShop(1);
+        }
+    }
+
+    /// <summary>
+    /// Called by NetworkGameSetup after slot assignment is complete.
+    /// Host starts the game loop; clients just wait for state syncs.
+    /// </summary>
+    public void OnNetworkSetupComplete()
+    {
+        networkSetupComplete = true;
+        Debug.Log($"[GameManager] Network setup complete. IsHost={IsHost}");
+
+        if (IsHost)
+        {
+            // Initialize AI for non-human slots on host
+            InitializeAI();
+            StartCoroutine(GameLoop());
+        }
+        // Clients don't run the game loop — they receive state via RPCs
+    }
+
+    /// <summary>
+    /// Register an AI controller for a slot (used when converting disconnected player to AI).
+    /// </summary>
+    public void RegisterAIController(int slot, AIController ai)
+    {
+        aiControllers[slot] = ai;
+        Debug.Log($"[GameManager] Registered AI controller for slot {slot}");
     }
 
     IEnumerator GameLoop()
@@ -234,6 +372,10 @@ public class GameManager : MonoBehaviour
             // Notify UI of phase change
             if (GameUIManager.Instance != null)
                 GameUIManager.Instance.RefreshAllUI();
+
+            // Broadcast phase change to clients
+            if (IsOnlineMode && NetworkGameBridge.Instance != null)
+                NetworkGameBridge.Instance.BroadcastPhaseChange("Combat", turnNumber, 0f);
 
             Debug.Log("Current Phase: " + currentPhase);
             List<int> activePlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
@@ -249,8 +391,8 @@ public class GameManager : MonoBehaviour
                 {
                     var board1 = players[p1].board;
                     var board2 = players[p2].board;
-                    string p1Name = $"Player {p1 + 1}" + (p1 != humanPlayerIndex ? " (AI)" : " (You)");
-                    string p2Name = $"Player {p2 + 1}" + (p2 != humanPlayerIndex ? " (AI)" : " (You)");
+                    string p1Name = $"Player {p1 + 1}" + (GameConfig.IsHumanPlayer(p1) ? "" : " (AI)");
+                    string p2Name = $"Player {p2 + 1}" + (GameConfig.IsHumanPlayer(p2) ? "" : " (AI)");
                     var (damage, winner) = CombatManager.SimulateBattle(board1, board2, Mathf.Max(players[p1].currentTavernTier, players[p2].currentTavernTier), p1Name, p2Name);
                     Debug.Log($"[Combat] {p1Name} vs {p2Name}");
                     Debug.Log($"  {p1Name} Board: " + string.Join(", ", board1.Select(c => c.cardName)));
@@ -276,6 +418,14 @@ public class GameManager : MonoBehaviour
                         players[p1].Health = playerHealths[p1];
                         Debug.Log($"[Combat] {p2Name} WINS! {p1Name} takes {damage} damage. Health: {playerHealths[p1]}");
                     }
+
+                    // Broadcast combat result and updated states to clients
+                    if (IsOnlineMode && NetworkGameBridge.Instance != null)
+                    {
+                        NetworkGameBridge.Instance.BroadcastCombatResult(p1, p2, winner, damage);
+                        NetworkGameBridge.Instance.BroadcastPlayerState(p1);
+                        NetworkGameBridge.Instance.BroadcastPlayerState(p2);
+                    }
                 }
             }
             turnNumber++;
@@ -289,6 +439,10 @@ public class GameManager : MonoBehaviour
                     Debug.Log($"[GameManager] Player {i + 1} eliminated! (Elimination #{eliminationOrder.Count})");
                 }
             }
+
+            // Broadcast all states after combat
+            if (IsOnlineMode && NetworkGameBridge.Instance != null)
+                NetworkGameBridge.Instance.BroadcastAllPlayerStates();
 
             // Check for eliminations and game end AFTER combat
             List<int> remainingPlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
@@ -337,6 +491,10 @@ public class GameManager : MonoBehaviour
         if (GameUIManager.Instance != null)
             GameUIManager.Instance.RefreshAllUI();
 
+        // Broadcast phase change to clients
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+            NetworkGameBridge.Instance.BroadcastPhaseChange("Recruit", turnNumber, recruitTimer);
+
         Debug.Log("Current Phase: " + currentPhase);
         float timer = recruitTimer;
         for (int i = 0; i < playerCount; i++)
@@ -354,6 +512,18 @@ public class GameManager : MonoBehaviour
 
         // Reset ready state for new recruit phase
         playersReadyForCombat.Clear();
+
+        // Broadcast initial player states and shops to human clients
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+        {
+            for (int i = 0; i < playerCount; i++)
+            {
+                if (playerHealths[i] <= 0) continue;
+                NetworkGameBridge.Instance.BroadcastPlayerState(i);
+                if (NetworkGameBridge.Instance.IsNetworkPlayerSlot(i))
+                    NetworkGameBridge.Instance.BroadcastShopForPlayer(i);
+            }
+        }
 
         // AI players make their decisions at start of recruit phase, then auto-ready
         foreach (var kvp in aiControllers)
@@ -376,20 +546,14 @@ public class GameManager : MonoBehaviour
             if (GameUIManager.Instance != null)
                 GameUIManager.Instance.UpdateTimer(timer);
 
+            // Broadcast timer to clients (~every 1s)
+            if (IsOnlineMode && NetworkGameBridge.Instance != null)
+                NetworkGameBridge.Instance.BroadcastTimerUpdate(timer);
+
             timer -= Time.deltaTime;
             yield return null;
         }
-        // while (timer > 0)
-        // {
-        //     int currentSecond = Mathf.FloorToInt(timer);
-        //     if (currentSecond < lastLoggedSecond)
-        //     {
-        //         Debug.Log($"Recruit Phase: {timer:F1}s remaining");
-        //         lastLoggedSecond = currentSecond;
-        //     }
-        //     timer -= Time.deltaTime;
-        //     yield return null;
-        // }
+
         for (int i = 0; i < playerCount; i++)
         {
             if (playerHealths[i] <= 0) continue;

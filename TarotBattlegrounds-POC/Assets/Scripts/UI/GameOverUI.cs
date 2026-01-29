@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
+using Photon.Pun;
 using System.Collections.Generic;
 
 /// <summary>
@@ -77,6 +78,8 @@ public class GameOverUI : MonoBehaviour, IThemeable
             quitToMenuButtonText.text = theme.quitToMenuText;
     }
 
+    private bool IsOnlineMode => GameConfig.CurrentGameMode == GameConfig.GameMode.Multiplayer;
+
     private void ShowGameOver(GameOverData data)
     {
         if (gameOverPanel == null) return;
@@ -88,14 +91,17 @@ public class GameOverUI : MonoBehaviour, IThemeable
         if (titleText != null)
             titleText.text = title;
 
-        // Determine human player placement
-        int humanIndex = GameConfig.HumanPlayerIndex;
-        int humanPlacement = -1;
+        // Determine local player placement
+        int localIndex = IsOnlineMode && NetworkGameBridge.Instance != null
+            ? NetworkGameBridge.Instance.LocalPlayerSlot
+            : GameConfig.HumanPlayerIndex;
+
+        int localPlacement = -1;
         for (int i = 0; i < data.standings.Count; i++)
         {
-            if (data.standings[i] == humanIndex)
+            if (data.standings[i] == localIndex)
             {
-                humanPlacement = i + 1;
+                localPlacement = i + 1;
                 break;
             }
         }
@@ -103,15 +109,15 @@ public class GameOverUI : MonoBehaviour, IThemeable
         // Placement text
         if (placementText != null)
         {
-            if (humanPlacement == 1)
+            if (localPlacement == 1)
             {
                 string victoryText = currentTheme != null ? currentTheme.victoryText : "Victory!";
                 placementText.text = victoryText;
                 placementText.color = currentTheme != null ? currentTheme.accentColor : Color.yellow;
             }
-            else if (humanPlacement > 0)
+            else if (localPlacement > 0)
             {
-                placementText.text = $"You finished #{humanPlacement}";
+                placementText.text = $"You finished #{localPlacement}";
                 placementText.color = currentTheme != null ? currentTheme.textColorLight : Color.white;
             }
             else
@@ -128,21 +134,66 @@ public class GameOverUI : MonoBehaviour, IThemeable
             {
                 int playerIndex = data.standings[i];
                 bool isHuman = GameConfig.IsHumanPlayer(playerIndex);
-                string label = isHuman ? "(You)" : "(AI)";
+
+                // In online mode, show Photon nicknames
+                string label;
+                if (IsOnlineMode && NetworkGameBridge.Instance != null)
+                {
+                    if (NetworkGameBridge.Instance.IsNetworkPlayerSlot(playerIndex))
+                    {
+                        int actorNum = NetworkGameBridge.Instance.SlotToActor[playerIndex];
+                        var photonPlayer = FindPhotonPlayerByActor(actorNum);
+                        string nick = photonPlayer != null ? photonPlayer.NickName : $"Player {playerIndex + 1}";
+                        bool isLocal = photonPlayer != null && photonPlayer.IsLocal;
+                        label = isLocal ? $"{nick} (You)" : nick;
+                    }
+                    else
+                    {
+                        label = "(AI)";
+                    }
+                }
+                else
+                {
+                    label = isHuman ? "(You)" : "(AI)";
+                }
+
                 standings += $"#{i + 1}  Player {playerIndex + 1} {label}\n";
             }
             standingsText.text = standings;
         }
     }
 
+    private Photon.Realtime.Player FindPhotonPlayerByActor(int actorNumber)
+    {
+        if (!PhotonNetwork.IsConnected) return null;
+        foreach (var p in PhotonNetwork.PlayerList)
+        {
+            if (p.ActorNumber == actorNumber)
+                return p;
+        }
+        return null;
+    }
+
     private void OnPlayAgainClicked()
     {
-        // Reload the game scene
-        SceneManager.LoadScene("Game");
+        if (IsOnlineMode)
+        {
+            // Leave room and return to lobby
+            if (PhotonNetwork.InRoom)
+                PhotonNetwork.LeaveRoom();
+            SceneManager.LoadScene("Lobby");
+        }
+        else
+        {
+            // Reload the game scene
+            SceneManager.LoadScene("Game");
+        }
     }
 
     private void OnQuitToMenuClicked()
     {
+        if (IsOnlineMode && PhotonNetwork.InRoom)
+            PhotonNetwork.LeaveRoom();
         SceneManager.LoadScene("MainMenu");
     }
 

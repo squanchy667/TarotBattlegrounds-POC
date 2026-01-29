@@ -24,6 +24,12 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
     private List<Card> pendingCards;
     private ThemeConfig currentTheme;
 
+    /// <summary>
+    /// Pending discovery cards for network-triggered discovery.
+    /// Set by host, read by NetworkGameBridge when client makes a choice.
+    /// </summary>
+    public static List<Card> PendingDiscoveryCards { get; set; }
+
     private void Awake()
     {
         if (discoveryPanel != null)
@@ -78,6 +84,8 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
             titleText.color = theme.accentColor;
     }
 
+    private bool IsOnlineMode => GameConfig.CurrentGameMode == GameConfig.GameMode.Multiplayer;
+
     private void ShowDiscovery(Player player, List<Card> cards)
     {
         if (discoveryPanel == null || cards == null || cards.Count == 0) return;
@@ -91,8 +99,22 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
             return;
         }
 
+        // Store pending discovery cards for network use
+        PendingDiscoveryCards = cards;
+
         pendingPlayer = player;
         pendingCards = cards;
+
+        // In online mode, only show UI for local player
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+        {
+            int localSlot = NetworkGameBridge.Instance.LocalPlayerSlot;
+            if (player.playerId - 1 != localSlot)
+            {
+                // Not our discovery, skip UI
+                return;
+            }
+        }
 
         discoveryPanel.SetActive(true);
 
@@ -105,6 +127,14 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
         {
             CreateChoiceCard(cards[i], i);
         }
+    }
+
+    /// <summary>
+    /// Show discovery choices from a network trigger (client-side).
+    /// </summary>
+    public void ShowDiscoveryFromNetwork(Player player, List<Card> cards)
+    {
+        ShowDiscovery(player, cards);
     }
 
     private void CreateChoiceCard(Card card, int index)
@@ -127,15 +157,24 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
         if (pendingPlayer == null || pendingCards == null || index < 0 || index >= pendingCards.Count)
             return;
 
-        Card chosen = pendingCards[index];
-        pendingPlayer.AddDiscoveryCard(chosen);
-
-        Debug.Log($"[DiscoveryUI] Player {pendingPlayer.playerId} discovered {chosen.cardName}");
+        // In online mode, route through network
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+        {
+            NetworkGameBridge.Instance.RequestDiscoveryChoice(index);
+            Debug.Log($"[DiscoveryUI] Sent discovery choice {index} via network");
+        }
+        else
+        {
+            Card chosen = pendingCards[index];
+            pendingPlayer.AddDiscoveryCard(chosen);
+            Debug.Log($"[DiscoveryUI] Player {pendingPlayer.playerId} discovered {chosen.cardName}");
+        }
 
         // Clean up
         ClearChoices();
         pendingPlayer = null;
         pendingCards = null;
+        PendingDiscoveryCards = null;
 
         if (discoveryPanel != null)
             discoveryPanel.SetActive(false);

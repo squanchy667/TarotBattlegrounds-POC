@@ -172,6 +172,20 @@ public class GameUIManager : MonoBehaviour, IThemeable
     private void Start()
     {
         SetupButtons();
+
+        // In online mode, lock to the local player's slot and hide switch button
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+        {
+            int localSlot = NetworkGameBridge.Instance.LocalPlayerSlot;
+            if (localSlot >= 0)
+            {
+                activePlayerIndex = localSlot;
+            }
+
+            if (switchPlayerButton != null)
+                switchPlayerButton.gameObject.SetActive(false);
+        }
+
         SubscribeToCurrentPlayer();
 
         // Subscribe to board events for card positioning
@@ -459,11 +473,21 @@ public class GameUIManager : MonoBehaviour, IThemeable
             timerText.text = $"{Mathf.CeilToInt(time)}s";
     }
     
+    private bool IsOnlineMode => GameManager.Instance != null && GameManager.Instance.IsOnlineMode;
+
     private void ExecuteAction(string action)
     {
         var player = GetActivePlayer();
         if (player == null) return;
-        
+
+        // In online mode, route through NetworkGameBridge
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+        {
+            ExecuteNetworkAction(action, player);
+            return;
+        }
+
+        // Offline mode: execute directly
         switch (action)
         {
             case "Buy":
@@ -473,7 +497,6 @@ public class GameUIManager : MonoBehaviour, IThemeable
                     if (selectedIndex >= 0)
                     {
                         player.BuyCard(selectedIndex);
-                        // Events will handle UI refresh
                     }
                     else
                     {
@@ -481,28 +504,25 @@ public class GameUIManager : MonoBehaviour, IThemeable
                     }
                 }
                 break;
-                
+
             case "Sell":
-                // Check board first, then hand
                 int boardSellIndex = boardUI != null ? boardUI.GetSelectedCardIndex() : -1;
                 int handSellIndex = handUI != null ? handUI.GetSelectedCardIndex() : -1;
 
                 if (boardSellIndex >= 0)
                 {
                     player.SellCard(boardSellIndex);
-                    // Events will handle UI refresh
                 }
                 else if (handSellIndex >= 0)
                 {
                     player.SellCardFromHand(handSellIndex);
-                    // Events will handle UI refresh
                 }
                 else
                 {
                     Debug.Log("Select a card from your board or hand first!");
                 }
                 break;
-                
+
             case "Play":
                 if (handUI != null)
                 {
@@ -510,7 +530,6 @@ public class GameUIManager : MonoBehaviour, IThemeable
                     if (selectedIndex >= 0)
                     {
                         player.PlayCard(selectedIndex, player.board.Count);
-                        // Events will handle UI refresh
                     }
                     else
                     {
@@ -518,22 +537,69 @@ public class GameUIManager : MonoBehaviour, IThemeable
                     }
                 }
                 break;
-                
+
             case "Refresh":
                 player.RefreshTavernShop();
-                // Events will handle UI refresh
                 break;
-                
+
             case "Upgrade":
                 player.UpgradeTavern();
-                // Events will handle UI refresh
+                break;
+        }
+    }
+
+    private void ExecuteNetworkAction(string action, Player player)
+    {
+        var bridge = NetworkGameBridge.Instance;
+
+        switch (action)
+        {
+            case "Buy":
+                if (shopUI != null)
+                {
+                    int selectedIndex = shopUI.GetSelectedCardIndex();
+                    if (selectedIndex >= 0)
+                        bridge.RequestBuyCard(selectedIndex);
+                    else
+                        Debug.Log("Select a card from the shop first!");
+                }
+                break;
+
+            case "Sell":
+                int boardSellIndex = boardUI != null ? boardUI.GetSelectedCardIndex() : -1;
+                int handSellIndex = handUI != null ? handUI.GetSelectedCardIndex() : -1;
+
+                if (boardSellIndex >= 0)
+                    bridge.RequestSellBoardCard(boardSellIndex);
+                else if (handSellIndex >= 0)
+                    bridge.RequestSellHandCard(handSellIndex);
+                else
+                    Debug.Log("Select a card from your board or hand first!");
+                break;
+
+            case "Play":
+                if (handUI != null)
+                {
+                    int selectedIndex = handUI.GetSelectedCardIndex();
+                    if (selectedIndex >= 0)
+                        bridge.RequestPlayCard(selectedIndex, player.board.Count);
+                    else
+                        Debug.Log("Select a card from your hand first!");
+                }
+                break;
+
+            case "Refresh":
+                bridge.RequestRerollShop();
+                break;
+
+            case "Upgrade":
+                bridge.RequestUpgradeTavern();
                 break;
         }
     }
     
     private void OnBoardEmptySlotSelected(int slotPosition)
     {
-        // If a hand card is selected, play it to the specified slot position
         if (handUI == null) return;
         int handIndex = handUI.GetSelectedCardIndex();
         if (handIndex < 0) return;
@@ -547,7 +613,14 @@ public class GameUIManager : MonoBehaviour, IThemeable
 
         if (player.board.Count < 7)
         {
-            player.PlayCard(handIndex, slotPosition);
+            if (IsOnlineMode && NetworkGameBridge.Instance != null)
+            {
+                NetworkGameBridge.Instance.RequestPlayCard(handIndex, slotPosition);
+            }
+            else
+            {
+                player.PlayCard(handIndex, slotPosition);
+            }
             handUI.ClearSelection();
             Debug.Log($"Played hand card {handIndex} to board slot {slotPosition}");
         }
@@ -562,15 +635,29 @@ public class GameUIManager : MonoBehaviour, IThemeable
                               GameManager.Instance.CurrentPhase == GameManager.GamePhase.Recruit;
         if (!isRecruitPhase) return;
 
-        player.SwapBoardCards(indexA, indexB);
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+        {
+            NetworkGameBridge.Instance.RequestSwapBoardCards(indexA, indexB);
+        }
+        else
+        {
+            player.SwapBoardCards(indexA, indexB);
+        }
     }
 
     private void OnEndTurnClicked()
     {
         if (GameManager.Instance == null) return;
 
-        int playerIndex = GetActivePlayerIndex();
-        GameManager.Instance.PlayerReadyForCombat(playerIndex);
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+        {
+            NetworkGameBridge.Instance.RequestEndTurn();
+        }
+        else
+        {
+            int playerIndex = GetActivePlayerIndex();
+            GameManager.Instance.PlayerReadyForCombat(playerIndex);
+        }
 
         // Disable button and show waiting state
         if (endTurnButton != null)
@@ -581,12 +668,19 @@ public class GameUIManager : MonoBehaviour, IThemeable
 
     private void OnFreezeShopClicked()
     {
-        var player = GetActivePlayer();
-        if (player != null)
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
         {
-            player.ToggleShopFreeze();
-            UpdateFreezeButtonText();
+            NetworkGameBridge.Instance.RequestToggleFreeze();
         }
+        else
+        {
+            var player = GetActivePlayer();
+            if (player != null)
+            {
+                player.ToggleShopFreeze();
+            }
+        }
+        UpdateFreezeButtonText();
     }
 
     private void UpdateFreezeButtonText()

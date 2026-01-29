@@ -77,7 +77,7 @@ public class Player : MonoBehaviour
     public bool ShopFrozen
     {
         get => _shopFrozen;
-        private set
+        set
         {
             if (_shopFrozen != value)
             {
