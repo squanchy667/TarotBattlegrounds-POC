@@ -4,7 +4,7 @@ import './HolographicCard.css'
 
 /**
  * Holographic Card Component
- * Pokemon-style holographic shine effect with Star-Forge branding
+ * Pokemon-style holographic shine effect with Tarot: Arcana Circle branding
  *
  * Based on: https://codepen.io/NyX/pen/ydKWgM
  */

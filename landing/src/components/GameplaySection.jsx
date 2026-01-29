@@ -8,28 +8,33 @@ gsap.registerPlugin(ScrollTrigger)
 const steps = [
   {
     num: '01',
-    icon: '◇',
-    title: 'Unveil the Arcana Circle',
-    desc: 'Choose from a rotating spread of cards each round. Spend gold wisely—the right pick can turn the tide.',
-    statLabel: 'Phase Duration',
-    statValue: '35 seconds',
+    icon: '/images/pick.webp',
+    iconWidth: 524,
+    iconHeight: 524,
+    title: 'Pick Your Cards',
+    desc: 'Draft from a shared pool of rotating cards. Spend gold to build your army.',
+    statLabel: 'Duration',
+    statValue: '35 sec',
   },
   {
     num: '02',
-    icon: '⬡',
-    title: 'Bind the Board',
-    desc: 'Assemble a seven-card formation and forge synergies. Position matters—tribes amplify each other.',
+    icon: '/images/place.webp',
+    iconWidth: 528,
+    iconHeight: 520,
+    title: 'Place Your Units',
+    desc: 'Position up to 7 cards on your board. Matching tribes unlock powerful bonuses.',
     statLabel: 'Board Size',
-    statValue: '7 Cards Max',
+    statValue: '7 cards',
   },
   {
     num: '03',
-    icon: '✦',
-    title: 'Let Fate Collide',
-    desc: 'Auto-battles resolve in dramatic, decisive turns. Your strategy fights for you.',
+    icon: '/images/watch.webp',
+    iconWidth: 542,
+    iconHeight: 522,
+    title: 'Watch Them Battle',
+    desc: 'Combat is automatic. Your strategy plays out—no clicking required.',
     statLabel: 'Combat',
-    statValue: 'Fully Automated',
-    featured: true,
+    statValue: 'Auto',
   },
 ]
 
@@ -92,9 +97,9 @@ export default function GameplaySection({ isVisible }) {
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
-        <span className="section-tag">// CORE_MECHANICS</span>
-        <h2>Three moves. Endless possibilities.</h2>
-        <p className="section-desc">Each round follows a ritual rhythm—unveil, bind, collide.</p>
+        <span className="section-tag">// HOW_IT_WORKS</span>
+        <h2>8 Players, Endless Possibilities</h2>
+        <p className="section-desc">Every round has 3 simple phases: Pick, Place, Battle. Repeat until one player remains.</p>
       </motion.div>
 
       {/* Connecting Lines SVG */}
@@ -133,25 +138,28 @@ export default function GameplaySection({ isVisible }) {
         {steps.map((step, i) => (
           <motion.article
             key={step.num}
-            className={`step-card ${step.featured ? 'featured' : ''}`}
+            className="step-card"
             custom={i}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-50px' }}
             variants={cardVariants}
-            whileHover={{
-              y: -8,
-              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.4)',
-              borderColor: step.featured ? '#C0A060' : 'rgba(64, 144, 255, 0.5)',
-            }}
           >
             <div className="step-num">{step.num}</div>
             <motion.div
               className="step-icon"
-              whileHover={{ scale: 1.1, rotate: 10 }}
+              whileHover={{ scale: 1.1 }}
               transition={{ type: 'spring', stiffness: 300 }}
             >
-              <span>{step.icon}</span>
+              <img
+                src={step.icon}
+                alt={step.title}
+                className="step-icon-img"
+                loading="lazy"
+                decoding="async"
+                width={step.iconWidth}
+                height={step.iconHeight}
+              />
             </motion.div>
             <h3>{step.title}</h3>
             <p>{step.desc}</p>
@@ -184,7 +192,7 @@ export default function GameplaySection({ isVisible }) {
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity, delay: 0 }}
           >
-            Unveil
+            Pick
           </motion.span>
           <motion.span
             className="loop-node"
@@ -192,7 +200,7 @@ export default function GameplaySection({ isVisible }) {
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity, delay: 0.6 }}
           >
-            Bind
+            Place
           </motion.span>
           <motion.span
             className="loop-node"
@@ -200,7 +208,7 @@ export default function GameplaySection({ isVisible }) {
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity, delay: 1.2 }}
           >
-            Collide
+            Battle
           </motion.span>
         </div>
       </motion.div>

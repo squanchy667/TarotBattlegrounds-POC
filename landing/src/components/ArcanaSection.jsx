@@ -47,7 +47,7 @@ export default function ArcanaSection({ isVisible }) {
         transition={{ duration: 0.6 }}
       >
         <span className="section-tag">// THE_FOUR_ARCANA</span>
-        <h2>Master the cosmic forces.</h2>
+        <h2>Master the cosmic forces</h2>
         <p className="section-desc">
           Each arcana represents a fundamental force. Combine them for devastating synergies.
         </p>

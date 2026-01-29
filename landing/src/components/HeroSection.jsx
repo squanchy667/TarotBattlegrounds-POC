@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { gsap } from 'gsap'
+import HeroCardFan from './HeroCardFan'
 
 const titleVariants = {
   hidden: { opacity: 0 },
@@ -39,34 +38,8 @@ const chipVariants = {
 }
 
 export default function HeroSection({ onScrollTo, onCtaClick }) {
-  const heroImageRef = useRef(null)
-  const glowRef = useRef(null)
-
-  useEffect(() => {
-    if (heroImageRef.current) {
-      gsap.to(heroImageRef.current, {
-        y: -15,
-        duration: 4,
-        ease: 'sine.inOut',
-        repeat: -1,
-        yoyo: true,
-      })
-    }
-
-    if (glowRef.current) {
-      gsap.to(glowRef.current, {
-        scale: 1.15,
-        opacity: 0.6,
-        duration: 3,
-        ease: 'sine.inOut',
-        repeat: -1,
-        yoyo: true,
-      })
-    }
-  }, [])
-
-  const titleWords1 = 'Read the cards.'.split(' ')
-  const titleWords2 = 'Outsmart the table.'.split(' ')
+  const titleWords1 = 'Read the cards'.split(' ')
+  const titleWords2 = 'Outsmart the table'.split(' ')
 
   return (
     <header className="hero">
@@ -151,7 +124,7 @@ export default function HeroSection({ onScrollTo, onCtaClick }) {
               whileHover={{ scale: 1.05, boxShadow: '0 0 60px rgba(192, 160, 96, 0.5)' }}
               whileTap={{ scale: 0.98 }}
             >
-              <span>Initialize Beta Sequence</span>
+              <span>Become a beta tester</span>
               <span className="btn-shine" />
             </motion.button>
             <motion.button
@@ -164,30 +137,7 @@ export default function HeroSection({ onScrollTo, onCtaClick }) {
             </motion.button>
           </motion.div>
 
-          <motion.div
-            className="hero-features"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.2 }}
-          >
-            {[
-              'Arcanists duel in rotating card spreads',
-              'Every round sharpens your instincts',
-              'Arcane tactics, crystal-clear outcomes',
-            ].map((feature, i) => (
-              <motion.div
-                key={i}
-                className="feature-line"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.3 + i * 0.1 }}
-              >
-                <span className="line-marker" />
-                {feature}
-              </motion.div>
-            ))}
           </motion.div>
-        </motion.div>
 
         <motion.div
           className="hero-visual"
@@ -195,15 +145,7 @@ export default function HeroSection({ onScrollTo, onCtaClick }) {
           animate={{ opacity: 1, scale: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
         >
-          <div className="hero-image-wrapper">
-            <img
-              ref={heroImageRef}
-              src="/images/hero-battle.png"
-              alt="Epic battle in the Arcana Circle"
-              className="hero-image"
-            />
-            <div ref={glowRef} className="hero-image-glow" />
-          </div>
+          <HeroCardFan />
         </motion.div>
       </div>
 

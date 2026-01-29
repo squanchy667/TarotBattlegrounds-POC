@@ -1,7 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
 
 /* ========================================
-   CSS Variables - The Star-Forge Palette
+   CSS Variables - Tarot: Arcana Circle Palette
    ======================================== */
 :root {
   /* Colors */
@@ -27,7 +27,7 @@
   --glow-brass: rgba(192, 160, 96, 0.4);
 
   /* Typography - Updated to Cinzel Decorative + Roboto Mono */
-  --font-display: 'Cinzel Decorative', Georgia, serif;
+  --font-display: 'Josefin Sans', sans-serif;
   --font-tech: 'Roboto Mono', monospace;
   --font-body: 'Roboto Mono', monospace;
 
@@ -93,6 +93,8 @@ a {
   opacity: 0;
   transform: translateY(30px);
   transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+  content-visibility: auto;
+  contain-intrinsic-size: 900px;
 }
 
 .section.visible {
@@ -122,7 +124,7 @@ a {
 .blueprint-bg {
   position: absolute;
   inset: 0;
-  background-image: url('/images/bg-blueprint.png');
+  background-image: url('/images/bg-blueprint.webp');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -818,21 +820,19 @@ a {
   position: relative;
   padding: 2.5rem 2rem;
   background: var(--bg-card);
-  border: 1px solid rgba(64, 144, 255, 0.2);
+  border: 2px solid transparent;
   border-radius: 16px;
   transition: all 0.4s var(--ease-out);
 }
 
 .step-card:hover {
-  border-color: rgba(64, 144, 255, 0.4);
+  border-color: var(--brass);
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(192, 160, 96, 0.2);
 }
 
-.step-card.featured {
-  border-color: var(--brass);
-  background: linear-gradient(145deg, rgba(192, 160, 96, 0.1), var(--bg-card));
-}
 
 .step-num {
   font-size: 0.8rem;
@@ -843,19 +843,17 @@ a {
 }
 
 .step-icon {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   display: grid;
   place-items: center;
   margin-bottom: 1.5rem;
-  background: rgba(64, 144, 255, 0.1);
-  border: 1px solid rgba(64, 144, 255, 0.3);
-  border-radius: 12px;
 }
 
-.step-icon span {
-  font-size: 1.5rem;
-  color: var(--sapphire);
+.step-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .step-card h3 {
@@ -982,8 +980,12 @@ a {
 }
 
 .exp-card:hover {
-  border-color: rgba(192, 160, 96, 0.4);
+  border-color: var(--brass);
+  border-width: 2px;
   transform: translateY(-4px);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(192, 160, 96, 0.2);
 }
 
 .exp-icon {
@@ -1294,19 +1296,27 @@ a {
 }
 
 .founders-quote p {
-  font-size: 1.15rem;
-  line-height: 1.8;
+  font-size: 1.1rem;
+  line-height: 1.7;
   color: var(--text-secondary);
-  font-style: italic;
-  padding-left: 2rem;
+  margin-bottom: 1rem;
+}
+
+.founders-quote p:last-of-type {
+  margin-bottom: 0;
+}
+
+.founders-quote .founders-closing {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-top: 1.5rem;
 }
 
 .founders-sig {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   margin-top: 2rem;
-  padding-left: 2rem;
 }
 
 .sig-line {
@@ -1549,10 +1559,6 @@ a {
 
   .founders-card {
     padding: 2rem 1.5rem;
-  }
-
-  .founders-quote p {
-    padding-left: 1rem;
   }
 }
 
@@ -1917,6 +1923,7 @@ a {
 .hero-title .word-wrapper {
   display: inline-block;
   overflow: hidden;
+  margin-right: 0.3em;
 }
 
 .title-line {

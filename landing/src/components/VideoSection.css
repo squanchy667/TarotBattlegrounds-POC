@@ -1,0 +1,144 @@
+/* ========================================
+   Video Section - Tarot: Arcana Circle
+   Teaser video display with decorative frame
+   ======================================== */
+
+.video-section {
+  position: relative;
+  padding: 6rem 2rem;
+}
+
+.video-container {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.video-wrapper {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 2px solid rgba(192, 160, 96, 0.3);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 0 60px rgba(0, 0, 0, 0.3);
+}
+
+.teaser-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+/* Play button overlay */
+.video-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(18, 22, 32, 0.9);
+  border: 2px solid var(--brass);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 0 30px rgba(192, 160, 96, 0.3),
+    0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.video-play-btn:hover {
+  background: rgba(192, 160, 96, 0.2);
+  box-shadow:
+    0 0 50px rgba(192, 160, 96, 0.5),
+    0 15px 40px rgba(0, 0, 0, 0.6);
+}
+
+.play-icon {
+  font-size: 2rem;
+  color: var(--brass);
+  margin-left: 6px; /* Visual centering for play icon */
+}
+
+@media (max-width: 600px) {
+  .video-play-btn {
+    width: 70px;
+    height: 70px;
+  }
+
+  .play-icon {
+    font-size: 1.5rem;
+    margin-left: 4px;
+  }
+}
+
+/* Decorative corner frames */
+.video-frame-corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-color: var(--brass);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.video-frame-tl {
+  top: -2px;
+  left: -2px;
+  border-width: 3px 0 0 3px;
+  border-radius: 16px 0 0 0;
+}
+
+.video-frame-tr {
+  top: -2px;
+  right: -2px;
+  border-width: 3px 3px 0 0;
+  border-radius: 0 16px 0 0;
+}
+
+.video-frame-bl {
+  bottom: -2px;
+  left: -2px;
+  border-width: 0 0 3px 3px;
+  border-radius: 0 0 0 16px;
+}
+
+.video-frame-br {
+  bottom: -2px;
+  right: -2px;
+  border-width: 0 3px 3px 0;
+  border-radius: 0 0 16px 0;
+}
+
+/* Background glow */
+.video-glow {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(64, 144, 255, 0.15) 0%,
+    rgba(192, 160, 96, 0.1) 30%,
+    transparent 70%
+  );
+  filter: blur(60px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Caption */
+.video-caption {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+}

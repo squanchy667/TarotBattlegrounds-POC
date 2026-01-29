@@ -1,5 +1,5 @@
 /* ========================================
-   Holographic Card - Star-Forge Edition
+   Holographic Card - Tarot: Arcana Circle Edition
    Based on Pokemon Holo effect
    ======================================== */
 
@@ -218,6 +218,27 @@
 .holo-card:hover::before,
 .holo-card:hover::after {
   opacity: 1;
+}
+
+/* ========================================
+   Tribe Example Card Preview
+   ======================================== */
+
+.tribe-example-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  pointer-events: none;
+  z-index: 10;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.8));
+}
+
+.tribe-example-card-img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
 }
 
 /* ========================================

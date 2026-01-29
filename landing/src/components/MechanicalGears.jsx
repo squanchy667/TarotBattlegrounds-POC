@@ -3,7 +3,7 @@ import './MechanicalGears.css'
 
 /**
  * Mechanical Gears Component
- * Brass clockwork gears with the Star-Forge aesthetic
+ * Brass clockwork gears with the Tarot: Arcana Circle aesthetic
  *
  * @param {string} size - 'sm' | 'md' | 'lg'
  * @param {string} position - CSS position values

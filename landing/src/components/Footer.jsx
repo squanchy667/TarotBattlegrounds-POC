@@ -10,7 +10,7 @@ export default function Footer({ onScrollTo, onCtaClick }) {
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
-        <h2>The rite begins soon.</h2>
+        <h2>The rite begins soon</h2>
         <p>Join the beta and help shape the arena.</p>
         <motion.button
           className="btn btn-primary"
@@ -21,7 +21,7 @@ export default function Footer({ onScrollTo, onCtaClick }) {
           whileHover={{ scale: 1.05, boxShadow: '0 0 50px rgba(192, 160, 96, 0.5)' }}
           whileTap={{ scale: 0.95 }}
         >
-          <span>Initialize Beta Sequence</span>
+          <span>Become a beta tester</span>
           <span className="btn-shine" />
         </motion.button>
       </motion.div>
@@ -34,7 +34,15 @@ export default function Footer({ onScrollTo, onCtaClick }) {
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
         >
-          <img src="/images/logo.png" alt="" className="footer-logo" />
+          <img
+            src="/images/logo.webp"
+            alt=""
+            className="footer-logo"
+            loading="lazy"
+            decoding="async"
+            width="991"
+            height="540"
+          />
           <span>Tarot: Arcana Circle</span>
         </motion.div>
 

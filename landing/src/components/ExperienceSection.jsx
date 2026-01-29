@@ -5,18 +5,18 @@ import { gsap } from 'gsap'
 const experiences = [
   {
     icon: '⚙',
-    title: 'Clarity in every round',
-    desc: 'Every round sharpens your instincts and rewards smart choices. No hidden dice—just transparent strategy.',
+    title: 'Easy to learn',
+    desc: 'No hidden mechanics. What you see is what you get.',
   },
   {
     icon: '☾',
-    title: 'Mysticism with intention',
-    desc: 'Arcana archetypes guide your strategy with clear, dramatic outcomes. Magic you can understand.',
+    title: 'Hard to master',
+    desc: 'Deep strategy emerges from simple rules. Every choice matters.',
   },
   {
     icon: '◈',
-    title: 'Tactical identity',
-    desc: 'Shape a playstyle that feels distinctly yours. Aggressive, defensive, or synergy-focused—you decide.',
+    title: 'Play your way',
+    desc: 'Aggressive, defensive, or economy-focused—find your style.',
   },
 ]
 
@@ -60,10 +60,14 @@ export default function ExperienceSection({ isVisible }) {
       >
         <img
           ref={crystalRef}
-          src="/images/crystal-gem.png"
+          src="/images/crystal-gem.webp"
           alt=""
           className="crystal-float"
           aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          width="2816"
+          height="1536"
         />
       </motion.div>
 
@@ -74,8 +78,8 @@ export default function ExperienceSection({ isVisible }) {
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
-        <span className="section-tag">// THE_EXPERIENCE</span>
-        <h2>Simple to start. Satisfying to master.</h2>
+        <span className="section-tag">// WHY_PLAY</span>
+        <h2>Simple rules, deep strategy</h2>
       </motion.div>
 
       <div className="experience-grid">

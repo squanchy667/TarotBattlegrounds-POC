@@ -81,10 +81,14 @@ export default function BetaSection({ isVisible, onCtaClick }) {
 
       <motion.img
         ref={crystalLeftRef}
-        src="/images/crystal-gem-2.png"
+        src="/images/crystal-gem-2.webp"
         alt=""
         className="beta-crystal beta-crystal-left"
         aria-hidden="true"
+        loading="lazy"
+        decoding="async"
+        width="2816"
+        height="1536"
         initial={{ opacity: 0, x: -50 }}
         whileInView={{ opacity: 0.5, x: 0 }}
         viewport={{ once: true }}
@@ -93,10 +97,14 @@ export default function BetaSection({ isVisible, onCtaClick }) {
 
       <motion.img
         ref={crystalRightRef}
-        src="/images/crystal-gem-3.png"
+        src="/images/crystal-gem-3.webp"
         alt=""
         className="beta-crystal beta-crystal-right"
         aria-hidden="true"
+        loading="lazy"
+        decoding="async"
+        width="2816"
+        height="1536"
         initial={{ opacity: 0, x: 50 }}
         whileInView={{ opacity: 0.5, x: 0 }}
         viewport={{ once: true }}
@@ -111,7 +119,7 @@ export default function BetaSection({ isVisible, onCtaClick }) {
         transition={{ duration: 0.6 }}
       >
         <span className="section-tag">// INITIALIZE_SEQUENCE</span>
-        <h2>Step into the first circle of Arcanists.</h2>
+        <h2>Step into the first circle of Arcanists</h2>
         <p className="section-desc">Shape the arena with your feedback. Early access awaits.</p>
       </motion.div>
 
@@ -155,7 +163,7 @@ export default function BetaSection({ isVisible, onCtaClick }) {
                 whileHover={{ scale: 1.02, boxShadow: '0 0 50px rgba(192, 160, 96, 0.5)' }}
                 whileTap={{ scale: 0.98 }}
               >
-                <span>{isSubmitting ? 'Initializing...' : 'Initialize Beta Sequence'}</span>
+                <span>{isSubmitting ? 'Initializing...' : 'Become a beta tester'}</span>
                 <span className="btn-shine" />
               </motion.button>
               <p className="form-note">We respect your data. Unsubscribe anytime.</p>

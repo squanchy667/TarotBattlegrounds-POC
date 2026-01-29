@@ -27,9 +27,12 @@ export default function Navigation({ onScrollTo, onCtaClick }) {
     >
       <div className="nav-brand">
         <motion.img
-          src="/images/logo.png"
+          src="/images/logo.webp"
           alt="Tarot: Arcana Circle"
           className="brand-logo"
+          width="991"
+          height="540"
+          decoding="async"
           whileHover={{ scale: 1.05, rotate: 5 }}
           transition={{ type: 'spring', stiffness: 300 }}
         />
@@ -66,7 +69,7 @@ export default function Navigation({ onScrollTo, onCtaClick }) {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          Initialize Beta
+          Join Beta
         </motion.button>
       </div>
 

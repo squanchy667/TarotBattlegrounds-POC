@@ -8,6 +8,7 @@ import HeroSection from './components/HeroSection'
 import GameplaySection from './components/GameplaySection'
 import ExperienceSection from './components/ExperienceSection'
 import ArcanaSection from './components/ArcanaSection'
+import VideoSection from './components/VideoSection'
 import BetaSection from './components/BetaSection'
 import FoundersSection from './components/FoundersSection'
 import Footer from './components/Footer'
@@ -85,6 +86,11 @@ function App() {
 
         <SectionDivider />
 
+        {/* Video Section */}
+        <VideoSection isVisible={isVisible.video} />
+
+        <SectionDivider />
+
         {/* Experience Section */}
         <ExperienceSection isVisible={isVisible.experience} />
 
@@ -95,7 +101,7 @@ function App() {
         <BetaSection isVisible={isVisible.beta} onCtaClick={handleCtaClick} />
 
         {/* Founders Section */}
-        <FoundersSection />
+        <FoundersSection isVisible={isVisible.founders} />
       </main>
 
       {/* Footer */}
