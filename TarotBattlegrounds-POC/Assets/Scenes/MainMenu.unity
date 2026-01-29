@@ -1063,7 +1063,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playButton: {fileID: 1718706954}
   quitButton: {fileID: 1575251970}
-  playerCount: 2
+  playerCountDropdown: {fileID: 0}
+  gameModeDropdown: {fileID: 0}
+  difficultyDropdown: {fileID: 0}
+  defaultPlayerCount: 2
+  defaultGameMode: 0
+  defaultDifficulty: 1
 --- !u!4 &2010406591
 Transform:
   m_ObjectHideFlags: 0
