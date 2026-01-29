@@ -421,10 +421,29 @@ public class GameUIManager : MonoBehaviour, IThemeable
                                          player.currentTavernTier < 6;
         }
 
-        // End Turn button: enabled only during recruit phase
+        // End Turn button: enabled during recruit phase if this player hasn't already readied
         if (endTurnButton != null)
         {
-            endTurnButton.interactable = isRecruitPhase;
+            bool alreadyReady = GameManager.Instance != null &&
+                                GameManager.Instance.IsPlayerReady(activePlayerIndex);
+            endTurnButton.interactable = isRecruitPhase && !alreadyReady;
+
+            // Update button text to reflect state
+            if (endTurnButtonText != null)
+            {
+                if (alreadyReady)
+                {
+                    endTurnButtonText.text = "Waiting...";
+                }
+                else if (currentTheme != null)
+                {
+                    endTurnButtonText.text = currentTheme.endTurnButtonText;
+                }
+                else
+                {
+                    endTurnButtonText.text = "End Turn";
+                }
+            }
         }
 
         // Freeze Shop button: enabled during recruit phase
@@ -548,10 +567,16 @@ public class GameUIManager : MonoBehaviour, IThemeable
 
     private void OnEndTurnClicked()
     {
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.EndRecruitPhaseEarly();
-        }
+        if (GameManager.Instance == null) return;
+
+        int playerIndex = GetActivePlayerIndex();
+        GameManager.Instance.PlayerReadyForCombat(playerIndex);
+
+        // Disable button and show waiting state
+        if (endTurnButton != null)
+            endTurnButton.interactable = false;
+        if (endTurnButtonText != null)
+            endTurnButtonText.text = "Waiting...";
     }
 
     private void OnFreezeShopClicked()

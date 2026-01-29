@@ -27,11 +27,15 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
     [SerializeField] private Color normalColor = new Color(0.2f, 0.2f, 0.2f, 1f);
     [SerializeField] private Color selectedColor = new Color(0.3f, 0.5f, 0.3f, 1f);
 
+    private static readonly Color frozenBorderColor = new Color(0.3f, 0.6f, 1f, 1f);
+
     private Card card;
     private int index;
     private Action<int> onClickCallback;
     private Button cardButton;
     private ThemeConfig currentTheme;
+    private bool isFrozen;
+    private bool isSelected;
 
     private void Awake()
     {
@@ -96,8 +100,8 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
         if (healthText != null)
             healthText.color = theme.positiveColor;
 
-        // Re-apply selection state to update colors
-        SetSelected(selectionBorder != null && selectionBorder.gameObject.activeSelf);
+        // Re-apply visual state to update colors
+        SetSelected(isSelected);
     }
 
     private void ApplyCardFrame(ThemeConfig theme, int tier)
@@ -191,11 +195,27 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
 
     public void SetSelected(bool selected)
     {
-        if (selectionBorder != null)
-            selectionBorder.gameObject.SetActive(selected);
+        isSelected = selected;
+        UpdateBorderVisual();
 
         if (cardBackground != null)
             cardBackground.color = selected ? selectedColor : normalColor;
+    }
+
+    public void SetFrozen(bool frozen)
+    {
+        isFrozen = frozen;
+        UpdateBorderVisual();
+    }
+
+    private void UpdateBorderVisual()
+    {
+        if (selectionBorder == null) return;
+
+        bool showBorder = isSelected || isFrozen;
+        selectionBorder.gameObject.SetActive(showBorder);
+        if (showBorder)
+            selectionBorder.color = isSelected ? selectedColor : frozenBorderColor;
     }
 
     public void UpdateStats(int attack, int health)

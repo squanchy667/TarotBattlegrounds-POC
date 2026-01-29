@@ -39,22 +39,64 @@ public class GameManager : MonoBehaviour
     public AIDifficulty defaultAIDifficulty = AIDifficulty.Medium;
 
     private Dictionary<int, AIController> aiControllers = new Dictionary<int, AIController>();
-    private bool recruitPhaseSkipped = false;
+    private HashSet<int> playersReadyForCombat = new HashSet<int>();
     private List<int> eliminationOrder = new List<int>(); // Players eliminated in order (first eliminated = last place)
 
     public GamePhase CurrentPhase => currentPhase;
     public int TurnNumber => turnNumber;
 
     /// <summary>
-    /// End the recruit phase early (called from End Turn button).
+    /// Mark a player as ready to move to combat. The recruit phase ends early
+    /// only when ALL alive players have called this.
+    /// </summary>
+    public void PlayerReadyForCombat(int playerIndex)
+    {
+        if (currentPhase != GamePhase.Recruit) return;
+
+        if (playersReadyForCombat.Contains(playerIndex)) return;
+
+        playersReadyForCombat.Add(playerIndex);
+        Debug.Log($"[GameManager] Player {playerIndex + 1} is ready for combat ({playersReadyForCombat.Count}/{GetAlivePlayerCount()}).");
+    }
+
+    /// <summary>
+    /// Check whether a specific player has already clicked End Turn this phase.
+    /// </summary>
+    public bool IsPlayerReady(int playerIndex) => playersReadyForCombat.Contains(playerIndex);
+
+    private int GetAlivePlayerCount()
+    {
+        int count = 0;
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (playerHealths[i] > 0) count++;
+        }
+        return count;
+    }
+
+    private bool AllAlivePlayersReady()
+    {
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (playerHealths[i] > 0 && !playersReadyForCombat.Contains(i))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Legacy shortcut — kept for backward compatibility. Marks all alive players as ready.
     /// </summary>
     public void EndRecruitPhaseEarly()
     {
-        if (currentPhase == GamePhase.Recruit)
+        if (currentPhase != GamePhase.Recruit) return;
+
+        for (int i = 0; i < playerCount; i++)
         {
-            recruitPhaseSkipped = true;
-            Debug.Log("[GameManager] Recruit phase ended early by player.");
+            if (playerHealths[i] > 0)
+                playersReadyForCombat.Add(i);
         }
+        Debug.Log("[GameManager] Recruit phase force-ended (all players marked ready).");
     }
 
     private void TriggerGameOver(int winnerIndex)
@@ -310,7 +352,10 @@ public class GameManager : MonoBehaviour
             Debug.Log($"Player {i + 1} Recruit Start: Coins = {player.coins}/{expectedCoins}, Upgrade Cost = {player.GetUpgradeCost()}, Current Tier = {player.currentTavernTier}, Hand Size = {player.hand.Count}, Board Size = {player.board.Count}");
         }
 
-        // AI players make their decisions at start of recruit phase
+        // Reset ready state for new recruit phase
+        playersReadyForCombat.Clear();
+
+        // AI players make their decisions at start of recruit phase, then auto-ready
         foreach (var kvp in aiControllers)
         {
             int playerIndex = kvp.Key;
@@ -319,13 +364,13 @@ public class GameManager : MonoBehaviour
             AIController ai = kvp.Value;
             Debug.Log($"[GameManager] AI Player {playerIndex + 1} executing turn...");
             ai.ExecuteTurn();
+            PlayerReadyForCombat(playerIndex);
         }
 
         if (GameUIManager.Instance != null && GameUIManager.Instance.GetShopUI() != null)
             GameUIManager.Instance.GetShopUI().RefreshShopDisplay();
-        recruitPhaseSkipped = false;
         int lastLoggedSecond = Mathf.FloorToInt(timer);
-        while (timer > 0 && !recruitPhaseSkipped)
+        while (timer > 0 && !AllAlivePlayersReady())
         {
             // Update UI timer
             if (GameUIManager.Instance != null)

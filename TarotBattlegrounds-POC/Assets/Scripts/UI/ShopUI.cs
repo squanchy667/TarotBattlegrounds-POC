@@ -28,6 +28,7 @@ public class ShopUI : MonoBehaviour, IThemeable
     private List<GameObject> emptySlots = new List<GameObject>();
     private int selectedCardIndex = -1;
     private ThemeConfig currentTheme;
+    private Player subscribedPlayer;
 
     private void Start()
     {
@@ -45,6 +46,36 @@ public class ShopUI : MonoBehaviour, IThemeable
     private void OnDisable()
     {
         ThemeManager.OnThemeChanged -= ApplyTheme;
+        UnsubscribeFromPlayer();
+    }
+
+    private void SubscribeToPlayer(Player player)
+    {
+        if (player == subscribedPlayer) return;
+        UnsubscribeFromPlayer();
+        subscribedPlayer = player;
+        if (subscribedPlayer != null)
+            subscribedPlayer.OnShopFreezeChanged += OnShopFreezeChanged;
+    }
+
+    private void UnsubscribeFromPlayer()
+    {
+        if (subscribedPlayer != null)
+        {
+            subscribedPlayer.OnShopFreezeChanged -= OnShopFreezeChanged;
+            subscribedPlayer = null;
+        }
+    }
+
+    private void OnShopFreezeChanged(bool frozen)
+    {
+        foreach (var cardObj in currentShopCards)
+        {
+            if (cardObj == null) continue;
+            var cardUI = cardObj.GetComponent<CardDisplayUI>();
+            if (cardUI != null)
+                cardUI.SetFrozen(frozen);
+        }
     }
 
     /// <summary>
@@ -78,6 +109,8 @@ public class ShopUI : MonoBehaviour, IThemeable
         Player activePlayer = GetActivePlayer();
         if (activePlayer == null) return;
 
+        SubscribeToPlayer(activePlayer);
+
         // Get themed labels
         string shopLabel = currentTheme != null ? currentTheme.shopTitle : "Shop";
         string tierLabel = currentTheme != null ? currentTheme.tierLabel : "Tier";
@@ -85,22 +118,33 @@ public class ShopUI : MonoBehaviour, IThemeable
         // Update tier display
         if (shopTierText != null)
             shopTierText.text = $"{shopLabel} ({tierLabel} {activePlayer.currentTavernTier})";
-        
+
         if (TavernManager.Instance == null) return;
         if (!TavernManager.Instance.availableCards.ContainsKey(activePlayer.playerId)) return;
-        
+
         List<Card> availableCards = TavernManager.Instance.availableCards[activePlayer.playerId];
-        
+
         // Update count display
         if (shopCountText != null)
             shopCountText.text = $"{availableCards.Count} cards";
-        
+
         // Create card displays
         for (int i = 0; i < availableCards.Count; i++)
         {
             CreateShopCard(availableCards[i], i);
         }
-        
+
+        // Apply frozen border if shop is frozen
+        if (activePlayer.ShopFrozen)
+        {
+            foreach (var cardObj in currentShopCards)
+            {
+                var cardUI = cardObj.GetComponent<CardDisplayUI>();
+                if (cardUI != null)
+                    cardUI.SetFrozen(true);
+            }
+        }
+
         // Create empty slots to fill remaining space
         CreateEmptySlots(availableCards.Count);
     }
