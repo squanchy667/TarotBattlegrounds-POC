@@ -3,11 +3,26 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+/// <summary>
+/// Data for the game over event.
+/// </summary>
+public struct GameOverData
+{
+    public int winnerPlayerIndex;       // -1 if all eliminated
+    public List<int> standings;         // Player indices ordered by placement (first = 1st place)
+    public int totalTurns;
+}
+
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
     public enum GamePhase { Recruit, Combat }
     public List<Player> players;
+
+    /// <summary>
+    /// Fired when the game ends. Carries standings data.
+    /// </summary>
+    public static event System.Action<GameOverData> OnGameOver;
 
     [Header("Player Settings (Auto-configured from GameConfig)")]
     [Tooltip("Number of active players (read from GameConfig)")]
@@ -24,9 +39,61 @@ public class GameManager : MonoBehaviour
     public AIDifficulty defaultAIDifficulty = AIDifficulty.Medium;
 
     private Dictionary<int, AIController> aiControllers = new Dictionary<int, AIController>();
+    private bool recruitPhaseSkipped = false;
+    private List<int> eliminationOrder = new List<int>(); // Players eliminated in order (first eliminated = last place)
 
     public GamePhase CurrentPhase => currentPhase;
     public int TurnNumber => turnNumber;
+
+    /// <summary>
+    /// End the recruit phase early (called from End Turn button).
+    /// </summary>
+    public void EndRecruitPhaseEarly()
+    {
+        if (currentPhase == GamePhase.Recruit)
+        {
+            recruitPhaseSkipped = true;
+            Debug.Log("[GameManager] Recruit phase ended early by player.");
+        }
+    }
+
+    private void TriggerGameOver(int winnerIndex)
+    {
+        // Build standings: winner first, then reverse elimination order (last eliminated = 2nd place)
+        List<int> standings = new List<int>();
+
+        if (winnerIndex >= 0)
+            standings.Add(winnerIndex);
+
+        // Add eliminated players in reverse order (last eliminated is highest placement)
+        for (int i = eliminationOrder.Count - 1; i >= 0; i--)
+        {
+            if (!standings.Contains(eliminationOrder[i]))
+                standings.Add(eliminationOrder[i]);
+        }
+
+        // Add any remaining players not yet in standings
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (!standings.Contains(i))
+                standings.Add(i);
+        }
+
+        GameOverData data = new GameOverData
+        {
+            winnerPlayerIndex = winnerIndex,
+            standings = standings,
+            totalTurns = turnNumber
+        };
+
+        Debug.Log($"[GameManager] Game Over! Winner: Player {(winnerIndex >= 0 ? (winnerIndex + 1).ToString() : "None")}. Turns played: {turnNumber}");
+        for (int i = 0; i < standings.Count; i++)
+        {
+            Debug.Log($"  #{i + 1}: Player {standings[i] + 1}");
+        }
+
+        OnGameOver?.Invoke(data);
+    }
 
     /// <summary>
     /// Check if a player is human-controlled.
@@ -121,12 +188,17 @@ public class GameManager : MonoBehaviour
         {
             yield return StartCoroutine(RecruitPhase());
             currentPhase = GamePhase.Combat;
+
+            // Notify UI of phase change
+            if (GameUIManager.Instance != null)
+                GameUIManager.Instance.RefreshAllUI();
+
             Debug.Log("Current Phase: " + currentPhase);
             List<int> activePlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
             if (activePlayers.Count == 1)
             {
-                Debug.Log($"Game Over: Player {activePlayers[0] + 1} wins!");
-                break;
+                TriggerGameOver(activePlayers[0]);
+                yield break;
             }
             List<(int, int)> battles = GeneratePairwiseBattles(activePlayers);
             foreach (var (p1, p2) in battles)
@@ -166,17 +238,27 @@ public class GameManager : MonoBehaviour
             }
             turnNumber++;
 
+            // Track newly eliminated players
+            for (int i = 0; i < playerCount; i++)
+            {
+                if (playerHealths[i] <= 0 && !eliminationOrder.Contains(i))
+                {
+                    eliminationOrder.Add(i);
+                    Debug.Log($"[GameManager] Player {i + 1} eliminated! (Elimination #{eliminationOrder.Count})");
+                }
+            }
+
             // Check for eliminations and game end AFTER combat
             List<int> remainingPlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
             if (remainingPlayers.Count == 1)
             {
-                Debug.Log($"Game Over: Player {remainingPlayers[0] + 1} wins!");
-                break;
+                TriggerGameOver(remainingPlayers[0]);
+                yield break;
             }
-            if (playerHealths.All(h => h <= 0))
+            if (remainingPlayers.Count == 0)
             {
-                Debug.Log("Game Over: All players defeated");
-                break;
+                TriggerGameOver(-1);
+                yield break;
             }
             yield return new WaitForSeconds(5f);
         }
@@ -208,6 +290,11 @@ public class GameManager : MonoBehaviour
     private IEnumerator RecruitPhase()
     {
         currentPhase = GamePhase.Recruit;
+
+        // Notify UI of phase change (enables End Turn, Freeze buttons)
+        if (GameUIManager.Instance != null)
+            GameUIManager.Instance.RefreshAllUI();
+
         Debug.Log("Current Phase: " + currentPhase);
         float timer = recruitTimer;
         for (int i = 0; i < playerCount; i++)
@@ -236,8 +323,9 @@ public class GameManager : MonoBehaviour
 
         if (GameUIManager.Instance != null && GameUIManager.Instance.GetShopUI() != null)
             GameUIManager.Instance.GetShopUI().RefreshShopDisplay();
+        recruitPhaseSkipped = false;
         int lastLoggedSecond = Mathf.FloorToInt(timer);
-        while (timer > 0)
+        while (timer > 0 && !recruitPhaseSkipped)
         {
             // Update UI timer
             if (GameUIManager.Instance != null)

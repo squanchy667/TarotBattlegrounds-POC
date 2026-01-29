@@ -30,6 +30,9 @@ public class ThemeConfig : ScriptableObject
     public string playButtonText = "Play";
     public string rerollButtonText = "Reroll";
     public string upgradeButtonText = "Upgrade";
+    public string maxTierText = "MAX";
+    public string freezeButtonText = "Freeze";
+    public string unfreezeButtonText = "Unfreeze";
     public string endTurnButtonText = "End Turn";
 
     [Header("Combat Text")]
@@ -38,6 +41,11 @@ public class ThemeConfig : ScriptableObject
     public string victoryText = "Victory!";
     public string defeatText = "Defeat!";
     public string tieText = "Tie!";
+
+    [Header("Game Over Text")]
+    public string gameOverTitle = "Game Over";
+    public string playAgainText = "Play Again";
+    public string quitToMenuText = "Quit to Menu";
 
     [Header("Color Palette")]
     [Tooltip("Primary UI color (buttons, highlights)")]
@@ -55,7 +63,16 @@ public class ThemeConfig : ScriptableObject
     [Tooltip("Negative feedback color (damage, debuffs)")]
     public Color negativeColor = new Color(0.9f, 0.3f, 0.3f); // Red
 
+    [Header("Background")]
+    [Tooltip("Game background sprite (fullscreen)")]
+    public Sprite gameBackground;
+    [Tooltip("Fallback background color if no sprite is set")]
+    public Color gameBackgroundColor = new Color(0.1f, 0.08f, 0.15f);
+
     [Header("Card Visuals")]
+    [Tooltip("Background tint color for golden (tripled) cards")]
+    public Color goldenCardColor = new Color(1f, 0.85f, 0.2f, 1f);
+
     [Tooltip("Card frame sprite for tier 1-2 cards")]
     public Sprite cardFrameCommon;
     [Tooltip("Card frame sprite for tier 3-4 cards")]
@@ -241,12 +258,21 @@ public class ThemeConfig : ScriptableObject
         config.playButtonText = "Deploy";
         config.rerollButtonText = "Reroll";
         config.upgradeButtonText = "Upgrade";
+        config.maxTierText = "MAX";
+        config.freezeButtonText = "Freeze";
+        config.unfreezeButtonText = "Unfreeze";
         config.endTurnButtonText = "End Turn";
         config.combatPhaseTitle = "Combat Phase";
         config.recruitPhaseTitle = "Recruit Phase";
         config.victoryText = "Victory!";
         config.defeatText = "Defeat!";
         config.tieText = "Draw!";
+        config.gameOverTitle = "Game Over";
+        config.playAgainText = "Play Again";
+        config.quitToMenuText = "Quit to Menu";
+
+        // Tarot background
+        config.gameBackgroundColor = new Color(0.08f, 0.06f, 0.12f);
 
         // Tarot color palette (mystical purple/gold theme)
         config.primaryColor = new Color(0.6f, 0.4f, 0.8f);      // Purple
@@ -257,6 +283,7 @@ public class ThemeConfig : ScriptableObject
         config.positiveColor = new Color(0.3f, 0.8f, 0.3f);     // Green
         config.negativeColor = new Color(0.9f, 0.3f, 0.3f);     // Red
         config.cardBackgroundColor = new Color(0.12f, 0.1f, 0.18f);
+        config.goldenCardColor = new Color(1f, 0.85f, 0.2f, 1f);
 
         config.tribes = new TribeThemeData[]
         {
@@ -326,9 +353,16 @@ public class ThemeConfig : ScriptableObject
         config.playButtonText = "Play";
         config.rerollButtonText = "Reroll";
         config.upgradeButtonText = "Upgrade";
+        config.maxTierText = "MAX";
+        config.freezeButtonText = "Freeze";
+        config.unfreezeButtonText = "Unfreeze";
         config.endTurnButtonText = "End Turn";
         config.combatPhaseTitle = "Combat";
         config.recruitPhaseTitle = "Recruit";
+        config.gameOverTitle = "Game Over";
+        config.playAgainText = "Play Again";
+        config.quitToMenuText = "Quit";
+        config.gameBackgroundColor = new Color(0.1f, 0.1f, 0.15f);
 
         // Debug color palette (high contrast for testing)
         config.primaryColor = new Color(0.2f, 0.6f, 0.9f);     // Blue
@@ -339,6 +373,7 @@ public class ThemeConfig : ScriptableObject
         config.positiveColor = Color.green;
         config.negativeColor = Color.red;
         config.cardBackgroundColor = new Color(0.2f, 0.2f, 0.25f);
+        config.goldenCardColor = new Color(1f, 0.9f, 0.3f, 1f);
 
         // Generic tribe names
         config.tribes = new TribeThemeData[]

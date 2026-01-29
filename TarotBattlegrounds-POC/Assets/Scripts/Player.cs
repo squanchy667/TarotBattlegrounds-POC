@@ -14,7 +14,9 @@ public class Player : MonoBehaviour
     public event Action OnTierChanged;
     public event Action<int> OnHealthChanged;
     public event Action OnShopRefreshed;
-    
+    public event Action<bool> OnShopFreezeChanged;
+    public event Action<Player, List<Card>> OnTripleDiscovery;
+
     // Static event for any player state change (useful for global listeners)
     public static event Action<Player> OnAnyPlayerStateChanged;
     
@@ -70,6 +72,28 @@ public class Player : MonoBehaviour
         }
     }
     
+    // Shop freeze state
+    private bool _shopFrozen = false;
+    public bool ShopFrozen
+    {
+        get => _shopFrozen;
+        private set
+        {
+            if (_shopFrozen != value)
+            {
+                _shopFrozen = value;
+                OnShopFreezeChanged?.Invoke(_shopFrozen);
+                OnAnyPlayerStateChanged?.Invoke(this);
+            }
+        }
+    }
+
+    public void ToggleShopFreeze()
+    {
+        ShopFrozen = !ShopFrozen;
+        Debug.Log($"Player {playerId}: Shop freeze toggled to {ShopFrozen}");
+    }
+
     private TavernManager tavern;
     
     // Dictionary for base upgrade costs: key = target tier, value = base cost
@@ -131,6 +155,9 @@ public class Player : MonoBehaviour
             OnAnyPlayerStateChanged?.Invoke(this);
             
             Debug.Log($"Player {playerId}: Bought {newCard.cardName} (Tier {newCard.tier}) for {cost} coins. Hand size: {hand.Count}, Coins: {coins}, Pool size: {tavern.GetFullPool().Count}");
+
+            // Check for triples after buying
+            CheckAndResolveTriples();
         }
         else
         {
@@ -216,6 +243,114 @@ public class Player : MonoBehaviour
         Debug.Log($"Player {playerId}: Sold {card.cardName} (Tier {card.tier}) from hand for {value} coins. Coins: {coins}, Pool size: {tavern.GetFullPool().Count}");
     }
     
+    /// <summary>
+    /// Check all cards in hand + board for triples (3 non-golden copies of the same card).
+    /// If found, remove 3 copies and create a golden version in hand.
+    /// </summary>
+    public void CheckAndResolveTriples()
+    {
+        // Group all non-golden cards by name across hand + board
+        var allCards = new List<(Card card, bool inHand, int index)>();
+        for (int i = 0; i < hand.Count; i++)
+            allCards.Add((hand[i], true, i));
+        for (int i = 0; i < board.Count; i++)
+            allCards.Add((board[i], false, i));
+
+        var groups = new Dictionary<string, List<(Card card, bool inHand, int index)>>();
+        foreach (var entry in allCards)
+        {
+            if (entry.card.isGolden) continue;
+            if (!groups.ContainsKey(entry.card.cardName))
+                groups[entry.card.cardName] = new List<(Card, bool, int)>();
+            groups[entry.card.cardName].Add(entry);
+        }
+
+        foreach (var kvp in groups)
+        {
+            if (kvp.Value.Count < 3) continue;
+
+            // Take the first 3 copies
+            var toMerge = kvp.Value.GetRange(0, 3);
+            Card baseCard = toMerge[0].card;
+
+            Debug.Log($"Player {playerId}: Triple detected for {baseCard.cardName}! Creating golden version.");
+
+            // Remove cards from board and hand (remove in reverse index order to preserve indices)
+            var boardRemovals = new List<int>();
+            var handRemovals = new List<int>();
+            foreach (var entry in toMerge)
+            {
+                if (entry.inHand)
+                    handRemovals.Add(entry.index);
+                else
+                    boardRemovals.Add(entry.index);
+            }
+
+            // Sort descending to remove from end first
+            boardRemovals.Sort((a, b) => b.CompareTo(a));
+            handRemovals.Sort((a, b) => b.CompareTo(a));
+
+            foreach (int idx in boardRemovals)
+            {
+                AbilityManager.UnregisterCard(board[idx]);
+                board[idx].ResetToBaseStats();
+                if (tavern != null) tavern.ReturnCardToPool(board[idx]);
+                board.RemoveAt(idx);
+            }
+            foreach (int idx in handRemovals)
+            {
+                AbilityManager.UnregisterCard(hand[idx]);
+                hand[idx].ResetToBaseStats();
+                if (tavern != null) tavern.ReturnCardToPool(hand[idx]);
+                hand.RemoveAt(idx);
+            }
+
+            // Create golden card and add to hand
+            Card goldenCard = Card.CreateGoldenVersion(baseCard);
+            hand.Add(goldenCard);
+
+            // Fire UI events
+            OnHandChanged?.Invoke();
+            OnBoardChanged?.Invoke();
+            OnAnyPlayerStateChanged?.Invoke(this);
+
+            // Trigger discovery reward
+            int discoveryTier = Mathf.Min(currentTavernTier + 1, 6);
+            if (tavern != null)
+            {
+                List<Card> discoveryCards = tavern.GetDiscoveryCards(discoveryTier, 3);
+                if (discoveryCards.Count > 0)
+                {
+                    Debug.Log($"Player {playerId}: Triple discovery! Offering {discoveryCards.Count} tier {discoveryTier} cards.");
+                    OnTripleDiscovery?.Invoke(this, discoveryCards);
+                }
+            }
+
+            // Only resolve one triple per buy
+            break;
+        }
+    }
+
+    /// <summary>
+    /// Add a discovered card to the player's hand (from triple discovery).
+    /// </summary>
+    public void AddDiscoveryCard(Card card)
+    {
+        if (hand.Count >= 10)
+        {
+            Debug.Log($"Player {playerId}: Hand full, cannot add discovery card {card.cardName}");
+            return;
+        }
+
+        Card newCard = card.Clone();
+        hand.Add(newCard);
+
+        OnHandChanged?.Invoke();
+        OnAnyPlayerStateChanged?.Invoke(this);
+
+        Debug.Log($"Player {playerId}: Discovered {newCard.cardName} (Tier {newCard.tier}). Hand size: {hand.Count}");
+    }
+
     public void PlayCard(int handIndex, int boardIndex)
     {
         if (handIndex < 0 || handIndex >= hand.Count)
@@ -257,6 +392,25 @@ public class Player : MonoBehaviour
         Debug.Log($"Player {playerId}: Played {card.cardName} (Tier {card.tier}) to board position {boardIndex}. Board size: {board.Count}, Hand size: {hand.Count}");
     }
     
+    public void SwapBoardCards(int indexA, int indexB)
+    {
+        if (indexA < 0 || indexA >= board.Count || indexB < 0 || indexB >= board.Count)
+        {
+            Debug.LogWarning($"Player {playerId}: Invalid swap indices: {indexA}, {indexB}. Board size: {board.Count}");
+            return;
+        }
+        if (indexA == indexB) return;
+
+        Card temp = board[indexA];
+        board[indexA] = board[indexB];
+        board[indexB] = temp;
+
+        OnBoardChanged?.Invoke();
+        OnAnyPlayerStateChanged?.Invoke(this);
+
+        Debug.Log($"Player {playerId}: Swapped board cards at positions {indexA} and {indexB}");
+    }
+
     public void EndRecruitPhase()
     {
         foreach (var card in board)
@@ -387,22 +541,31 @@ public class Player : MonoBehaviour
             Debug.LogError($"Player {playerId}: Cannot refresh shop, TavernManager not found!");
             return;
         }
-        
+
         int oldCoins = _coins;
         _coins = Mathf.Min(3 + (gameTurn - 1), 10);
-        
+
         if (tierTurnCounter.ContainsKey(currentTavernTier))
             tierTurnCounter[currentTavernTier]++;
         else
             tierTurnCounter[currentTavernTier] = 1;
-            
-        tavern.RefreshPlayerShop(playerId, currentTavernTier);
-        
+
+        if (_shopFrozen)
+        {
+            // Keep current shop, auto-unfreeze
+            Debug.Log($"Player {playerId}: Shop was frozen, keeping current offers. Auto-unfreezing.");
+            ShopFrozen = false;
+        }
+        else
+        {
+            tavern.RefreshPlayerShop(playerId, currentTavernTier);
+        }
+
         // Fire events
         OnCoinsChanged?.Invoke();
         OnShopRefreshed?.Invoke();
         OnAnyPlayerStateChanged?.Invoke(this);
-        
+
         Debug.Log($"Player {playerId}: Tavern refreshed: Game Turn {gameTurn}, Available cards: {tavern.availableCards[playerId].Count}, Coins: {oldCoins} -> {_coins}, Tier: {currentTavernTier}, Upgrade Cost: {GetUpgradeCost()}");
     }
     

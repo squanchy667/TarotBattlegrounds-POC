@@ -60,6 +60,9 @@ public class Card : ScriptableObject
     public int buyCostModifier = 0;
     public int sellValueModifier = 0;
 
+    [Header("Golden")]
+    [System.NonSerialized] public bool isGolden = false;
+
     [System.NonSerialized] public bool hasAegis;
 
     // Original stats for resetting when sold
@@ -151,6 +154,7 @@ public class Card : ScriptableObject
         clone.effectType = this.effectType;
         clone.effectParameter = this.effectParameter;
         clone.hasAegis = this.hasAegis;
+        clone.isGolden = this.isGolden;
         // New ability system fields
         clone.abilityTrigger = this.abilityTrigger;
         clone.abilityEffect = this.abilityEffect;
@@ -162,6 +166,26 @@ public class Card : ScriptableObject
         clone.StoreBaseStats();
 
         return clone;
+    }
+
+    /// <summary>
+    /// Create a golden version of this card with doubled stats.
+    /// </summary>
+    public static Card CreateGoldenVersion(Card baseCard)
+    {
+        Card golden = baseCard.Clone();
+        golden.isGolden = true;
+        golden.attack = baseCard.attack * 2;
+        golden.health = baseCard.health * 2;
+        golden.abilityValue = baseCard.abilityValue * 2;
+
+        // Re-store base stats for the golden version
+        golden._baseAttack = golden.attack;
+        golden._baseHealth = golden.health;
+        golden._hasStoredBaseStats = true;
+
+        Debug.Log($"[Card] Created golden {golden.cardName}: {golden.attack}/{golden.health} (ability value: {golden.abilityValue})");
+        return golden;
     }
 
     /// <summary>

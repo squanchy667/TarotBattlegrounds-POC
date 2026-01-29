@@ -28,6 +28,8 @@ public class GameUIManager : MonoBehaviour, IThemeable
     [SerializeField] private Button refreshButton;
     [SerializeField] private Button upgradeButton;
     [SerializeField] private Button switchPlayerButton;
+    [SerializeField] private Button endTurnButton;
+    [SerializeField] private Button freezeShopButton;
 
     [Header("Button Labels (for theming)")]
     [SerializeField] private TMP_Text buyButtonText;
@@ -35,6 +37,8 @@ public class GameUIManager : MonoBehaviour, IThemeable
     [SerializeField] private TMP_Text playButtonText;
     [SerializeField] private TMP_Text refreshButtonText;
     [SerializeField] private TMP_Text upgradeButtonText;
+    [SerializeField] private TMP_Text endTurnButtonText;
+    [SerializeField] private TMP_Text freezeShopButtonText;
 
     [Header("References")]
     [SerializeField] private ShopUI shopUI;
@@ -46,6 +50,9 @@ public class GameUIManager : MonoBehaviour, IThemeable
 
     [Header("Panel Backgrounds (optional)")]
     [SerializeField] private Image mainPanelBackground;
+
+    [Header("Game Background")]
+    [SerializeField] private Image gameBackgroundImage;
 
     private int activePlayerIndex = 0;
     private Player currentPlayer;
@@ -92,9 +99,28 @@ public class GameUIManager : MonoBehaviour, IThemeable
         if (playButtonText != null) playButtonText.text = theme.playButtonText;
         if (refreshButtonText != null) refreshButtonText.text = theme.rerollButtonText;
         if (upgradeButtonText != null) upgradeButtonText.text = theme.upgradeButtonText;
+        if (endTurnButtonText != null) endTurnButtonText.text = theme.endTurnButtonText;
+
+        // Update freeze button text based on current state
+        UpdateFreezeButtonText();
 
         // Apply colors to UI elements
         ApplyThemeColors(theme);
+
+        // Apply background
+        if (gameBackgroundImage != null)
+        {
+            if (theme.gameBackground != null)
+            {
+                gameBackgroundImage.sprite = theme.gameBackground;
+                gameBackgroundImage.color = Color.white;
+            }
+            else
+            {
+                gameBackgroundImage.sprite = null;
+                gameBackgroundImage.color = theme.gameBackgroundColor;
+            }
+        }
 
         // Re-update display to use themed labels
         UpdatePlayerDisplay();
@@ -110,6 +136,8 @@ public class GameUIManager : MonoBehaviour, IThemeable
         ApplyButtonColor(playCardButton, buttonColor);
         ApplyButtonColor(refreshButton, buttonColor);
         ApplyButtonColor(upgradeButton, buttonColor);
+        ApplyButtonColor(endTurnButton, buttonColor);
+        ApplyButtonColor(freezeShopButton, buttonColor);
 
         // Apply panel background
         if (mainPanelBackground != null)
@@ -145,7 +173,14 @@ public class GameUIManager : MonoBehaviour, IThemeable
     {
         SetupButtons();
         SubscribeToCurrentPlayer();
-        
+
+        // Subscribe to board events for card positioning
+        if (boardUI != null)
+        {
+            boardUI.OnEmptySlotSelected += OnBoardEmptySlotSelected;
+            boardUI.OnBoardSwapRequested += OnBoardSwapRequested;
+        }
+
         // Subscribe to combat events if available
         if (combatLogUI != null)
         {
@@ -153,7 +188,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
             CombatManager.OnCombatStart += combatLogUI.OnCombatStart;
             CombatManager.OnCombatEnd += combatLogUI.OnCombatEnd;
         }
-        
+
         UpdateAllUI();
     }
     
@@ -165,6 +200,8 @@ public class GameUIManager : MonoBehaviour, IThemeable
         refreshButton?.onClick.AddListener(() => ExecuteAction("Refresh"));
         upgradeButton?.onClick.AddListener(() => ExecuteAction("Upgrade"));
         switchPlayerButton?.onClick.AddListener(SwitchActivePlayer);
+        endTurnButton?.onClick.AddListener(OnEndTurnClicked);
+        freezeShopButton?.onClick.AddListener(OnFreezeShopClicked);
     }
     
     /// <summary>
@@ -181,11 +218,12 @@ public class GameUIManager : MonoBehaviour, IThemeable
             currentPlayer.OnTierChanged -= OnPlayerTierChanged;
             currentPlayer.OnHealthChanged -= OnPlayerHealthChanged;
             currentPlayer.OnShopRefreshed -= OnPlayerShopRefreshed;
+            currentPlayer.OnShopFreezeChanged -= OnPlayerShopFreezeChanged;
         }
-        
+
         // Get new current player
         currentPlayer = GetActivePlayer();
-        
+
         // Subscribe to new player's events
         if (currentPlayer != null)
         {
@@ -195,6 +233,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
             currentPlayer.OnTierChanged += OnPlayerTierChanged;
             currentPlayer.OnHealthChanged += OnPlayerHealthChanged;
             currentPlayer.OnShopRefreshed += OnPlayerShopRefreshed;
+            currentPlayer.OnShopFreezeChanged += OnPlayerShopFreezeChanged;
         }
     }
     
@@ -239,6 +278,11 @@ public class GameUIManager : MonoBehaviour, IThemeable
     private void OnPlayerShopRefreshed()
     {
         shopUI?.RefreshShopDisplay();
+    }
+
+    private void OnPlayerShopFreezeChanged(bool frozen)
+    {
+        UpdateFreezeButtonText();
     }
     
     // ====== REMOVED: Update() polling ======
@@ -303,7 +347,17 @@ public class GameUIManager : MonoBehaviour, IThemeable
         if (tierText != null)
             tierText.text = $"{tierLabel}: {player.currentTavernTier}";
         if (upgradeCostText != null)
-            upgradeCostText.text = $"Upgrade: {player.GetUpgradeCost()}g";
+        {
+            if (player.currentTavernTier >= 6)
+            {
+                string maxText = currentTheme != null ? currentTheme.maxTierText : "MAX";
+                upgradeCostText.text = $"Upgrade: {maxText}";
+            }
+            else
+            {
+                upgradeCostText.text = $"Upgrade: {player.GetUpgradeCost()}g";
+            }
+        }
 
         // Use player's Health property
         if (healthText != null)
@@ -362,9 +416,21 @@ public class GameUIManager : MonoBehaviour, IThemeable
         // Upgrade button: enabled if recruit phase, have enough coins, and not max tier
         if (upgradeButton != null)
         {
-            upgradeButton.interactable = isRecruitPhase && 
-                                         player.coins >= player.GetUpgradeCost() && 
+            upgradeButton.interactable = isRecruitPhase &&
+                                         player.coins >= player.GetUpgradeCost() &&
                                          player.currentTavernTier < 6;
+        }
+
+        // End Turn button: enabled only during recruit phase
+        if (endTurnButton != null)
+        {
+            endTurnButton.interactable = isRecruitPhase;
+        }
+
+        // Freeze Shop button: enabled during recruit phase
+        if (freezeShopButton != null)
+        {
+            freezeShopButton.interactable = isRecruitPhase;
         }
     }
     
@@ -446,6 +512,75 @@ public class GameUIManager : MonoBehaviour, IThemeable
         }
     }
     
+    private void OnBoardEmptySlotSelected(int slotPosition)
+    {
+        // If a hand card is selected, play it to the specified slot position
+        if (handUI == null) return;
+        int handIndex = handUI.GetSelectedCardIndex();
+        if (handIndex < 0) return;
+
+        var player = GetActivePlayer();
+        if (player == null) return;
+
+        bool isRecruitPhase = GameManager.Instance != null &&
+                              GameManager.Instance.CurrentPhase == GameManager.GamePhase.Recruit;
+        if (!isRecruitPhase) return;
+
+        if (player.board.Count < 7)
+        {
+            player.PlayCard(handIndex, slotPosition);
+            handUI.ClearSelection();
+            Debug.Log($"Played hand card {handIndex} to board slot {slotPosition}");
+        }
+    }
+
+    private void OnBoardSwapRequested(int indexA, int indexB)
+    {
+        var player = GetActivePlayer();
+        if (player == null) return;
+
+        bool isRecruitPhase = GameManager.Instance != null &&
+                              GameManager.Instance.CurrentPhase == GameManager.GamePhase.Recruit;
+        if (!isRecruitPhase) return;
+
+        player.SwapBoardCards(indexA, indexB);
+    }
+
+    private void OnEndTurnClicked()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.EndRecruitPhaseEarly();
+        }
+    }
+
+    private void OnFreezeShopClicked()
+    {
+        var player = GetActivePlayer();
+        if (player != null)
+        {
+            player.ToggleShopFreeze();
+            UpdateFreezeButtonText();
+        }
+    }
+
+    private void UpdateFreezeButtonText()
+    {
+        if (freezeShopButtonText == null) return;
+
+        var player = GetActivePlayer();
+        bool frozen = player != null && player.ShopFrozen;
+
+        if (currentTheme != null)
+        {
+            freezeShopButtonText.text = frozen ? currentTheme.unfreezeButtonText : currentTheme.freezeButtonText;
+        }
+        else
+        {
+            freezeShopButtonText.text = frozen ? "Unfreeze" : "Freeze";
+        }
+    }
+
     /// <summary>
     /// Switch to the next player and refresh all UI
     /// </summary>
@@ -512,6 +647,14 @@ public class GameUIManager : MonoBehaviour, IThemeable
             currentPlayer.OnTierChanged -= OnPlayerTierChanged;
             currentPlayer.OnHealthChanged -= OnPlayerHealthChanged;
             currentPlayer.OnShopRefreshed -= OnPlayerShopRefreshed;
+            currentPlayer.OnShopFreezeChanged -= OnPlayerShopFreezeChanged;
+        }
+
+        // Unsubscribe from board events
+        if (boardUI != null)
+        {
+            boardUI.OnEmptySlotSelected -= OnBoardEmptySlotSelected;
+            boardUI.OnBoardSwapRequested -= OnBoardSwapRequested;
         }
 
         // Unsubscribe from combat events
@@ -532,6 +675,8 @@ public class GameUIManager : MonoBehaviour, IThemeable
         refreshButton?.onClick.RemoveAllListeners();
         upgradeButton?.onClick.RemoveAllListeners();
         switchPlayerButton?.onClick.RemoveAllListeners();
+        endTurnButton?.onClick.RemoveAllListeners();
+        freezeShopButton?.onClick.RemoveAllListeners();
 
         if (Instance == this)
             Instance = null;

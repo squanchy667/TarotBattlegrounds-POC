@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 using System.Collections.Generic;
 
 /// <summary>
@@ -22,6 +23,17 @@ public class BoardUI : MonoBehaviour, IThemeable
     [Header("Empty Slot Display")]
     [SerializeField] private GameObject emptySlotPrefab;
     [SerializeField] private int maxBoardSlots = 7;
+
+    /// <summary>
+    /// Fired when an empty board slot is clicked. Parameter is the slot position index.
+    /// </summary>
+    public event Action<int> OnEmptySlotSelected;
+
+    /// <summary>
+    /// Fired when a board card is clicked while another board card is already selected (swap request).
+    /// Parameters: (indexA, indexB)
+    /// </summary>
+    public event Action<int, int> OnBoardSwapRequested;
 
     private List<GameObject> currentBoardCards = new List<GameObject>();
     private List<GameObject> emptySlots = new List<GameObject>();
@@ -107,13 +119,27 @@ public class BoardUI : MonoBehaviour, IThemeable
     private void CreateEmptySlots(int filledSlots)
     {
         if (emptySlotPrefab == null) return;
-        
+
         int emptyCount = maxBoardSlots - filledSlots;
         for (int i = 0; i < emptyCount; i++)
         {
             GameObject slot = Instantiate(emptySlotPrefab, boardSlotsContainer);
             emptySlots.Add(slot);
+
+            // Add click handler to empty slot
+            int slotPosition = filledSlots + i;
+            Button slotButton = slot.GetComponent<Button>();
+            if (slotButton == null)
+                slotButton = slot.AddComponent<Button>();
+
+            slotButton.onClick.AddListener(() => OnEmptySlotClicked(slotPosition));
         }
+    }
+
+    private void OnEmptySlotClicked(int slotPosition)
+    {
+        Debug.Log($"Empty board slot clicked at position {slotPosition}");
+        OnEmptySlotSelected?.Invoke(slotPosition);
     }
     
     private void ClearBoardDisplay()
@@ -135,6 +161,24 @@ public class BoardUI : MonoBehaviour, IThemeable
     
     private void OnCardClicked(int index)
     {
+        // If a board card is already selected and we click another board card → swap
+        if (selectedCardIndex >= 0 && selectedCardIndex != index)
+        {
+            int prevIndex = selectedCardIndex;
+            Debug.Log($"Board swap requested: {prevIndex} <-> {index}");
+            OnBoardSwapRequested?.Invoke(prevIndex, index);
+            selectedCardIndex = -1;
+
+            // Clear visual selection
+            for (int i = 0; i < currentBoardCards.Count; i++)
+            {
+                CardDisplayUI cardUI = currentBoardCards[i].GetComponent<CardDisplayUI>();
+                if (cardUI != null)
+                    cardUI.SetSelected(false);
+            }
+            return;
+        }
+
         selectedCardIndex = index;
         Debug.Log($"Selected board card at index {index}");
 

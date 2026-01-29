@@ -130,6 +130,40 @@ public class TavernManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Get random discovery cards from the pool at the specified tier.
+    /// These are not removed from the pool (discovery creates copies).
+    /// </summary>
+    public List<Card> GetDiscoveryCards(int tier, int count)
+    {
+        List<Card> candidates = allCards.Where(c => c.tier == tier).ToList();
+
+        // If no cards at exact tier, try the tier below
+        if (candidates.Count == 0 && tier > 1)
+        {
+            candidates = allCards.Where(c => c.tier == tier - 1).ToList();
+        }
+
+        // Deduplicate by card name to offer variety
+        var uniqueByName = new Dictionary<string, Card>();
+        foreach (var card in candidates)
+        {
+            if (!uniqueByName.ContainsKey(card.cardName))
+                uniqueByName[card.cardName] = card;
+        }
+        var uniqueCards = new List<Card>(uniqueByName.Values);
+
+        // Shuffle and take up to count
+        List<Card> result = new List<Card>();
+        var shuffled = uniqueCards.OrderBy(x => Random.value).ToList();
+        for (int i = 0; i < Mathf.Min(count, shuffled.Count); i++)
+        {
+            result.Add(shuffled[i]);
+        }
+
+        return result;
+    }
+
     public void LogPool()
     {
         Debug.Log($"Pool size: {allCards.Count}");

@@ -65,9 +65,14 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
         if (theme == null) return;
         currentTheme = theme;
 
-        // Apply card background color
+        // Apply card background color (golden cards get golden tint)
         if (cardBackground != null)
-            normalColor = theme.cardBackgroundColor;
+        {
+            if (card != null && card.isGolden)
+                normalColor = theme.goldenCardColor;
+            else
+                normalColor = theme.cardBackgroundColor;
+        }
 
         // Apply selection color from theme
         selectedColor = theme.accentColor;
@@ -126,8 +131,9 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
         index = cardIndex;
         onClickCallback = onClick;
 
-        // Display card data
-        if (cardNameText != null) cardNameText.text = card.cardName;
+        // Display card data (golden cards get a star prefix)
+        if (cardNameText != null)
+            cardNameText.text = card.isGolden ? $"* {card.cardName} *" : card.cardName;
         if (attackText != null) attackText.text = card.attack.ToString();
         if (healthText != null) healthText.text = card.health.ToString();
         if (tierText != null) tierText.text = $"T{card.tier}";
