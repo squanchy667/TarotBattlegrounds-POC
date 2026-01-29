@@ -38,7 +38,10 @@ public class SynergyManager : MonoBehaviour
         InitializeSynergyCache();
     }
 
-    private void InitializeSynergyCache()
+    /// <summary>
+    /// Initialize or reinitialize the synergy cache. Call after setting tribeSynergies.
+    /// </summary>
+    public void InitializeSynergyCache()
     {
         _synergyByTribe.Clear();
         if (tribeSynergies == null) return;
@@ -51,6 +54,18 @@ public class SynergyManager : MonoBehaviour
             }
         }
         Debug.Log($"[SynergyManager] Initialized with {_synergyByTribe.Count} tribe synergies");
+    }
+
+    /// <summary>
+    /// Parse legacy tribe string to TribeType enum.
+    /// Uses ThemeManager for theme-agnostic parsing.
+    /// </summary>
+    private TribeType ParseLegacyTribe(string tribeName)
+    {
+        if (string.IsNullOrEmpty(tribeName)) return TribeType.None;
+
+        // Use ThemeManager for parsing (supports aliases from theme config)
+        return ThemeManager.ParseTribeName(tribeName);
     }
 
     /// <summary>
@@ -69,17 +84,49 @@ public class SynergyManager : MonoBehaviour
             return;
         }
 
+        Debug.Log($"[SynergyManager] UpdateTribeCounts called with {board.Count} cards, {_synergyByTribe.Count} synergies loaded");
+
         // Count tribes (cards can have multiple tribes)
         foreach (var card in board)
         {
-            if (card.tribes == null) continue;
-            foreach (var tribe in card.tribes)
+            // Check new tribes array first
+            if (card.tribes != null && card.tribes.Length > 0)
             {
-                if (tribe == TribeType.None) continue;
-                if (!_tribeCounts.ContainsKey(tribe))
-                    _tribeCounts[tribe] = 0;
-                _tribeCounts[tribe]++;
+                foreach (var tribe in card.tribes)
+                {
+                    if (tribe == TribeType.None) continue;
+                    if (!_tribeCounts.ContainsKey(tribe))
+                        _tribeCounts[tribe] = 0;
+                    _tribeCounts[tribe]++;
+                    Debug.Log($"[SynergyManager] {card.cardName} has tribe (array): {tribe}");
+                }
             }
+            // Fallback to legacy tribe string
+            else if (!string.IsNullOrEmpty(card.tribe))
+            {
+                TribeType legacyTribe = ParseLegacyTribe(card.tribe);
+                if (legacyTribe != TribeType.None)
+                {
+                    if (!_tribeCounts.ContainsKey(legacyTribe))
+                        _tribeCounts[legacyTribe] = 0;
+                    _tribeCounts[legacyTribe]++;
+                    Debug.Log($"[SynergyManager] {card.cardName} has tribe (legacy): {card.tribe} -> {legacyTribe}");
+                }
+                else
+                {
+                    Debug.Log($"[SynergyManager] {card.cardName} has unknown legacy tribe: '{card.tribe}'");
+                }
+            }
+            else
+            {
+                Debug.Log($"[SynergyManager] {card.cardName} has no tribe");
+            }
+        }
+
+        // Log final tribe counts
+        foreach (var kvp in _tribeCounts)
+        {
+            Debug.Log($"[SynergyManager] Tribe count: {kvp.Key} = {kvp.Value}");
         }
 
         // Determine active tiers
@@ -212,7 +259,8 @@ public class SynergyManager : MonoBehaviour
     /// </summary>
     public void TriggerSynergies(SynergyTrigger trigger, List<Card> board, Player owner)
     {
-        Debug.Log($"[SynergyManager] Triggering {trigger} synergies");
+        string playerName = owner != null ? $"Player {owner.playerId}" : "Unknown";
+        Debug.Log($"[SynergyManager] === {playerName}: Triggering {trigger} synergies ===");
 
         foreach (var kvp in _activeTiers)
         {
@@ -221,6 +269,7 @@ public class SynergyManager : MonoBehaviour
 
             if (tier.trigger == trigger)
             {
+                Debug.Log($"[SynergyManager] {playerName}: {tribe} Tier {tier.threshold} - {tier.description}");
                 ApplySynergyEffect(tribe, tier, board, owner);
             }
         }
@@ -235,7 +284,16 @@ public class SynergyManager : MonoBehaviour
     private void ApplySynergyEffect(TribeType tribe, SynergyTier tier, List<Card> board, Player owner)
     {
         List<Card> targets = GetTargets(tribe, tier.target, board);
-        Debug.Log($"[SynergyManager] Applying {tribe} synergy: {tier.effect} +{tier.value} to {targets.Count} targets");
+        string playerName = owner != null ? $"Player {owner.playerId}" : "Unknown";
+
+        if (targets.Count == 0)
+        {
+            Debug.Log($"[SynergyManager] {playerName}: {tribe} synergy has no valid targets (target type: {tier.target})");
+            return;
+        }
+
+        string targetNames = string.Join(", ", targets.Select(t => t.cardName));
+        Debug.Log($"[SynergyManager] {playerName}: Applying {tribe} synergy ({tier.effect} +{tier.value}) to {targets.Count} target(s): [{targetNames}]");
 
         foreach (var target in targets)
         {
@@ -245,6 +303,8 @@ public class SynergyManager : MonoBehaviour
 
     private void ApplyComboEffects(List<Card> board, Player owner)
     {
+        string playerName = owner != null ? $"Player {owner.playerId}" : "Unknown";
+
         foreach (var combo in _activeCombos)
         {
             TribeSynergy synergy1 = GetTribeSynergy(combo.Item1);
@@ -253,7 +313,8 @@ public class SynergyManager : MonoBehaviour
             // Apply combo from synergy1 if it references synergy2
             if (synergy1 != null && synergy1.comboTribe == combo.Item2)
             {
-                Debug.Log($"[SynergyManager] Applying combo effect: {synergy1.comboEffect} +{synergy1.comboValue}");
+                Debug.Log($"[SynergyManager] {playerName}: COMBO {combo.Item1}+{combo.Item2} - {synergy1.comboDescription}");
+                Debug.Log($"[SynergyManager] {playerName}: Applying combo ({synergy1.comboEffect} +{synergy1.comboValue}) to all {board.Count} cards");
                 // Combo effects typically apply to all friendly
                 foreach (var card in board)
                 {
@@ -299,52 +360,57 @@ public class SynergyManager : MonoBehaviour
 
     private void ApplyEffect(SynergyEffect effect, int value, Card target, Player owner)
     {
+        string playerName = owner != null ? $"Player {owner.playerId}" : "Unknown";
+        int oldAtk = target.attack;
+        int oldHp = target.health;
+
         switch (effect)
         {
             case SynergyEffect.BuffAttack:
                 target.attack += value;
-                Debug.Log($"[Synergy] {target.cardName} gains +{value} attack");
+                Debug.Log($"[Synergy] {playerName}: {target.cardName} gains +{value} attack ({oldAtk} -> {target.attack})");
                 break;
 
             case SynergyEffect.BuffHealth:
                 target.health += value;
-                Debug.Log($"[Synergy] {target.cardName} gains +{value} health");
+                Debug.Log($"[Synergy] {playerName}: {target.cardName} gains +{value} health ({oldHp} -> {target.health})");
                 break;
 
             case SynergyEffect.BuffStats:
                 target.attack += value;
                 target.health += value;
-                Debug.Log($"[Synergy] {target.cardName} gains +{value}/+{value}");
+                Debug.Log($"[Synergy] {playerName}: {target.cardName} gains +{value}/+{value} ({oldAtk}/{oldHp} -> {target.attack}/{target.health})");
                 break;
 
             case SynergyEffect.BonusGold:
                 if (owner != null)
                 {
+                    int oldCoins = owner.coins;
                     owner.coins += value;
-                    Debug.Log($"[Synergy] Player gains +{value} gold");
+                    Debug.Log($"[Synergy] {playerName}: gains +{value} gold ({oldCoins} -> {owner.coins})");
                 }
                 break;
 
             case SynergyEffect.Shield:
                 target.hasAegis = true;
-                Debug.Log($"[Synergy] {target.cardName} gains Aegis");
+                Debug.Log($"[Synergy] {playerName}: {target.cardName} gains Aegis (shield)");
                 break;
 
             case SynergyEffect.HealFlat:
                 // Healing in this context means restoring health (capped at some max)
                 target.health += value;
-                Debug.Log($"[Synergy] {target.cardName} healed for {value}");
+                Debug.Log($"[Synergy] {playerName}: {target.cardName} healed for {value} ({oldHp} -> {target.health})");
                 break;
 
             // Additional effects can be implemented as needed
             default:
-                Debug.Log($"[Synergy] Effect {effect} not yet implemented");
+                Debug.Log($"[Synergy] {playerName}: Effect {effect} not yet implemented");
                 break;
         }
     }
 
     /// <summary>
-    /// Calculate bonus sell value from synergies (e.g., Pentacles).
+    /// Calculate bonus sell value from synergies (e.g., economy-focused tribes).
     /// </summary>
     public int GetSellBonus(Card card)
     {

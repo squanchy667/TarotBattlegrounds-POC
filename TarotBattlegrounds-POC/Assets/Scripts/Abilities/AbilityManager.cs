@@ -11,11 +11,18 @@ public static class AbilityManager
     private static Dictionary<Card, List<IAbility>> _cardAbilities = new Dictionary<Card, List<IAbility>>();
 
     /// <summary>
-    /// Register an ability for a card.
+    /// Register an ability for a card. Skips if card already has abilities registered.
     /// </summary>
     public static void RegisterAbility(Card card, IAbility ability)
     {
         if (card == null || ability == null) return;
+
+        // Check if this card already has abilities registered (prevent duplicates)
+        if (_cardAbilities.ContainsKey(card) && _cardAbilities[card].Count > 0)
+        {
+            Debug.Log($"[AbilityManager] {card.cardName} already has abilities registered, skipping duplicate");
+            return;
+        }
 
         if (!_cardAbilities.ContainsKey(card))
         {

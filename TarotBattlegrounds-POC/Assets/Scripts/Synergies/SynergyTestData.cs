@@ -2,8 +2,8 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// Helper class to create test TribeSynergy ScriptableObjects for testing.
-/// Can be used at runtime or in editor to generate synergy definitions.
+/// Helper class to create TribeSynergy ScriptableObjects.
+/// Uses ThemeManager for theme-specific names and colors.
 /// </summary>
 public static class SynergyTestData
 {
@@ -12,26 +12,55 @@ public static class SynergyTestData
     /// </summary>
     public static TribeSynergy[] CreateAllTribeSynergies()
     {
+        // Ensure ThemeManager exists
+        ThemeManager.EnsureExists();
+
         return new TribeSynergy[]
         {
-            CreatePentaclesSynergy(),
-            CreateCupsSynergy(),
-            CreateSwordsSynergy(),
-            CreateWandsSynergy()
+            CreateTribeSynergy(TribeType.Pentacles),
+            CreateTribeSynergy(TribeType.Cups),
+            CreateTribeSynergy(TribeType.Swords),
+            CreateTribeSynergy(TribeType.Wands)
         };
     }
 
     /// <summary>
-    /// Pentacles (Earth/Economy): Gold bonuses on sell, cost reduction at high tiers.
-    /// Combo with Cups: +1 gold per turn
+    /// Create a synergy for a specific tribe type using theme configuration.
     /// </summary>
-    public static TribeSynergy CreatePentaclesSynergy()
+    public static TribeSynergy CreateTribeSynergy(TribeType tribe)
     {
         var synergy = ScriptableObject.CreateInstance<TribeSynergy>();
-        synergy.tribe = TribeType.Pentacles;
-        synergy.tribeName = "Pentacles";
-        synergy.description = "The suit of Earth and material wealth. Pentacles grant economic advantages.";
-        synergy.themeColor = new Color(0.8f, 0.6f, 0.2f); // Gold/brown
+        synergy.tribe = tribe;
+        synergy.tribeName = ThemeManager.GetTribeName(tribe);
+        synergy.description = ThemeManager.GetTribeDescription(tribe);
+        synergy.themeColor = ThemeManager.GetTribeColor(tribe);
+
+        // Configure tiers and combos based on tribe type
+        switch (tribe)
+        {
+            case TribeType.Pentacles:
+                ConfigureTribe1_Economy(synergy);
+                break;
+            case TribeType.Cups:
+                ConfigureTribe2_Healing(synergy);
+                break;
+            case TribeType.Swords:
+                ConfigureTribe3_Aggro(synergy);
+                break;
+            case TribeType.Wands:
+                ConfigureTribe4_Buffs(synergy);
+                break;
+        }
+
+        return synergy;
+    }
+
+    /// <summary>
+    /// Tribe 1 (Pentacles/Economy): Gold bonuses on sell, cost reduction at high tiers.
+    /// </summary>
+    private static void ConfigureTribe1_Economy(TribeSynergy synergy)
+    {
+        string tribeName = synergy.tribeName;
 
         synergy.tiers = new SynergyTier[]
         {
@@ -42,7 +71,7 @@ public static class SynergyTestData
                 effect = SynergyEffect.BonusGold,
                 target = SynergyTarget.Self,
                 value = 1,
-                description = "(2) +1 gold when selling Pentacles cards"
+                description = $"(2) +1 gold when selling {tribeName} cards"
             },
             new SynergyTier
             {
@@ -51,7 +80,7 @@ public static class SynergyTestData
                 effect = SynergyEffect.BonusGold,
                 target = SynergyTarget.Self,
                 value = 2,
-                description = "(4) +2 gold when selling Pentacles cards"
+                description = $"(4) +2 gold when selling {tribeName} cards"
             },
             new SynergyTier
             {
@@ -60,31 +89,25 @@ public static class SynergyTestData
                 effect = SynergyEffect.ReduceCost,
                 target = SynergyTarget.AllTribeMembers,
                 value = 1,
-                description = "(6) Pentacles cards cost 1 less to buy"
+                description = $"(6) {tribeName} cards cost 1 less to buy"
             }
         };
 
-        // Combo with Cups
+        // Combo with Tribe 2 (Cups)
+        string comboTribeName = ThemeManager.GetTribeName(TribeType.Cups);
         synergy.comboTribe = TribeType.Cups;
         synergy.comboThreshold = 2;
         synergy.comboEffect = SynergyEffect.BonusGold;
         synergy.comboValue = 1;
-        synergy.comboDescription = "Pentacles + Cups (2 each): +1 gold at end of turn";
-
-        return synergy;
+        synergy.comboDescription = $"{tribeName} + {comboTribeName} (2 each): +1 gold at end of turn";
     }
 
     /// <summary>
-    /// Cups (Water/Healing): Heal and protect allies.
-    /// Combo with Wands: Heals also buff attack
+    /// Tribe 2 (Cups/Healing): Heal and protect allies.
     /// </summary>
-    public static TribeSynergy CreateCupsSynergy()
+    private static void ConfigureTribe2_Healing(TribeSynergy synergy)
     {
-        var synergy = ScriptableObject.CreateInstance<TribeSynergy>();
-        synergy.tribe = TribeType.Cups;
-        synergy.tribeName = "Cups";
-        synergy.description = "The suit of Water and emotions. Cups restore health and grant protection.";
-        synergy.themeColor = new Color(0.3f, 0.5f, 0.9f); // Blue
+        string tribeName = synergy.tribeName;
 
         synergy.tiers = new SynergyTier[]
         {
@@ -104,7 +127,7 @@ public static class SynergyTestData
                 effect = SynergyEffect.HealFlat,
                 target = SynergyTarget.AllTribeMembers,
                 value = 2,
-                description = "(4) Heal all Cups for 2 at end of turn"
+                description = $"(4) Heal all {tribeName} for 2 at end of turn"
             },
             new SynergyTier
             {
@@ -117,27 +140,21 @@ public static class SynergyTestData
             }
         };
 
-        // Combo with Wands
+        // Combo with Tribe 4 (Wands)
+        string comboTribeName = ThemeManager.GetTribeName(TribeType.Wands);
         synergy.comboTribe = TribeType.Wands;
         synergy.comboThreshold = 2;
         synergy.comboEffect = SynergyEffect.BuffAttack;
         synergy.comboValue = 1;
-        synergy.comboDescription = "Cups + Wands (2 each): Healing also grants +1 attack";
-
-        return synergy;
+        synergy.comboDescription = $"{tribeName} + {comboTribeName} (2 each): Healing also grants +1 attack";
     }
 
     /// <summary>
-    /// Swords (Air/Aggro): Damage bonuses and cleave effects.
-    /// Combo with Pentacles: Kills grant gold
+    /// Tribe 3 (Swords/Aggro): Damage bonuses and cleave effects.
     /// </summary>
-    public static TribeSynergy CreateSwordsSynergy()
+    private static void ConfigureTribe3_Aggro(TribeSynergy synergy)
     {
-        var synergy = ScriptableObject.CreateInstance<TribeSynergy>();
-        synergy.tribe = TribeType.Swords;
-        synergy.tribeName = "Swords";
-        synergy.description = "The suit of Air and conflict. Swords deal devastating damage.";
-        synergy.themeColor = new Color(0.7f, 0.7f, 0.8f); // Silver/steel
+        string tribeName = synergy.tribeName;
 
         synergy.tiers = new SynergyTier[]
         {
@@ -148,7 +165,7 @@ public static class SynergyTestData
                 effect = SynergyEffect.BuffAttack,
                 target = SynergyTarget.AllTribeMembers,
                 value = 1,
-                description = "(2) Swords cards gain +1 attack at start of combat"
+                description = $"(2) {tribeName} cards gain +1 attack at start of combat"
             },
             new SynergyTier
             {
@@ -157,7 +174,7 @@ public static class SynergyTestData
                 effect = SynergyEffect.BonusDamage,
                 target = SynergyTarget.AllTribeMembers,
                 value = 2,
-                description = "(4) Swords cards deal +2 bonus damage"
+                description = $"(4) {tribeName} cards deal +2 bonus damage"
             },
             new SynergyTier
             {
@@ -166,31 +183,25 @@ public static class SynergyTestData
                 effect = SynergyEffect.Cleave,
                 target = SynergyTarget.AllTribeMembers,
                 value = 1,
-                description = "(6) Swords attacks hit adjacent enemies"
+                description = $"(6) {tribeName} attacks hit adjacent enemies"
             }
         };
 
-        // Combo with Pentacles
+        // Combo with Tribe 1 (Pentacles)
+        string comboTribeName = ThemeManager.GetTribeName(TribeType.Pentacles);
         synergy.comboTribe = TribeType.Pentacles;
         synergy.comboThreshold = 2;
         synergy.comboEffect = SynergyEffect.BonusGold;
         synergy.comboValue = 1;
-        synergy.comboDescription = "Swords + Pentacles (2 each): Killing enemies grants +1 gold";
-
-        return synergy;
+        synergy.comboDescription = $"{tribeName} + {comboTribeName} (2 each): Killing enemies grants +1 gold";
     }
 
     /// <summary>
-    /// Wands (Fire/Buffs): Stat increases for allies.
-    /// Combo with Swords: Double attack buff effectiveness
+    /// Tribe 4 (Wands/Buffs): Stat increases for allies.
     /// </summary>
-    public static TribeSynergy CreateWandsSynergy()
+    private static void ConfigureTribe4_Buffs(TribeSynergy synergy)
     {
-        var synergy = ScriptableObject.CreateInstance<TribeSynergy>();
-        synergy.tribe = TribeType.Wands;
-        synergy.tribeName = "Wands";
-        synergy.description = "The suit of Fire and creation. Wands empower allies with stat buffs.";
-        synergy.themeColor = new Color(0.9f, 0.4f, 0.2f); // Orange/fire
+        string tribeName = synergy.tribeName;
 
         synergy.tiers = new SynergyTier[]
         {
@@ -210,7 +221,7 @@ public static class SynergyTestData
                 effect = SynergyEffect.BuffStats,
                 target = SynergyTarget.AllTribeMembers,
                 value = 1,
-                description = "(4) Give all Wands +1/+1 at end of turn"
+                description = $"(4) Give all {tribeName} +1/+1 at end of turn"
             },
             new SynergyTier
             {
@@ -223,29 +234,33 @@ public static class SynergyTestData
             }
         };
 
-        // Combo with Swords
+        // Combo with Tribe 3 (Swords)
+        string comboTribeName = ThemeManager.GetTribeName(TribeType.Swords);
         synergy.comboTribe = TribeType.Swords;
         synergy.comboThreshold = 2;
         synergy.comboEffect = SynergyEffect.BuffAttack;
         synergy.comboValue = 1;
-        synergy.comboDescription = "Wands + Swords (2 each): Attack buffs are doubled";
-
-        return synergy;
+        synergy.comboDescription = $"{tribeName} + {comboTribeName} (2 each): Attack buffs are doubled";
     }
 
     /// <summary>
-    /// Initialize SynergyManager with test synergies at runtime.
-    /// Call this from a MonoBehaviour.Start() or similar.
+    /// Initialize SynergyManager with synergies at runtime.
+    /// Auto-creates SynergyManager and ThemeManager if they don't exist.
     /// </summary>
     public static void InitializeSynergyManager()
     {
+        // Ensure ThemeManager exists first
+        ThemeManager.EnsureExists();
+
+        // Auto-create SynergyManager if it doesn't exist
         if (SynergyManager.Instance == null)
         {
-            Debug.LogWarning("[SynergyTestData] SynergyManager.Instance is null. Create a SynergyManager in the scene.");
-            return;
+            Debug.Log("[SynergyTestData] SynergyManager not found, creating one...");
+            GameObject synergyManagerObj = new GameObject("SynergyManager");
+            synergyManagerObj.AddComponent<SynergyManager>();
         }
 
         SynergyManager.Instance.tribeSynergies = CreateAllTribeSynergies();
-        Debug.Log("[SynergyTestData] Initialized SynergyManager with 4 test tribe synergies");
+        Debug.Log("[SynergyTestData] Initialized SynergyManager with 4 tribe synergies");
     }
 }

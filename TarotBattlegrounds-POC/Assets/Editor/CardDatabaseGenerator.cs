@@ -13,7 +13,7 @@ public class CardDatabaseGenerator : EditorWindow
     private string outputFolder = "Assets/Cards/cards/Generated";
     private bool overwriteExisting = false;
 
-    [MenuItem("Tools/Tarot BG/Generate Card Assets")]
+    [MenuItem("Tools/Game/Generate Card Assets")]
     public static void ShowWindow()
     {
         GetWindow<CardDatabaseGenerator>("Card Generator");
@@ -143,7 +143,7 @@ public class CardDatabaseGenerator : EditorWindow
     /// <summary>
     /// Quick generate without opening window.
     /// </summary>
-    [MenuItem("Tools/Tarot BG/Quick Generate Cards")]
+    [MenuItem("Tools/Game/Quick Generate Cards")]
     public static void QuickGenerate()
     {
         string folder = "Assets/Cards/cards/Generated";

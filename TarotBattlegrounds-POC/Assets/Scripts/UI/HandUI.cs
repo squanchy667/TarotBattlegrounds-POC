@@ -96,7 +96,11 @@ public class HandUI : MonoBehaviour
     {
         selectedCardIndex = index;
         Debug.Log($"Selected hand card at index {index}");
-        
+
+        // Clear selections in other panels
+        if (SelectionManager.Instance != null)
+            SelectionManager.Instance.OnCardSelectedInPanel("Hand");
+
         for (int i = 0; i < currentHandCards.Count; i++)
         {
             CardDisplayUI cardUI = currentHandCards[i].GetComponent<CardDisplayUI>();

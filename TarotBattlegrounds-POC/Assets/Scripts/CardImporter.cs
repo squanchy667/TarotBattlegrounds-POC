@@ -6,16 +6,16 @@ using System.Text.RegularExpressions;
 
 public class CardImporter : Editor
 {
-    [MenuItem("Tools/Import Tarot Cards")]
+    [MenuItem("Tools/Game/Import Cards")]
     public static void ImportCards()
     {
         string csvPath = "Assets/Data/TarotCards.csv";
         string assetPath = "Assets/Cards/cards/";
-        string[] validTribes = new string[] { 
-            "Wands", "Cups", "Swords", "Pentacles", 
-            "Wands/Pentacles", "Cups/Swords", "Swords/Wands", "Pentacles/Cups", 
-            "All Suits", "Neutral" 
-        };
+
+        // Get valid tribes dynamically from ThemeConfig
+        ThemeManager.EnsureExists();
+        string[] validTribes = ThemeManager.ActiveTheme?.GetValidTribeCombinations()
+            ?? new string[] { "Tribe1", "Tribe2", "Tribe3", "Tribe4", "All Suits", "Neutral" };
         string[] validEffectTypes = new string[] { 
             "NoEffect", "Summoning", "LastReading", "Guardian", "Aegis", "Echo" 
         };
