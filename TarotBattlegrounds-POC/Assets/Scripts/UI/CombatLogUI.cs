@@ -182,6 +182,10 @@ public class CombatLogUI : MonoBehaviour, IThemeable
         {
             entryText.text = FormatLogEntry(entry);
             entryText.color = GetEntryColor(entry.Type);
+            entryText.fontSize = 14;
+            entryText.enableAutoSizing = true;
+            entryText.fontSizeMin = 12;
+            entryText.fontSizeMax = 14;
         }
         
         // Enforce max entries

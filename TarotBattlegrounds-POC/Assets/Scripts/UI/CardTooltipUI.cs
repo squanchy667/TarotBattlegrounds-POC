@@ -31,8 +31,10 @@ public class CardTooltipUI : MonoBehaviour
     [SerializeField] private TMP_Text legacyEffectText;
 
     [Header("Settings")]
-    [SerializeField] private Vector2 offset = new Vector2(20f, -20f);
+    [SerializeField] private Vector2 offset = new Vector2(25f, -25f);
     [SerializeField] private float showDelay = 0.3f;
+    [SerializeField] private float tooltipWidth = 300f;
+    [SerializeField] private float edgePadding = 15f;
 
     private Card currentCard;
     private float hoverTimer;
@@ -52,6 +54,14 @@ public class CardTooltipUI : MonoBehaviour
         Canvas canvas = GetComponentInParent<Canvas>();
         if (canvas != null)
             canvasRect = canvas.GetComponent<RectTransform>();
+
+        // Set tooltip width
+        if (tooltipRect != null)
+        {
+            Vector2 size = tooltipRect.sizeDelta;
+            size.x = tooltipWidth;
+            tooltipRect.sizeDelta = size;
+        }
 
         Hide();
     }
@@ -271,20 +281,24 @@ public class CardTooltipUI : MonoBehaviour
         Vector2 mousePos = Input.mousePosition;
         Vector2 tooltipPos = mousePos + offset;
 
-        // Keep tooltip on screen
+        // Keep tooltip on screen with proper edge padding
         Vector2 tooltipSize = tooltipRect.sizeDelta;
 
-        // Right edge
-        if (tooltipPos.x + tooltipSize.x > Screen.width)
+        // Right edge - flip to left side if needed
+        if (tooltipPos.x + tooltipSize.x > Screen.width - edgePadding)
             tooltipPos.x = mousePos.x - tooltipSize.x - offset.x;
 
-        // Top edge
-        if (tooltipPos.y > Screen.height)
-            tooltipPos.y = Screen.height - 10f;
+        // Left edge - ensure minimum padding
+        if (tooltipPos.x < edgePadding)
+            tooltipPos.x = edgePadding;
 
-        // Bottom edge
-        if (tooltipPos.y - tooltipSize.y < 0)
-            tooltipPos.y = tooltipSize.y + 10f;
+        // Top edge - ensure stays below top
+        if (tooltipPos.y > Screen.height - edgePadding)
+            tooltipPos.y = Screen.height - edgePadding;
+
+        // Bottom edge - flip above cursor if needed
+        if (tooltipPos.y - tooltipSize.y < edgePadding)
+            tooltipPos.y = mousePos.y + tooltipSize.y + Mathf.Abs(offset.y);
 
         tooltipRect.position = tooltipPos;
     }
