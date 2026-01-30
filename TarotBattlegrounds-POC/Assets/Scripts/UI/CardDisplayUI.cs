@@ -129,11 +129,37 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
         }
     }
 
+    [Header("Minimum Font Sizes")]
+    [SerializeField] private float minNameFontSize = 14f;
+    [SerializeField] private float minStatsFontSize = 18f;
+    [SerializeField] private float minTierFontSize = 12f;
+    [SerializeField] private float minTribeFontSize = 11f;
+    [SerializeField] private float minCostFontSize = 14f;
+
+    private void EnforceMinFontSizes()
+    {
+        if (cardNameText != null && cardNameText.fontSize < minNameFontSize)
+            cardNameText.fontSize = minNameFontSize;
+        if (attackText != null && attackText.fontSize < minStatsFontSize)
+            attackText.fontSize = minStatsFontSize;
+        if (healthText != null && healthText.fontSize < minStatsFontSize)
+            healthText.fontSize = minStatsFontSize;
+        if (tierText != null && tierText.fontSize < minTierFontSize)
+            tierText.fontSize = minTierFontSize;
+        if (tribeText != null && tribeText.fontSize < minTribeFontSize)
+            tribeText.fontSize = minTribeFontSize;
+        if (costText != null && costText.fontSize < minCostFontSize)
+            costText.fontSize = minCostFontSize;
+    }
+
     public void Setup(Card cardData, int cardIndex, Action<int> onClick)
     {
         card = cardData;
         index = cardIndex;
         onClickCallback = onClick;
+
+        // Enforce minimum font sizes for readability
+        EnforceMinFontSizes();
 
         // Display card data (golden cards get a star prefix)
         if (cardNameText != null)

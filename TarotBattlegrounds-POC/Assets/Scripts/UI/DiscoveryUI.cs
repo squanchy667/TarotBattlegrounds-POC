@@ -105,6 +105,7 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
         pendingPlayer = player;
         pendingCards = cards;
 
+#if PHOTON_UNITY_NETWORKING
         // In online mode, only show UI for local player
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
         {
@@ -115,6 +116,7 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
                 return;
             }
         }
+#endif
 
         discoveryPanel.SetActive(true);
 
@@ -157,6 +159,7 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
         if (pendingPlayer == null || pendingCards == null || index < 0 || index >= pendingCards.Count)
             return;
 
+#if PHOTON_UNITY_NETWORKING
         // In online mode, route through network
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
         {
@@ -164,6 +167,7 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
             Debug.Log($"[DiscoveryUI] Sent discovery choice {index} via network");
         }
         else
+#endif
         {
             Card chosen = pendingCards[index];
             pendingPlayer.AddDiscoveryCard(chosen);

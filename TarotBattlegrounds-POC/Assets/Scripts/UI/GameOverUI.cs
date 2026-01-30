@@ -2,7 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
+#if PHOTON_UNITY_NETWORKING
 using Photon.Pun;
+#endif
 using System.Collections.Generic;
 
 /// <summary>
@@ -92,9 +94,13 @@ public class GameOverUI : MonoBehaviour, IThemeable
             titleText.text = title;
 
         // Determine local player placement
+#if PHOTON_UNITY_NETWORKING
         int localIndex = IsOnlineMode && NetworkGameBridge.Instance != null
             ? NetworkGameBridge.Instance.LocalPlayerSlot
             : GameConfig.HumanPlayerIndex;
+#else
+        int localIndex = GameConfig.HumanPlayerIndex;
+#endif
 
         int localPlacement = -1;
         for (int i = 0; i < data.standings.Count; i++)
@@ -135,8 +141,9 @@ public class GameOverUI : MonoBehaviour, IThemeable
                 int playerIndex = data.standings[i];
                 bool isHuman = GameConfig.IsHumanPlayer(playerIndex);
 
-                // In online mode, show Photon nicknames
                 string label;
+#if PHOTON_UNITY_NETWORKING
+                // In online mode, show Photon nicknames
                 if (IsOnlineMode && NetworkGameBridge.Instance != null)
                 {
                     if (NetworkGameBridge.Instance.IsNetworkPlayerSlot(playerIndex))
@@ -153,6 +160,7 @@ public class GameOverUI : MonoBehaviour, IThemeable
                     }
                 }
                 else
+#endif
                 {
                     label = isHuman ? "(You)" : "(AI)";
                 }
@@ -163,6 +171,7 @@ public class GameOverUI : MonoBehaviour, IThemeable
         }
     }
 
+#if PHOTON_UNITY_NETWORKING
     private Photon.Realtime.Player FindPhotonPlayerByActor(int actorNumber)
     {
         if (!PhotonNetwork.IsConnected) return null;
@@ -173,9 +182,11 @@ public class GameOverUI : MonoBehaviour, IThemeable
         }
         return null;
     }
+#endif
 
     private void OnPlayAgainClicked()
     {
+#if PHOTON_UNITY_NETWORKING
         if (IsOnlineMode)
         {
             // Leave room and return to lobby
@@ -184,6 +195,7 @@ public class GameOverUI : MonoBehaviour, IThemeable
             SceneManager.LoadScene("Lobby");
         }
         else
+#endif
         {
             // Reload the game scene
             SceneManager.LoadScene("Game");
@@ -192,8 +204,10 @@ public class GameOverUI : MonoBehaviour, IThemeable
 
     private void OnQuitToMenuClicked()
     {
+#if PHOTON_UNITY_NETWORKING
         if (IsOnlineMode && PhotonNetwork.InRoom)
             PhotonNetwork.LeaveRoom();
+#endif
         SceneManager.LoadScene("MainMenu");
     }
 

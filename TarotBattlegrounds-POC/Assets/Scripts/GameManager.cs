@@ -2,7 +2,9 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+#if PHOTON_UNITY_NETWORKING
 using Photon.Pun;
+#endif
 
 /// <summary>
 /// Data for the game over event.
@@ -55,7 +57,11 @@ public class GameManager : MonoBehaviour
     /// True if this client is the authoritative host (MasterClient) in online mode.
     /// Always true in offline mode.
     /// </summary>
+#if PHOTON_UNITY_NETWORKING
     public bool IsHost => !IsOnlineMode || PhotonNetwork.IsMasterClient;
+#else
+    public bool IsHost => true;
+#endif
 
     private bool networkSetupComplete = false;
 
@@ -148,9 +154,11 @@ public class GameManager : MonoBehaviour
             Debug.Log($"  #{i + 1}: Player {standings[i] + 1}");
         }
 
+#if PHOTON_UNITY_NETWORKING
         // Broadcast game over to clients
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
             NetworkGameBridge.Instance.BroadcastGameOver(data);
+#endif
 
         OnGameOver?.Invoke(data);
     }
@@ -373,9 +381,11 @@ public class GameManager : MonoBehaviour
             if (GameUIManager.Instance != null)
                 GameUIManager.Instance.RefreshAllUI();
 
+#if PHOTON_UNITY_NETWORKING
             // Broadcast phase change to clients
             if (IsOnlineMode && NetworkGameBridge.Instance != null)
                 NetworkGameBridge.Instance.BroadcastPhaseChange("Combat", turnNumber, 0f);
+#endif
 
             Debug.Log("Current Phase: " + currentPhase);
             List<int> activePlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
@@ -419,6 +429,7 @@ public class GameManager : MonoBehaviour
                         Debug.Log($"[Combat] {p2Name} WINS! {p1Name} takes {damage} damage. Health: {playerHealths[p1]}");
                     }
 
+#if PHOTON_UNITY_NETWORKING
                     // Broadcast combat result and updated states to clients
                     if (IsOnlineMode && NetworkGameBridge.Instance != null)
                     {
@@ -426,6 +437,7 @@ public class GameManager : MonoBehaviour
                         NetworkGameBridge.Instance.BroadcastPlayerState(p1);
                         NetworkGameBridge.Instance.BroadcastPlayerState(p2);
                     }
+#endif
                 }
             }
             turnNumber++;
@@ -440,9 +452,11 @@ public class GameManager : MonoBehaviour
                 }
             }
 
+#if PHOTON_UNITY_NETWORKING
             // Broadcast all states after combat
             if (IsOnlineMode && NetworkGameBridge.Instance != null)
                 NetworkGameBridge.Instance.BroadcastAllPlayerStates();
+#endif
 
             // Check for eliminations and game end AFTER combat
             List<int> remainingPlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
@@ -491,9 +505,11 @@ public class GameManager : MonoBehaviour
         if (GameUIManager.Instance != null)
             GameUIManager.Instance.RefreshAllUI();
 
+#if PHOTON_UNITY_NETWORKING
         // Broadcast phase change to clients
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
             NetworkGameBridge.Instance.BroadcastPhaseChange("Recruit", turnNumber, recruitTimer);
+#endif
 
         Debug.Log("Current Phase: " + currentPhase);
         float timer = recruitTimer;
@@ -513,6 +529,7 @@ public class GameManager : MonoBehaviour
         // Reset ready state for new recruit phase
         playersReadyForCombat.Clear();
 
+#if PHOTON_UNITY_NETWORKING
         // Broadcast initial player states and shops to human clients
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
         {
@@ -524,6 +541,7 @@ public class GameManager : MonoBehaviour
                     NetworkGameBridge.Instance.BroadcastShopForPlayer(i);
             }
         }
+#endif
 
         // AI players make their decisions at start of recruit phase, then auto-ready
         foreach (var kvp in aiControllers)
@@ -546,9 +564,11 @@ public class GameManager : MonoBehaviour
             if (GameUIManager.Instance != null)
                 GameUIManager.Instance.UpdateTimer(timer);
 
+#if PHOTON_UNITY_NETWORKING
             // Broadcast timer to clients (~every 1s)
             if (IsOnlineMode && NetworkGameBridge.Instance != null)
                 NetworkGameBridge.Instance.BroadcastTimerUpdate(timer);
+#endif
 
             timer -= Time.deltaTime;
             yield return null;
