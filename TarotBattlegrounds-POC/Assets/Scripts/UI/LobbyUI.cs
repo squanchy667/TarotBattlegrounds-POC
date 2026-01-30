@@ -1,3 +1,4 @@
+#if PHOTON_UNITY_NETWORKING
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -40,6 +41,10 @@ public class LobbyUI : MonoBehaviour
 
     private void Start()
     {
+        // Being in the Lobby means we're in multiplayer mode — ensure GameConfig reflects this
+        GameConfig.CurrentGameMode = GameConfig.GameMode.Multiplayer;
+        GameConfig.Save();
+
         // Start all panels hidden
         SetActivePanel(PanelState.Connecting);
 
@@ -366,3 +371,4 @@ public class LobbyUI : MonoBehaviour
         if (leaveRoomButton != null) leaveRoomButton.onClick.RemoveAllListeners();
     }
 }
+#endif

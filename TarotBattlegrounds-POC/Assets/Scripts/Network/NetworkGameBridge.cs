@@ -1,3 +1,4 @@
+#if PHOTON_UNITY_NETWORKING
 using UnityEngine;
 using Photon.Pun;
 using System.Collections.Generic;
@@ -642,3 +643,4 @@ public struct NetworkGameOverData
     public int[] standings;
     public int totalTurns;
 }
+#endif

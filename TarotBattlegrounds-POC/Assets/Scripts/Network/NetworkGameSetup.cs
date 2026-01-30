@@ -1,3 +1,4 @@
+#if PHOTON_UNITY_NETWORKING
 using UnityEngine;
 using Photon.Pun;
 using System.Collections;
@@ -34,6 +35,11 @@ public class NetworkGameSetup : MonoBehaviour
 
         // Signal that network setup is complete
         GameManager.Instance.OnNetworkSetupComplete();
+
+        // Re-sync UI to the correct local player slot (fixes race condition
+        // where GameUIManager.Start() runs before slots are assigned)
+        if (GameUIManager.Instance != null)
+            GameUIManager.Instance.OnNetworkSlotsAssigned();
 
         Debug.Log("[NetworkGameSetup] Setup complete.");
     }
@@ -80,3 +86,4 @@ public class NetworkGameSetup : MonoBehaviour
         Debug.Log($"[NetworkGameSetup] {humanSlots.Count} human players, {maxPlayers - humanSlots.Count} AI players.");
     }
 }
+#endif

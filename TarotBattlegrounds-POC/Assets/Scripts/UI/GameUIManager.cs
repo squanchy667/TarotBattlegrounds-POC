@@ -27,7 +27,6 @@ public class GameUIManager : MonoBehaviour, IThemeable
     [SerializeField] private Button playCardButton;
     [SerializeField] private Button refreshButton;
     [SerializeField] private Button upgradeButton;
-    [SerializeField] private Button switchPlayerButton;
     [SerializeField] private Button endTurnButton;
     [SerializeField] private Button freezeShopButton;
 
@@ -173,6 +172,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
     {
         SetupButtons();
 
+#if PHOTON_UNITY_NETWORKING
         // In online mode, lock to the local player's slot and hide switch button
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
         {
@@ -182,9 +182,8 @@ public class GameUIManager : MonoBehaviour, IThemeable
                 activePlayerIndex = localSlot;
             }
 
-            if (switchPlayerButton != null)
-                switchPlayerButton.gameObject.SetActive(false);
         }
+#endif
 
         SubscribeToCurrentPlayer();
 
@@ -213,7 +212,6 @@ public class GameUIManager : MonoBehaviour, IThemeable
         playCardButton?.onClick.AddListener(() => ExecuteAction("Play"));
         refreshButton?.onClick.AddListener(() => ExecuteAction("Refresh"));
         upgradeButton?.onClick.AddListener(() => ExecuteAction("Upgrade"));
-        switchPlayerButton?.onClick.AddListener(SwitchActivePlayer);
         endTurnButton?.onClick.AddListener(OnEndTurnClicked);
         freezeShopButton?.onClick.AddListener(OnFreezeShopClicked);
     }
@@ -308,6 +306,27 @@ public class GameUIManager : MonoBehaviour, IThemeable
     public void RefreshAllUI()
     {
         UpdateAllUI();
+    }
+
+    /// <summary>
+    /// Called by NetworkGameSetup after slot assignment completes.
+    /// Re-syncs the UI to the correct local player slot.
+    /// </summary>
+    public void OnNetworkSlotsAssigned()
+    {
+#if PHOTON_UNITY_NETWORKING
+        if (NetworkGameBridge.Instance != null)
+        {
+            int localSlot = NetworkGameBridge.Instance.LocalPlayerSlot;
+            if (localSlot >= 0)
+            {
+                activePlayerIndex = localSlot;
+                Debug.Log($"[GameUIManager] Network slots assigned. Locked to player slot {localSlot}");
+                SubscribeToCurrentPlayer();
+                UpdateAllUI();
+            }
+        }
+#endif
     }
     
     private void UpdateAllUI()
@@ -480,12 +499,14 @@ public class GameUIManager : MonoBehaviour, IThemeable
         var player = GetActivePlayer();
         if (player == null) return;
 
+#if PHOTON_UNITY_NETWORKING
         // In online mode, route through NetworkGameBridge
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
         {
             ExecuteNetworkAction(action, player);
             return;
         }
+#endif
 
         // Offline mode: execute directly
         switch (action)
@@ -548,6 +569,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
         }
     }
 
+#if PHOTON_UNITY_NETWORKING
     private void ExecuteNetworkAction(string action, Player player)
     {
         var bridge = NetworkGameBridge.Instance;
@@ -597,6 +619,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
                 break;
         }
     }
+#endif
     
     private void OnBoardEmptySlotSelected(int slotPosition)
     {
@@ -613,11 +636,13 @@ public class GameUIManager : MonoBehaviour, IThemeable
 
         if (player.board.Count < 7)
         {
+#if PHOTON_UNITY_NETWORKING
             if (IsOnlineMode && NetworkGameBridge.Instance != null)
             {
                 NetworkGameBridge.Instance.RequestPlayCard(handIndex, slotPosition);
             }
             else
+#endif
             {
                 player.PlayCard(handIndex, slotPosition);
             }
@@ -635,11 +660,13 @@ public class GameUIManager : MonoBehaviour, IThemeable
                               GameManager.Instance.CurrentPhase == GameManager.GamePhase.Recruit;
         if (!isRecruitPhase) return;
 
+#if PHOTON_UNITY_NETWORKING
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
         {
             NetworkGameBridge.Instance.RequestSwapBoardCards(indexA, indexB);
         }
         else
+#endif
         {
             player.SwapBoardCards(indexA, indexB);
         }
@@ -649,11 +676,13 @@ public class GameUIManager : MonoBehaviour, IThemeable
     {
         if (GameManager.Instance == null) return;
 
+#if PHOTON_UNITY_NETWORKING
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
         {
             NetworkGameBridge.Instance.RequestEndTurn();
         }
         else
+#endif
         {
             int playerIndex = GetActivePlayerIndex();
             GameManager.Instance.PlayerReadyForCombat(playerIndex);
@@ -668,11 +697,13 @@ public class GameUIManager : MonoBehaviour, IThemeable
 
     private void OnFreezeShopClicked()
     {
+#if PHOTON_UNITY_NETWORKING
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
         {
             NetworkGameBridge.Instance.RequestToggleFreeze();
         }
         else
+#endif
         {
             var player = GetActivePlayer();
             if (player != null)
@@ -700,28 +731,6 @@ public class GameUIManager : MonoBehaviour, IThemeable
         }
     }
 
-    /// <summary>
-    /// Switch to the next player and refresh all UI
-    /// </summary>
-    public void SwitchActivePlayer()
-    {
-        if (GameManager.Instance == null) return;
-        
-        int playerCount = GameManager.Instance.players.Count;
-        activePlayerIndex = (activePlayerIndex + 1) % playerCount;
-        
-        Debug.Log($"Switched to Player {activePlayerIndex + 1}");
-        
-        // Resubscribe to new player's events
-        SubscribeToCurrentPlayer();
-        
-        // Force refresh all UI panels for new player
-        UpdateAllUI();
-        
-        // Notify the new player to fire all events (in case UI components are listening directly)
-        currentPlayer?.NotifyAllStateChanged();
-    }
-    
     /// <summary>
     /// Switch to a specific player by index
     /// </summary>
@@ -793,7 +802,6 @@ public class GameUIManager : MonoBehaviour, IThemeable
         playCardButton?.onClick.RemoveAllListeners();
         refreshButton?.onClick.RemoveAllListeners();
         upgradeButton?.onClick.RemoveAllListeners();
-        switchPlayerButton?.onClick.RemoveAllListeners();
         endTurnButton?.onClick.RemoveAllListeners();
         freezeShopButton?.onClick.RemoveAllListeners();
 

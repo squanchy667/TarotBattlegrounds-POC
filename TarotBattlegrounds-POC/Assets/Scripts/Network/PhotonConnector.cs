@@ -1,3 +1,4 @@
+#if PHOTON_UNITY_NETWORKING
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
@@ -54,6 +55,15 @@ public class PhotonConnector : MonoBehaviourPunCallbacks
             playerName = "Player" + UnityEngine.Random.Range(1000, 9999);
             GameConfig.PlayerName = playerName;
         }
+
+#if UNITY_EDITOR
+        // ParrelSync clones have "_clone_" in their project path and share PlayerPrefs
+        if (Application.dataPath.Contains("_clone_"))
+        {
+            playerName = "Clone" + Mathf.Abs(System.Guid.NewGuid().GetHashCode() % 9000 + 1000);
+        }
+#endif
+
         PhotonNetwork.NickName = playerName;
 
         Debug.Log($"[PhotonConnector] Connecting as '{playerName}'...");
@@ -131,3 +141,4 @@ public class PhotonConnector : MonoBehaviourPunCallbacks
             Instance = null;
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if PHOTON_UNITY_NETWORKING
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
@@ -36,6 +37,11 @@ public class RoomManager : MonoBehaviourPunCallbacks
     /// </summary>
     public void CreateRoom(string roomName, byte maxPlayers)
     {
+        if (!PhotonNetwork.IsConnectedAndReady || PhotonNetwork.InRoom)
+        {
+            Debug.LogWarning("[RoomManager] Cannot create room: not ready.");
+            return;
+        }
         maxPlayers = (byte)Mathf.Clamp(maxPlayers, 2, 4);
 
         RoomOptions options = new RoomOptions
@@ -66,6 +72,11 @@ public class RoomManager : MonoBehaviourPunCallbacks
     /// </summary>
     public void JoinRoom(string roomName)
     {
+        if (!PhotonNetwork.IsConnectedAndReady || PhotonNetwork.InRoom)
+        {
+            Debug.LogWarning($"[RoomManager] Cannot join room '{roomName}': not ready (State: {PhotonNetwork.NetworkClientState})");
+            return;
+        }
         Debug.Log($"[RoomManager] Joining room '{roomName}'...");
         PhotonNetwork.JoinRoom(roomName);
     }
@@ -75,6 +86,11 @@ public class RoomManager : MonoBehaviourPunCallbacks
     /// </summary>
     public void JoinRandomRoom()
     {
+        if (!PhotonNetwork.IsConnectedAndReady || PhotonNetwork.InRoom)
+        {
+            Debug.LogWarning("[RoomManager] Cannot join random room: not ready.");
+            return;
+        }
         Debug.Log("[RoomManager] Joining random room...");
         PhotonNetwork.JoinRandomRoom();
     }
@@ -175,3 +191,4 @@ public class RoomManager : MonoBehaviourPunCallbacks
             Instance = null;
     }
 }
+#endif
