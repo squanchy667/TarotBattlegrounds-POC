@@ -185,6 +185,8 @@ public class GameManager : MonoBehaviour
         player.currentTavernTier = state.tavernTier;
         player.Health = state.health;
         player.ShopFrozen = state.shopFrozen;
+        // M5: Store synced upgrade cost for UI display
+        player.SyncedUpgradeCost = state.upgradeCost;
 
         // Update health tracking
         if (state.playerIndex < playerHealths.Count)
@@ -272,6 +274,9 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void InitializePlayers()
     {
+        // M6: Clear stale ability registrations from previous games
+        AbilityManager.ClearAll();
+
         for (int i = 0; i < playerCount; i++)
         {
             if (players[i] == null)
@@ -620,11 +625,14 @@ public class GameManager : MonoBehaviour
         // DontDestroyOnLoad(this.gameObject);
     }
     private void OnDestroy()
-{
-    if (Instance == this)
     {
-        Instance = null;
+        // M6: Clear ability registrations on game cleanup
+        AbilityManager.ClearAll();
+
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
-}      
 
 }

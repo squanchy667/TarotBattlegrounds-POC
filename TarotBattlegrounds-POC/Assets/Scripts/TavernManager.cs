@@ -115,8 +115,16 @@ public class TavernManager : MonoBehaviour
         {
             availableCards[playerId] = new List<Card>();
         }
+
+        // M3: Return previous un-bought shop cards to pool before generating new shop
+        foreach (var card in availableCards[playerId])
+        {
+            if (card != null)
+                allCards.Add(card);
+        }
         availableCards[playerId].Clear();
-        List<Card> tempPool = GetFullPool().Where(card => card.tier <= tavernTier).ToList();
+
+        List<Card> tempPool = allCards.Where(card => card.tier <= tavernTier).ToList();
         int cardsToShow = shopSizes.ContainsKey(tavernTier) ? shopSizes[tavernTier] : 3;
         cardsToShow = Mathf.Min(cardsToShow, tempPool.Count);
         if (tempPool.Count == 0)
@@ -128,7 +136,10 @@ public class TavernManager : MonoBehaviour
         {
             if (tempPool.Count == 0) break;
             int randomIndex = Random.Range(0, tempPool.Count);
-            availableCards[playerId].Add(tempPool[randomIndex]);
+            Card picked = tempPool[randomIndex];
+            availableCards[playerId].Add(picked);
+            // M3: Remove from master pool to reserve this card
+            allCards.Remove(picked);
             tempPool.RemoveAt(randomIndex);
             Debug.Log($"Player {playerId}: Available card: {availableCards[playerId][i].cardName} in place {i+1}/{cardsToShow}");
         }

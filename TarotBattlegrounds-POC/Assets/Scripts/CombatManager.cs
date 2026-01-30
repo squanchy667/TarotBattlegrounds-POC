@@ -94,15 +94,14 @@ public static class CombatManager
             return (damage, pName);
         }
         
-        // Trigger StartOfCombat synergies on cloned boards
+        // Trigger StartOfCombat synergies on cloned boards — M1: separate snapshots per player
         if (SynergyManager.Instance != null)
         {
-            // Update synergy counts for combat (using cloned boards)
-            SynergyManager.Instance.UpdateTribeCounts(pBoardCopy);
-            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, pBoardCopy, null);
+            var pSnapshot = SynergyManager.Instance.CalculateSynergies(pBoardCopy);
+            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, pBoardCopy, null, pSnapshot);
 
-            SynergyManager.Instance.UpdateTribeCounts(aBoardCopy);
-            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, aBoardCopy, null);
+            var aSnapshot = SynergyManager.Instance.CalculateSynergies(aBoardCopy);
+            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, aBoardCopy, null, aSnapshot);
         }
 
         // Determine who attacks first

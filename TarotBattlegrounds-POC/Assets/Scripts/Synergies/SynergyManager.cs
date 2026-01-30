@@ -8,6 +8,17 @@ using System.Linq;
 /// </summary>
 public class SynergyManager : MonoBehaviour
 {
+    /// <summary>
+    /// Immutable snapshot of synergy state for a specific board configuration.
+    /// Allows per-player synergy calculations without mutating singleton state.
+    /// </summary>
+    public class SynergySnapshot
+    {
+        public Dictionary<TribeType, int> tribeCounts = new Dictionary<TribeType, int>();
+        public Dictionary<TribeType, SynergyTier> activeTiers = new Dictionary<TribeType, SynergyTier>();
+        public List<(TribeType, TribeType)> activeCombos = new List<(TribeType, TribeType)>();
+    }
+
     public static SynergyManager Instance { get; private set; }
 
     [Header("Tribe Synergy Definitions")]
@@ -150,6 +161,73 @@ public class SynergyManager : MonoBehaviour
         CheckCombos();
 
         LogActiveSynergies();
+    }
+
+    /// <summary>
+    /// Calculate synergies for a board and return a snapshot without mutating singleton state.
+    /// Use this for per-player synergy calculations in multiplayer.
+    /// </summary>
+    public SynergySnapshot CalculateSynergies(List<Card> board)
+    {
+        var snapshot = new SynergySnapshot();
+
+        if (board == null || board.Count == 0)
+            return snapshot;
+
+        // Count tribes
+        foreach (var card in board)
+        {
+            if (card.tribes != null && card.tribes.Length > 0)
+            {
+                foreach (var tribe in card.tribes)
+                {
+                    if (tribe == TribeType.None) continue;
+                    if (!snapshot.tribeCounts.ContainsKey(tribe))
+                        snapshot.tribeCounts[tribe] = 0;
+                    snapshot.tribeCounts[tribe]++;
+                }
+            }
+            else if (!string.IsNullOrEmpty(card.tribe))
+            {
+                TribeType legacyTribe = ParseLegacyTribe(card.tribe);
+                if (legacyTribe != TribeType.None)
+                {
+                    if (!snapshot.tribeCounts.ContainsKey(legacyTribe))
+                        snapshot.tribeCounts[legacyTribe] = 0;
+                    snapshot.tribeCounts[legacyTribe]++;
+                }
+            }
+        }
+
+        // Determine active tiers
+        foreach (var kvp in snapshot.tribeCounts)
+        {
+            if (_synergyByTribe.TryGetValue(kvp.Key, out TribeSynergy synergy))
+            {
+                SynergyTier activeTier = synergy.GetActiveTier(kvp.Value);
+                if (activeTier != null)
+                    snapshot.activeTiers[kvp.Key] = activeTier;
+            }
+        }
+
+        // Check combos
+        foreach (var synergy in _synergyByTribe.Values)
+        {
+            if (synergy.comboTribe == TribeType.None) continue;
+            int thisTribeCount = snapshot.tribeCounts.TryGetValue(synergy.tribe, out int tc) ? tc : 0;
+            int partnerCount = snapshot.tribeCounts.TryGetValue(synergy.comboTribe, out int pc) ? pc : 0;
+
+            if (synergy.IsComboActive(thisTribeCount, partnerCount))
+            {
+                var combo = synergy.tribe < synergy.comboTribe
+                    ? (synergy.tribe, synergy.comboTribe)
+                    : (synergy.comboTribe, synergy.tribe);
+                if (!snapshot.activeCombos.Contains(combo))
+                    snapshot.activeCombos.Add(combo);
+            }
+        }
+
+        return snapshot;
     }
 
     private void CheckCombos()
@@ -441,5 +519,86 @@ public class SynergyManager : MonoBehaviour
             }
         }
         return reduction;
+    }
+
+    // ================================================================
+    // Per-player snapshot overloads (M1 fix)
+    // ================================================================
+
+    /// <summary>
+    /// Trigger synergies using a pre-computed snapshot (per-player safe).
+    /// </summary>
+    public void TriggerSynergies(SynergyTrigger trigger, List<Card> board, Player owner, SynergySnapshot snapshot)
+    {
+        string playerName = owner != null ? $"Player {owner.playerId}" : "Unknown";
+
+        foreach (var kvp in snapshot.activeTiers)
+        {
+            TribeType tribe = kvp.Key;
+            SynergyTier tier = kvp.Value;
+
+            if (tier.trigger == trigger)
+            {
+                ApplySynergyEffect(tribe, tier, board, owner);
+            }
+        }
+
+        if (trigger == SynergyTrigger.Passive || trigger == SynergyTrigger.StartOfCombat)
+        {
+            ApplyComboEffects(board, owner, snapshot);
+        }
+    }
+
+    /// <summary>
+    /// Calculate sell bonus using a pre-computed snapshot (per-player safe).
+    /// </summary>
+    public int GetSellBonus(Card card, SynergySnapshot snapshot)
+    {
+        int bonus = 0;
+        foreach (var tribe in card.GetTribes())
+        {
+            if (snapshot.activeTiers.TryGetValue(tribe, out SynergyTier tier))
+            {
+                if (tier.trigger == SynergyTrigger.OnSell && tier.effect == SynergyEffect.BonusGold)
+                    bonus += tier.value;
+            }
+        }
+        return bonus;
+    }
+
+    /// <summary>
+    /// Calculate cost reduction using a pre-computed snapshot (per-player safe).
+    /// </summary>
+    public int GetCostReduction(Card card, SynergySnapshot snapshot)
+    {
+        int reduction = 0;
+        foreach (var tribe in card.GetTribes())
+        {
+            if (snapshot.activeTiers.TryGetValue(tribe, out SynergyTier tier))
+            {
+                if (tier.effect == SynergyEffect.ReduceCost)
+                    reduction += tier.value;
+            }
+        }
+        return reduction;
+    }
+
+    private void ApplyComboEffects(List<Card> board, Player owner, SynergySnapshot snapshot)
+    {
+        string playerName = owner != null ? $"Player {owner.playerId}" : "Unknown";
+
+        foreach (var combo in snapshot.activeCombos)
+        {
+            TribeSynergy synergy1 = GetTribeSynergy(combo.Item1);
+            TribeSynergy synergy2 = GetTribeSynergy(combo.Item2);
+
+            if (synergy1 != null && synergy1.comboTribe == combo.Item2)
+            {
+                foreach (var card in board)
+                {
+                    ApplyEffect(synergy1.comboEffect, synergy1.comboValue, card, owner);
+                }
+            }
+        }
     }
 }

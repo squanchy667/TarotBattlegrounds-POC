@@ -20,15 +20,14 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
     [SerializeField] private GameObject cardDisplayPrefab;
 
     private List<GameObject> choiceCards = new List<GameObject>();
-    private Player pendingPlayer;
-    private List<Card> pendingCards;
+    private Dictionary<int, (Player player, List<Card> cards)> pendingDiscoveries = new Dictionary<int, (Player, List<Card>)>();
     private ThemeConfig currentTheme;
 
     /// <summary>
-    /// Pending discovery cards for network-triggered discovery.
+    /// Pending discovery cards keyed by player ID for network-triggered discovery.
     /// Set by host, read by NetworkGameBridge when client makes a choice.
     /// </summary>
-    public static List<Card> PendingDiscoveryCards { get; set; }
+    public static Dictionary<int, List<Card>> PendingDiscoveryByPlayer { get; set; } = new Dictionary<int, List<Card>>();
 
     private void Awake()
     {
@@ -99,11 +98,9 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
             return;
         }
 
-        // Store pending discovery cards for network use
-        PendingDiscoveryCards = cards;
-
-        pendingPlayer = player;
-        pendingCards = cards;
+        // Store pending discovery cards keyed by player ID — M2: per-player
+        PendingDiscoveryByPlayer[player.playerId] = cards;
+        pendingDiscoveries[player.playerId] = (player, cards);
 
 #if PHOTON_UNITY_NETWORKING
         // In online mode, only show UI for local player
@@ -156,7 +153,13 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
 
     private void OnChoiceClicked(int index)
     {
-        if (pendingPlayer == null || pendingCards == null || index < 0 || index >= pendingCards.Count)
+        // M2: Determine which player's discovery this is
+        int localPlayerId = GetLocalPlayerId();
+        if (!pendingDiscoveries.ContainsKey(localPlayerId))
+            return;
+
+        var (player, cards) = pendingDiscoveries[localPlayerId];
+        if (index < 0 || index >= cards.Count)
             return;
 
 #if PHOTON_UNITY_NETWORKING
@@ -169,19 +172,32 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
         else
 #endif
         {
-            Card chosen = pendingCards[index];
-            pendingPlayer.AddDiscoveryCard(chosen);
-            Debug.Log($"[DiscoveryUI] Player {pendingPlayer.playerId} discovered {chosen.cardName}");
+            Card chosen = cards[index];
+            player.AddDiscoveryCard(chosen);
+            Debug.Log($"[DiscoveryUI] Player {player.playerId} discovered {chosen.cardName}");
         }
 
-        // Clean up
+        // Clean up this player's pending discovery
         ClearChoices();
-        pendingPlayer = null;
-        pendingCards = null;
-        PendingDiscoveryCards = null;
+        pendingDiscoveries.Remove(localPlayerId);
+        PendingDiscoveryByPlayer.Remove(localPlayerId);
 
         if (discoveryPanel != null)
             discoveryPanel.SetActive(false);
+    }
+
+    /// <summary>
+    /// Get the local player's ID (1-based) based on game mode.
+    /// </summary>
+    private int GetLocalPlayerId()
+    {
+#if PHOTON_UNITY_NETWORKING
+        if (IsOnlineMode && NetworkGameBridge.Instance != null)
+            return NetworkGameBridge.Instance.LocalPlayerSlot + 1;
+#endif
+        if (GameUIManager.Instance != null)
+            return GameUIManager.Instance.GetActivePlayerIndex() + 1;
+        return 1;
     }
 
     private void ClearChoices()

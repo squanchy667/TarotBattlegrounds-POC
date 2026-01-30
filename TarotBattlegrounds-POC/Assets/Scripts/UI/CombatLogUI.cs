@@ -39,6 +39,7 @@ public class CombatLogUI : MonoBehaviour, IThemeable
     private List<GameObject> logEntries = new List<GameObject>();
     private string currentPlayer1;
     private string currentPlayer2;
+    private bool isLocalPlayerBattle;
     private ThemeConfig currentTheme;
 
     private void Awake()
@@ -98,6 +99,14 @@ public class CombatLogUI : MonoBehaviour, IThemeable
         currentPlayer1 = player1;
         currentPlayer2 = player2;
 
+        // M7: Check if this battle involves the local player
+        isLocalPlayerBattle = IsLocalPlayerInBattle(player1, player2);
+        if (!isLocalPlayerBattle)
+        {
+            Debug.Log($"[CombatLogUI] Skipping battle display — not local player's battle");
+            return;
+        }
+
         // Show panel
         if (combatLogPanel != null)
             combatLogPanel.SetActive(true);
@@ -135,6 +144,9 @@ public class CombatLogUI : MonoBehaviour, IThemeable
     /// </summary>
     public void OnCombatEnd(string winner, int damage)
     {
+        // M7: Skip end display for battles not involving the local player
+        if (!isLocalPlayerBattle) return;
+
         if (combatStatusText != null)
             combatStatusText.text = "Combat finished!";
 
@@ -162,6 +174,9 @@ public class CombatLogUI : MonoBehaviour, IThemeable
     public void AddLogEntry(CombatLogEntry entry)
     {
         Debug.Log($"[CombatLogUI.AddLogEntry] Received: {entry.Message} (Turn {entry.TurnNumber}, Type: {entry.Type})");
+
+        // M7: Skip log entries for battles not involving the local player
+        if (!isLocalPlayerBattle) return;
 
         if (logEntryPrefab == null || logEntriesContainer == null)
         {
@@ -306,5 +321,37 @@ public class CombatLogUI : MonoBehaviour, IThemeable
     {
         if (combatLogPanel != null)
             combatLogPanel.SetActive(!combatLogPanel.activeSelf);
+    }
+
+    /// <summary>
+    /// Check if either combatant is the local player.
+    /// M7: Used to filter combat log to only show local player's battle.
+    /// </summary>
+    private bool IsLocalPlayerInBattle(string player1, string player2)
+    {
+        string localPlayerName = GetLocalPlayerName();
+        if (string.IsNullOrEmpty(localPlayerName))
+            return true; // Fallback: show all battles if we can't determine local player
+
+        return player1.Contains(localPlayerName) || player2.Contains(localPlayerName);
+    }
+
+    private string GetLocalPlayerName()
+    {
+#if PHOTON_UNITY_NETWORKING
+        if (GameConfig.CurrentGameMode == GameConfig.GameMode.Multiplayer
+            && NetworkGameBridge.Instance != null)
+        {
+            int localSlot = NetworkGameBridge.Instance.LocalPlayerSlot;
+            if (localSlot >= 0)
+                return $"Player {localSlot + 1}";
+        }
+#endif
+        if (GameUIManager.Instance != null)
+        {
+            int activeIndex = GameUIManager.Instance.GetActivePlayerIndex();
+            return $"Player {activeIndex + 1}";
+        }
+        return null;
     }
 }

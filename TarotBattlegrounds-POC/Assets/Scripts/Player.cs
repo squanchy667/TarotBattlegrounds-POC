@@ -88,6 +88,12 @@ public class Player : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Upgrade cost synced from host. Used by clients to display correct cost.
+    /// -1 means use local calculation.
+    /// </summary>
+    public int SyncedUpgradeCost { get; set; } = -1;
+
     public void ToggleShopFreeze()
     {
         ShopFrozen = !ShopFrozen;
@@ -146,7 +152,7 @@ public class Player : MonoBehaviour
             coins -= cost; // This triggers OnCoinsChanged via property setter
             Card newCard = card.Clone();
             hand.Add(newCard);
-            tavern.RemoveCardFromPool(card);
+            // M3: Card is already reserved (removed from pool) when placed in shop
             tavern.availableCards[playerId].RemoveAt(index);
             
             // Fire events
@@ -182,10 +188,11 @@ public class Player : MonoBehaviour
         Card card = board[index];
         int value = 1 + card.sellValueModifier;
 
-        // Apply synergy sell bonus (e.g., Pentacles)
+        // Apply synergy sell bonus (e.g., Pentacles) — M1: use per-player snapshot
         if (SynergyManager.Instance != null)
         {
-            int synergyBonus = SynergyManager.Instance.GetSellBonus(card);
+            var snapshot = SynergyManager.Instance.CalculateSynergies(board);
+            int synergyBonus = SynergyManager.Instance.GetSellBonus(card, snapshot);
             value += synergyBonus;
             if (synergyBonus > 0)
                 Debug.Log($"[Synergy] Sell bonus: +{synergyBonus} gold");
@@ -421,12 +428,11 @@ public class Player : MonoBehaviour
             }
         }
 
-        // Trigger EndOfTurn synergies
+        // Trigger EndOfTurn synergies — M1: use per-player snapshot
         if (SynergyManager.Instance != null)
         {
-            // Refresh tribe counts before triggering
-            SynergyManager.Instance.UpdateTribeCounts(board);
-            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.EndOfTurn, board, this);
+            var snapshot = SynergyManager.Instance.CalculateSynergies(board);
+            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.EndOfTurn, board, this, snapshot);
         }
 
         Debug.Log($"Player {playerId}: Recruit phase ended. LastReading and synergy effects triggered.");
@@ -542,8 +548,8 @@ public class Player : MonoBehaviour
             return;
         }
 
-        int oldCoins = _coins;
-        _coins = Mathf.Min(3 + (gameTurn - 1), 10);
+        int oldCoins = coins;
+        coins = Mathf.Min(3 + (gameTurn - 1), 10); // M8: Use property setter
 
         if (tierTurnCounter.ContainsKey(currentTavernTier))
             tierTurnCounter[currentTavernTier]++;
@@ -561,12 +567,11 @@ public class Player : MonoBehaviour
             tavern.RefreshPlayerShop(playerId, currentTavernTier);
         }
 
-        // Fire events
-        OnCoinsChanged?.Invoke();
+        // Fire events (coins event already fired by property setter)
         OnShopRefreshed?.Invoke();
         OnAnyPlayerStateChanged?.Invoke(this);
 
-        Debug.Log($"Player {playerId}: Tavern refreshed: Game Turn {gameTurn}, Available cards: {tavern.availableCards[playerId].Count}, Coins: {oldCoins} -> {_coins}, Tier: {currentTavernTier}, Upgrade Cost: {GetUpgradeCost()}");
+        Debug.Log($"Player {playerId}: Tavern refreshed: Game Turn {gameTurn}, Available cards: {tavern.availableCards[playerId].Count}, Coins: {oldCoins} -> {coins}, Tier: {currentTavernTier}, Upgrade Cost: {GetUpgradeCost()}");
     }
     
     public void RefreshTavernShop()

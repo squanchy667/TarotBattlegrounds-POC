@@ -14,6 +14,7 @@ public struct NetworkPlayerState
     public bool shopFrozen;
     public bool isAlive;
     public bool isReady;
+    public int upgradeCost; // M5: Synced upgrade cost for UI
     public NetworkCardData[] hand;
     public NetworkCardData[] board;
     public NetworkCardData[] shopCards;

@@ -158,8 +158,19 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
         if (!ValidateRequest(slot, "BuyCard")) return;
 
         Player player = GameManager.Instance.players[slot];
+        int playerId = player.playerId;
+
+        // M4: Bounds check against host's shop before buying
+        if (TavernManager.Instance == null || !TavernManager.Instance.availableCards.ContainsKey(playerId)
+            || shopIndex < 0 || shopIndex >= TavernManager.Instance.availableCards[playerId].Count)
+        {
+            Debug.LogWarning($"[NetworkGameBridge] BuyCard: invalid shopIndex {shopIndex} for player {playerId}");
+            return;
+        }
+
         player.BuyCard(shopIndex);
         BroadcastPlayerState(slot);
+        BroadcastShopForPlayer(slot); // M4: Sync updated shop to client
     }
 
     [PunRPC]
@@ -204,6 +215,7 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
         Player player = GameManager.Instance.players[slot];
         player.UpgradeTavern();
         BroadcastPlayerState(slot);
+        BroadcastShopForPlayer(slot); // M5: Tier change affects available cards
     }
 
     [PunRPC]
@@ -264,12 +276,13 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
         }
 
         Player player = GameManager.Instance.players[slot];
-        // Discovery cards are generated on host, so we can access the pending discovery
-        // The DiscoveryUI on host should handle this
-        if (DiscoveryUI.PendingDiscoveryCards != null && choiceIndex >= 0 && choiceIndex < DiscoveryUI.PendingDiscoveryCards.Count)
+        int playerId = player.playerId;
+        // M2: Look up per-player pending discovery
+        if (DiscoveryUI.PendingDiscoveryByPlayer.TryGetValue(playerId, out var pendingCards)
+            && choiceIndex >= 0 && choiceIndex < pendingCards.Count)
         {
-            player.AddDiscoveryCard(DiscoveryUI.PendingDiscoveryCards[choiceIndex]);
-            DiscoveryUI.PendingDiscoveryCards = null;
+            player.AddDiscoveryCard(pendingCards[choiceIndex]);
+            DiscoveryUI.PendingDiscoveryByPlayer.Remove(playerId);
         }
         BroadcastPlayerState(slot);
     }
@@ -581,7 +594,15 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
 
         if (TavernManager.Instance != null && TavernManager.Instance.availableCards.ContainsKey(playerId))
         {
-            shopData = NetworkCardData.FromCardList(TavernManager.Instance.availableCards[playerId]);
+            var shopCards = TavernManager.Instance.availableCards[playerId];
+            // M4: Filter out null cards before serializing
+            var validShopCards = new System.Collections.Generic.List<Card>();
+            foreach (var card in shopCards)
+            {
+                if (card != null)
+                    validShopCards.Add(card);
+            }
+            shopData = NetworkCardData.FromCardList(validShopCards);
         }
 
         return new NetworkPlayerState
@@ -595,7 +616,8 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
             isReady = GameManager.Instance.IsPlayerReady(playerIndex),
             hand = NetworkCardData.FromCardList(player.hand),
             board = NetworkCardData.FromCardList(player.board),
-            shopCards = shopData
+            shopCards = shopData,
+            upgradeCost = player.GetUpgradeCost() // M5: Include upgrade cost
         };
     }
 
