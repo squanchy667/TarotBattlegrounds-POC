@@ -27,6 +27,11 @@ public class NetworkGameSetup : MonoBehaviour
         // Wait for essential singletons
         yield return new WaitUntil(() => GameManager.Instance != null);
         yield return new WaitUntil(() => NetworkGameBridge.Instance != null);
+        yield return new WaitUntil(() => TavernManager.Instance != null);
+
+        // Ensure card pool is populated before generating shops
+        // CardPoolInitializer.Start() may not have run yet due to Unity Start() ordering
+        EnsureCardPoolInitialized();
 
         // Initialize card lookup for network serialization
         CardLookup.Initialize();
@@ -42,6 +47,25 @@ public class NetworkGameSetup : MonoBehaviour
             GameUIManager.Instance.OnNetworkSlotsAssigned();
 
         Debug.Log("[NetworkGameSetup] Setup complete.");
+    }
+
+    /// <summary>
+    /// Ensure the card pool is populated. Handles race condition where
+    /// NetworkGameSetup.Start() resumes before CardPoolInitializer.Start() runs.
+    /// </summary>
+    private void EnsureCardPoolInitialized()
+    {
+        var tavern = TavernManager.Instance;
+        if (tavern == null) return;
+
+        // If masterCards is empty or pool is empty, initialize from CardDatabase
+        if (tavern.masterCards == null || tavern.masterCards.Count == 0 || tavern.GetFullPool().Count == 0)
+        {
+            Debug.Log("[NetworkGameSetup] Card pool not yet initialized, populating from CardDatabase...");
+            tavern.masterCards = CardDatabase.GenerateAllCards();
+            tavern.ResetPool();
+            Debug.Log($"[NetworkGameSetup] Card pool initialized: {tavern.masterCards.Count} master cards, {tavern.GetFullPool().Count} pool cards");
+        }
     }
 
     private void AssignSlots()

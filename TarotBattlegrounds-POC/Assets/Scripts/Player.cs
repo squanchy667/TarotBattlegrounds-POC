@@ -528,12 +528,16 @@ public class Player : MonoBehaviour
     
     public int GetUpgradeCost()
     {
+        // In online mode, prefer synced value from host (clients don't track tierTurnCounter)
+        if (SyncedUpgradeCost >= 0)
+            return SyncedUpgradeCost;
+
         int nextTier = currentTavernTier + 1;
         if (!baseUpgradeCosts.ContainsKey(nextTier))
         {
             return 999; // Max tier reached
         }
-        
+
         int baseCost = baseUpgradeCosts[nextTier];
         int turnsElapsed = tierTurnCounter.ContainsKey(currentTavernTier) ? tierTurnCounter[currentTavernTier] : 0;
         int cost = Mathf.Max(baseCost - turnsElapsed, 1);
