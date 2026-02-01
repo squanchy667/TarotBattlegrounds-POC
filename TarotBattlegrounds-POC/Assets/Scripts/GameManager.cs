@@ -49,6 +49,19 @@ public class GameManager : MonoBehaviour
     public int TurnNumber => turnNumber;
 
     /// <summary>
+    /// Apply phase and turn from network RPC (client-side).
+    /// </summary>
+    public void SetPhaseFromNetwork(string phase, int turn)
+    {
+        turnNumber = turn;
+        if (phase == "Combat")
+            currentPhase = GamePhase.Combat;
+        else
+            currentPhase = GamePhase.Recruit;
+        Debug.Log($"[GameManager] Network phase sync: {currentPhase}, Turn {turnNumber}");
+    }
+
+    /// <summary>
     /// True if we are in an online multiplayer game.
     /// </summary>
     public bool IsOnlineMode => GameConfig.CurrentGameMode == GameConfig.GameMode.Multiplayer;
@@ -196,24 +209,34 @@ public class GameManager : MonoBehaviour
         player.hand.Clear();
         if (state.hand != null)
         {
+            int handFailed = 0;
             foreach (var cardData in state.hand)
             {
                 Card card = cardData.ToCard();
                 if (card != null)
                     player.hand.Add(card);
+                else
+                    handFailed++;
             }
+            if (handFailed > 0)
+                Debug.LogError($"[ApplyNetworkPlayerState] Player {state.playerIndex}: {handFailed}/{state.hand.Length} hand cards failed to reconstruct");
         }
 
         // Reconstruct board
         player.board.Clear();
         if (state.board != null)
         {
+            int boardFailed = 0;
             foreach (var cardData in state.board)
             {
                 Card card = cardData.ToCard();
                 if (card != null)
                     player.board.Add(card);
+                else
+                    boardFailed++;
             }
+            if (boardFailed > 0)
+                Debug.LogError($"[ApplyNetworkPlayerState] Player {state.playerIndex}: {boardFailed}/{state.board.Length} board cards failed to reconstruct");
         }
 
         // Reconstruct shop

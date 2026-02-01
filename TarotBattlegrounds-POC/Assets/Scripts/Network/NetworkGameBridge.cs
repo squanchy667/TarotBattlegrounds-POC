@@ -461,6 +461,11 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
     private void RPC_PhaseChanged(string phase, int turn, float timer)
     {
         Debug.Log($"[NetworkGameBridge] Phase changed: {phase}, Turn {turn}, Timer {timer}");
+
+        // Apply phase and turn to GameManager so UI reads correct values
+        if (GameManager.Instance != null)
+            GameManager.Instance.SetPhaseFromNetwork(phase, turn);
+
         OnPhaseChanged?.Invoke(phase, turn, timer);
 
         if (GameUIManager.Instance != null)

@@ -44,7 +44,7 @@ public struct NetworkCardData
         Card template = CardLookup.FindTemplate(cardName, tier);
         if (template == null)
         {
-            Debug.LogWarning($"[NetworkCardData] Template not found: {cardName} (Tier {tier})");
+            Debug.LogError($"[NetworkCardData] Template not found: '{cardName}' (Tier {tier}). CardLookup may not be initialized.");
             return null;
         }
 
