@@ -280,6 +280,7 @@ public class Card : ScriptableObject
 
         // Also reset any combat-related state
         hasAegis = false;
+        isGolden = false; // Reset golden status when card returns to pool
         _hasStoredBaseStats = false;
 
         // Unregister abilities

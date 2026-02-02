@@ -309,9 +309,9 @@ public static class CombatManager
         
         Debug.Log($"Post-removal state: {pName}={pBoardCopy.Count}, {aName}={aBoardCopy.Count}");
         
-        // Calculate results
-        int survivingTier = pBoardCopy.Count > 0 ? pBoardCopy.Sum(c => c.tier) + tavernTier : 
-                           aBoardCopy.Count > 0 ? aBoardCopy.Sum(c => c.tier) + tavernTier : 0;
+        // Calculate results (damage = count of surviving minions + tavern tier, per Hearthstone Battlegrounds rules)
+        int survivingTier = pBoardCopy.Count > 0 ? pBoardCopy.Count + tavernTier :
+                           aBoardCopy.Count > 0 ? aBoardCopy.Count + tavernTier : 0;
         
         int finalDamage = pBoardCopy.Count == 0 && aBoardCopy.Count == 0 ? 0 : survivingTier;
         
@@ -448,8 +448,9 @@ public static class CombatManager
 
     private static int CalculateDamage(List<Card> survivingBoard, int tavernTier)
     {
-        int tierSum = survivingBoard.Sum(c => c.tier) + tavernTier;
-        return tierSum;
+        // Damage = count of surviving minions + tavern tier (per Hearthstone Battlegrounds rules)
+        int damage = survivingBoard.Count + tavernTier;
+        return damage;
     }
     
     private static void LogEntry(CombatLogEntry entry)
