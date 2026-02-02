@@ -152,7 +152,7 @@ public class AIController : MonoBehaviour
 
         var shopCards = tavern.availableCards[player.playerId];
 
-        while (player.coins >= 3 && player.hand.Count < 10 && shopCards.Count > 0)
+        while (player.coins >= 1 && player.hand.Count < 10 && shopCards.Count > 0)
         {
             // Evaluate all cards and pick the best
             int bestIndex = -1;
@@ -423,7 +423,7 @@ public class AIController : MonoBehaviour
         for (int i = 1; i < player.board.Count; i++)
         {
             Card card = player.board[i];
-            if (card.effectType == Card.EffectType.Guardian)
+            if (card.effectType == Card.EffectType.Guardian || card.abilityEffect == Card.AbilityEffectType.Taunt)
             {
                 // Move to front by swapping
                 Card temp = player.board[0];
@@ -432,6 +432,7 @@ public class AIController : MonoBehaviour
                 Debug.Log($"[AI Player {player.playerId}] Moved Guardian {card.cardName} to front");
             }
         }
+        player.NotifyBoardChanged();
 
         // Hard AI: Additional positioning logic
         if (difficulty == AIDifficulty.Hard)

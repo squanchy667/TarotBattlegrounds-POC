@@ -416,11 +416,19 @@ public class GameUIManager : MonoBehaviour, IThemeable
         {
             int shopIndex = shopUI != null ? shopUI.GetSelectedCardIndex() : -1;
             int buyCost = 3; // Default cost
-            if (shopIndex >= 0 && TavernManager.Instance != null && 
+            if (shopIndex >= 0 && TavernManager.Instance != null &&
                 TavernManager.Instance.availableCards.ContainsKey(player.playerId) &&
                 shopIndex < TavernManager.Instance.availableCards[player.playerId].Count)
             {
-                buyCost = 3 + TavernManager.Instance.availableCards[player.playerId][shopIndex].buyCostModifier;
+                Card shopCard = TavernManager.Instance.availableCards[player.playerId][shopIndex];
+                buyCost = Mathf.Max(0, 3 + shopCard.buyCostModifier);
+                if (SynergyManager.Instance != null)
+                {
+                    var snapshot = SynergyManager.Instance.CalculateSynergies(player.board);
+                    int reduction = SynergyManager.Instance.GetCostReduction(shopCard, snapshot);
+                    if (reduction > 0)
+                        buyCost = Mathf.Max(1, buyCost - reduction);
+                }
             }
             buyButton.interactable = isRecruitPhase && shopIndex >= 0 && player.coins >= buyCost && player.hand.Count < 10;
         }
