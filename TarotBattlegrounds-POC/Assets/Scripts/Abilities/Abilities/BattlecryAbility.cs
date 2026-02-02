@@ -17,15 +17,17 @@ public class BattlecryAbility : AbilityBase
 
     public enum BattlecryEffect
     {
-        BuffAdjacentAttack,     // +X attack to adjacent cards
-        BuffAdjacentHealth,     // +X health to adjacent cards
-        BuffAdjacentStats,      // +X/+X to adjacent cards
-        BuffAllFriendlyAttack,  // +X attack to all friendly cards
-        BuffAllFriendlyHealth,  // +X health to all friendly cards
-        DealDamageToRandom,     // Deal X damage to random enemy (for combat start)
-        GainAegis,              // This card gains Aegis
-        DrawCard,               // Draw X cards (placeholder for future)
-        GainCoins               // Gain X coins
+        BuffAdjacentAttack,         // +X attack to adjacent cards
+        BuffAdjacentHealth,         // +X health to adjacent cards
+        BuffAdjacentStats,          // +X/+X to adjacent cards
+        BuffAllFriendlyAttack,      // +X attack to all friendly cards (includes self)
+        BuffAllFriendlyHealth,      // +X health to all friendly cards (includes self)
+        BuffOtherFriendlyAttack,    // +X attack to all other friendly cards (excludes self)
+        BuffOtherFriendlyHealth,    // +X health to all other friendly cards (excludes self)
+        DealDamageToRandom,         // Deal X damage to random enemy (for combat start)
+        GainAegis,                  // This card gains Aegis
+        DrawCard,                   // Draw X cards (placeholder for future)
+        GainCoins                   // Gain X coins
     }
 
     public BattlecryAbility(BattlecryEffect effect, int value)
@@ -42,8 +44,10 @@ public class BattlecryAbility : AbilityBase
             BattlecryEffect.BuffAdjacentAttack => $"Battlecry: Give adjacent cards +{_value} Attack",
             BattlecryEffect.BuffAdjacentHealth => $"Battlecry: Give adjacent cards +{_value} Health",
             BattlecryEffect.BuffAdjacentStats => $"Battlecry: Give adjacent cards +{_value}/+{_value}",
-            BattlecryEffect.BuffAllFriendlyAttack => $"Battlecry: Give all friendly cards +{_value} Attack",
-            BattlecryEffect.BuffAllFriendlyHealth => $"Battlecry: Give all friendly cards +{_value} Health",
+            BattlecryEffect.BuffAllFriendlyAttack => $"Battlecry: Give all friendly minions +{_value} Attack",
+            BattlecryEffect.BuffAllFriendlyHealth => $"Battlecry: Give all friendly minions +{_value} Health",
+            BattlecryEffect.BuffOtherFriendlyAttack => $"Battlecry: Give all other friendly minions +{_value} Attack",
+            BattlecryEffect.BuffOtherFriendlyHealth => $"Battlecry: Give all other friendly minions +{_value} Health",
             BattlecryEffect.DealDamageToRandom => $"Battlecry: Deal {_value} damage to a random enemy",
             BattlecryEffect.GainAegis => "Battlecry: Gain Aegis",
             BattlecryEffect.DrawCard => $"Battlecry: Draw {_value} card(s)",
@@ -66,10 +70,16 @@ public class BattlecryAbility : AbilityBase
                 BuffAdjacent(context, _value, _value);
                 break;
             case BattlecryEffect.BuffAllFriendlyAttack:
-                BuffAllFriendly(context, _value, 0);
+                BuffAllFriendly(context, _value, 0, includeSelf: true);
                 break;
             case BattlecryEffect.BuffAllFriendlyHealth:
-                BuffAllFriendly(context, 0, _value);
+                BuffAllFriendly(context, 0, _value, includeSelf: true);
+                break;
+            case BattlecryEffect.BuffOtherFriendlyAttack:
+                BuffAllFriendly(context, _value, 0, includeSelf: false);
+                break;
+            case BattlecryEffect.BuffOtherFriendlyHealth:
+                BuffAllFriendly(context, 0, _value, includeSelf: false);
                 break;
             case BattlecryEffect.DealDamageToRandom:
                 // This would be used at start of combat, not on play
@@ -112,17 +122,15 @@ public class BattlecryAbility : AbilityBase
         }
     }
 
-    private void BuffAllFriendly(AbilityContext context, int attack, int health)
+    private void BuffAllFriendly(AbilityContext context, int attack, int health, bool includeSelf)
     {
         if (context.OwnerBoard == null) return;
 
         foreach (Card card in context.OwnerBoard)
         {
-            if (card != context.SourceCard) // Don't buff self
-            {
-                if (attack > 0) AbilityEffects.BuffAttack(card, attack);
-                if (health > 0) AbilityEffects.BuffHealth(card, health);
-            }
+            if (!includeSelf && card == context.SourceCard) continue;
+            if (attack > 0) AbilityEffects.BuffAttack(card, attack);
+            if (health > 0) AbilityEffects.BuffHealth(card, health);
         }
     }
 }

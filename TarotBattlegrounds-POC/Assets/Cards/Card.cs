@@ -42,6 +42,7 @@ public class Card : ScriptableObject
         BuffAdjacentHealth,
         BuffAdjacentStats,
         BuffAllFriendlyAttack,
+        BuffOtherFriendlyAttack,
         GainAegis,
         GainCoins,
         // Deathrattle effects
@@ -99,6 +100,8 @@ public class Card : ScriptableObject
                 return new BattlecryAbility(BattlecryAbility.BattlecryEffect.BuffAdjacentStats, abilityValue);
             case AbilityEffectType.BuffAllFriendlyAttack:
                 return new BattlecryAbility(BattlecryAbility.BattlecryEffect.BuffAllFriendlyAttack, abilityValue);
+            case AbilityEffectType.BuffOtherFriendlyAttack:
+                return new BattlecryAbility(BattlecryAbility.BattlecryEffect.BuffOtherFriendlyAttack, abilityValue);
             case AbilityEffectType.GainAegis:
                 return new BattlecryAbility(BattlecryAbility.BattlecryEffect.GainAegis, 0);
             case AbilityEffectType.GainCoins:

@@ -25,15 +25,18 @@ public class Player : MonoBehaviour
     public List<Card> board = new List<Card>();
     
     // Backing field for coins with event trigger
+    public const int MAX_COINS = 10;
+
     [SerializeField] private int _coins = 0;
     public int coins
     {
         get => _coins;
         set
         {
-            if (_coins != value)
+            int clamped = Mathf.Clamp(value, 0, MAX_COINS);
+            if (_coins != clamped)
             {
-                _coins = value;
+                _coins = clamped;
                 OnCoinsChanged?.Invoke();
                 OnAnyPlayerStateChanged?.Invoke(this);
             }
@@ -376,6 +379,9 @@ public class Player : MonoBehaviour
         OnAnyPlayerStateChanged?.Invoke(this);
 
         Debug.Log($"Player {playerId}: Discovered {newCard.cardName} (Tier {newCard.tier}). Hand size: {hand.Count}");
+
+        // Check for triples after discovering (matches BuyCard behavior)
+        CheckAndResolveTriples();
     }
 
     public void PlayCard(int handIndex, int boardIndex)
