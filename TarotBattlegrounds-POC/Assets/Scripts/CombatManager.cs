@@ -154,15 +154,13 @@ public static class CombatManager
 
             var attacker = attackers.FirstOrDefault(c => c.health > 0);
 
-            Debug.Log($"[BEFORE_LOGENTRY] About to log Turn {turnCount}: {attackerName}'s turn");
             LogEntry(new CombatLogEntry
             {
                 Type = CombatLogEntry.LogType.TurnStart,
                 Message = $"Turn {turnCount}: {attackerName}'s turn",
                 TurnNumber = turnCount
             });
-            Debug.Log($"[AFTER_LOGENTRY] Done logging Turn {turnCount}: {attackerName}'s turn");
-            
+
             if (attacker != null)
             {
                 var aliveTargets = targetBoard.Where(c => c.health > 0).ToList();

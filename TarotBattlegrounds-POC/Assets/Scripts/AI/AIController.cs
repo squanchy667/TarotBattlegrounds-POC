@@ -181,16 +181,11 @@ public class AIController : MonoBehaviour
             if (bestIndex >= 0 && bestScore >= minScore)
             {
                 Card card = shopCards[bestIndex];
-                int cost = 3 + card.buyCostModifier;
 
-                // Apply synergy cost reduction (same as Player.BuyCard)
-                if (SynergyManager.Instance != null)
-                {
-                    var snapshot = SynergyManager.Instance.CalculateSynergies(player.board);
-                    int reduction = SynergyManager.Instance.GetCostReduction(card, snapshot);
-                    if (reduction > 0)
-                        cost = Mathf.Max(1, cost - reduction);
-                }
+                // Calculate cost with synergy reduction (centralized in SynergyManager)
+                int cost = SynergyManager.Instance != null
+                    ? SynergyManager.Instance.GetEffectiveCost(card, player.board)
+                    : 3 + card.buyCostModifier;
 
                 if (player.coins >= cost)
                 {

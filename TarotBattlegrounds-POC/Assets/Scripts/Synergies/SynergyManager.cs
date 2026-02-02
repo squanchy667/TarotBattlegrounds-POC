@@ -601,4 +601,24 @@ public class SynergyManager : MonoBehaviour
             }
         }
     }
+
+    /// <summary>
+    /// Calculate the effective buy cost of a card, including base cost and synergy reduction.
+    /// Centralizes cost calculation to avoid DRY violation across Player.cs, ShopUI.cs, AIController.cs.
+    /// </summary>
+    public int GetEffectiveCost(Card card, List<Card> board)
+    {
+        // Base cost calculation
+        int baseCost = Mathf.Max(0, 3 + card.buyCostModifier);
+
+        // Apply synergy cost reduction
+        var snapshot = CalculateSynergies(board);
+        int reduction = GetCostReduction(card, snapshot);
+        if (reduction > 0)
+        {
+            return Mathf.Max(1, baseCost - reduction);
+        }
+
+        return baseCost;
+    }
 }

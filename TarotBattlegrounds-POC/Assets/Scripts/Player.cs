@@ -148,19 +148,11 @@ public class Player : MonoBehaviour
         }
         
         Card card = tavern.availableCards[playerId][index];
-        int cost = Mathf.Max(0, 3 + card.buyCostModifier);
 
-        // Apply synergy cost reduction (e.g., Pentacles)
-        if (SynergyManager.Instance != null)
-        {
-            var snapshot = SynergyManager.Instance.CalculateSynergies(board);
-            int reduction = SynergyManager.Instance.GetCostReduction(card, snapshot);
-            if (reduction > 0)
-            {
-                cost = Mathf.Max(1, cost - reduction);
-                Debug.Log($"[Synergy] Cost reduction: -{reduction} gold (final cost: {cost})");
-            }
-        }
+        // Calculate effective cost with synergy reduction (centralized in SynergyManager)
+        int cost = SynergyManager.Instance != null
+            ? SynergyManager.Instance.GetEffectiveCost(card, board)
+            : Mathf.Max(0, 3 + card.buyCostModifier);
 
         if (coins >= cost && hand.Count < 10)
         {
@@ -556,8 +548,9 @@ public class Player : MonoBehaviour
         {
             coins -= cost; // Triggers OnCoinsChanged
             currentTavernTier++; // Triggers OnTierChanged
-            tierTurnCounter[currentTavernTier] = 0;
-            
+            // Initialize to -1 so first increment in RefreshShop brings it to 0
+            tierTurnCounter[currentTavernTier] = -1;
+
             Debug.Log($"Player {playerId}: Upgraded to Tavern Tier {currentTavernTier} for {cost} coins. Coins left: {coins}, Next Upgrade Cost: {GetUpgradeCost()}");
         }
         else
@@ -579,8 +572,8 @@ public class Player : MonoBehaviour
         }
 
         int baseCost = baseUpgradeCosts[nextTier];
-        // Subtract 1 because counter increments at turn start before player acts
-        int turnsElapsed = tierTurnCounter.ContainsKey(currentTavernTier) ? Mathf.Max(0, tierTurnCounter[currentTavernTier] - 1) : 0;
+        // Counter initialized to -1 on upgrade, so no adjustment needed
+        int turnsElapsed = tierTurnCounter.ContainsKey(currentTavernTier) ? Mathf.Max(0, tierTurnCounter[currentTavernTier]) : 0;
         int cost = Mathf.Max(baseCost - turnsElapsed, 1);
         return cost;
     }

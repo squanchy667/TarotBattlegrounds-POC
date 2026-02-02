@@ -160,16 +160,13 @@ public class ShopUI : MonoBehaviour, IThemeable
         if (cardUI != null)
         {
             cardUI.Setup(card, index, OnCardClicked);
-            int displayCost = Mathf.Max(0, 3 + card.buyCostModifier);
-            // Apply synergy cost reduction for display
+
+            // Calculate display cost with synergy reduction (centralized in SynergyManager)
             var player = GetActivePlayer();
-            if (player != null && SynergyManager.Instance != null)
-            {
-                var snapshot = SynergyManager.Instance.CalculateSynergies(player.board);
-                int reduction = SynergyManager.Instance.GetCostReduction(card, snapshot);
-                if (reduction > 0)
-                    displayCost = Mathf.Max(1, displayCost - reduction);
-            }
+            int displayCost = player != null && SynergyManager.Instance != null
+                ? SynergyManager.Instance.GetEffectiveCost(card, player.board)
+                : Mathf.Max(0, 3 + card.buyCostModifier);
+
             cardUI.SetCostVisible(true, displayCost);
 
             // Gray out if player can't afford
