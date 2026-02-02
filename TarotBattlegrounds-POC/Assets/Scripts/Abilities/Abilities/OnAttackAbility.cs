@@ -95,7 +95,15 @@ public class OnAttackAbility : AbilityBase
             Card left = context.EnemyBoard[targetIndex - 1];
             if (left.health > 0)
             {
-                AbilityEffects.DealDamage(left, _value);
+                if (left.hasAegis)
+                {
+                    left.hasAegis = false;
+                    Debug.Log($"[DamageAdjacent] {left.cardName}'s Aegis blocks adjacent damage");
+                }
+                else
+                {
+                    AbilityEffects.DealDamage(left, _value);
+                }
             }
         }
 
@@ -105,7 +113,15 @@ public class OnAttackAbility : AbilityBase
             Card right = context.EnemyBoard[targetIndex + 1];
             if (right.health > 0)
             {
-                AbilityEffects.DealDamage(right, _value);
+                if (right.hasAegis)
+                {
+                    right.hasAegis = false;
+                    Debug.Log($"[DamageAdjacent] {right.cardName}'s Aegis blocks adjacent damage");
+                }
+                else
+                {
+                    AbilityEffects.DealDamage(right, _value);
+                }
             }
         }
     }
@@ -128,7 +144,8 @@ public class OnAttackAbility : AbilityBase
         int targetIndex = context.EnemyBoard.IndexOf(context.TargetCard);
         if (targetIndex < 0) return;
 
-        int cleaveDamage = context.SourceCard.attack;
+        // Use configured value if > 0, otherwise full attack damage
+        int cleaveDamage = _value > 0 ? _value : context.SourceCard.attack;
 
         // Left of target
         if (targetIndex > 0)
@@ -136,8 +153,16 @@ public class OnAttackAbility : AbilityBase
             Card left = context.EnemyBoard[targetIndex - 1];
             if (left.health > 0)
             {
-                AbilityEffects.DealDamage(left, cleaveDamage);
-                Debug.Log($"[Cleave] {context.SourceCard.cardName} cleaves {left.cardName} for {cleaveDamage}");
+                if (left.hasAegis)
+                {
+                    left.hasAegis = false;
+                    Debug.Log($"[Cleave] {left.cardName}'s Aegis blocks cleave damage");
+                }
+                else
+                {
+                    AbilityEffects.DealDamage(left, cleaveDamage);
+                    Debug.Log($"[Cleave] {context.SourceCard.cardName} cleaves {left.cardName} for {cleaveDamage}");
+                }
             }
         }
 
@@ -147,8 +172,16 @@ public class OnAttackAbility : AbilityBase
             Card right = context.EnemyBoard[targetIndex + 1];
             if (right.health > 0)
             {
-                AbilityEffects.DealDamage(right, cleaveDamage);
-                Debug.Log($"[Cleave] {context.SourceCard.cardName} cleaves {right.cardName} for {cleaveDamage}");
+                if (right.hasAegis)
+                {
+                    right.hasAegis = false;
+                    Debug.Log($"[Cleave] {right.cardName}'s Aegis blocks cleave damage");
+                }
+                else
+                {
+                    AbilityEffects.DealDamage(right, cleaveDamage);
+                    Debug.Log($"[Cleave] {context.SourceCard.cardName} cleaves {right.cardName} for {cleaveDamage}");
+                }
             }
         }
     }

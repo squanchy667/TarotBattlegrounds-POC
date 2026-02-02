@@ -52,6 +52,11 @@ public static class CombatManager
         // Clone boards to avoid mutating originals
         List<Card> pBoardCopy = pBoard.Select(c => c.Clone()).ToList();
         List<Card> aBoardCopy = aBoard.Select(c => c.Clone()).ToList();
+
+        // Track all clones for ability cleanup after combat
+        List<Card> allClones = new List<Card>(pBoardCopy.Count + aBoardCopy.Count);
+        allClones.AddRange(pBoardCopy);
+        allClones.AddRange(aBoardCopy);
         
         // Handle empty boards
         if (pBoardCopy.Count == 0 && aBoardCopy.Count == 0)
@@ -62,10 +67,11 @@ public static class CombatManager
                 Message = "Both boards empty - Tie!",
                 TurnNumber = 0
             });
+            CleanupCombatClones(allClones);
             OnCombatEnd?.Invoke("Tie", 0);
             return (0, "Tie");
         }
-        
+
         if (pBoardCopy.Count == 0)
         {
             int damage = CalculateDamage(aBoardCopy, tavernTier);
@@ -76,10 +82,11 @@ public static class CombatManager
                 TurnNumber = 0,
                 Damage = damage
             });
+            CleanupCombatClones(allClones);
             OnCombatEnd?.Invoke(aName, damage);
             return (damage, aName);
         }
-        
+
         if (aBoardCopy.Count == 0)
         {
             int damage = CalculateDamage(pBoardCopy, tavernTier);
@@ -90,6 +97,7 @@ public static class CombatManager
                 TurnNumber = 0,
                 Damage = damage
             });
+            CleanupCombatClones(allClones);
             OnCombatEnd?.Invoke(pName, damage);
             return (damage, pName);
         }
@@ -320,9 +328,19 @@ public static class CombatManager
         
         Debug.Log($"Outcome: {(winner == "Tie" ? "Both boards empty, Tie" : $"{winner} wins")}, Surviving tier sum = {survivingTier}, Damage = {finalDamage}");
         
+        CleanupCombatClones(allClones);
         OnCombatEnd?.Invoke(winner, finalDamage);
-        
+
         return (finalDamage, winner);
+    }
+
+    /// <summary>
+    /// Unregister abilities from all combat clones to prevent memory leak.
+    /// </summary>
+    private static void CleanupCombatClones(List<Card> clones)
+    {
+        foreach (var card in clones)
+            AbilityManager.UnregisterCard(card);
     }
     
     /// <summary>

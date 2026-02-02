@@ -118,7 +118,7 @@ public class Card : ScriptableObject
             case AbilityEffectType.OnAttackBonusDamage:
                 return new OnAttackAbility(OnAttackAbility.OnAttackEffect.DealBonusDamage, abilityValue);
             case AbilityEffectType.OnAttackCleave:
-                return new OnAttackAbility(OnAttackAbility.OnAttackEffect.Cleave, 0);
+                return new OnAttackAbility(OnAttackAbility.OnAttackEffect.Cleave, abilityValue);
 
             // Passive
             case AbilityEffectType.Taunt:

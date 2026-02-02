@@ -145,7 +145,7 @@ public class Player : MonoBehaviour
         }
         
         Card card = tavern.availableCards[playerId][index];
-        int cost = 3 + card.buyCostModifier;
+        int cost = Mathf.Max(0, 3 + card.buyCostModifier);
 
         // Apply synergy cost reduction (e.g., Pentacles)
         if (SynergyManager.Instance != null)
@@ -198,7 +198,7 @@ public class Player : MonoBehaviour
         }
 
         Card card = board[index];
-        int value = 1 + card.sellValueModifier;
+        int value = Mathf.Max(0, 1 + card.sellValueModifier);
 
         // Apply synergy sell bonus (e.g., Pentacles) — M1: use per-player snapshot
         if (SynergyManager.Instance != null)
@@ -245,7 +245,7 @@ public class Player : MonoBehaviour
         }
 
         Card card = hand[index];
-        int value = 1 + card.sellValueModifier;
+        int value = Mathf.Max(0, 1 + card.sellValueModifier);
         coins += value; // This triggers OnCoinsChanged via property setter
         AbilityManager.UnregisterCard(card); // Clean up abilities
 
@@ -360,11 +360,6 @@ public class Player : MonoBehaviour
     /// </summary>
     public void AddDiscoveryCard(Card card)
     {
-        if (hand.Count >= 10)
-        {
-            Debug.Log($"Player {playerId}: Hand full, cannot add discovery card {card.cardName}");
-            return;
-        }
 
         Card newCard = card.Clone();
         hand.Add(newCard);
