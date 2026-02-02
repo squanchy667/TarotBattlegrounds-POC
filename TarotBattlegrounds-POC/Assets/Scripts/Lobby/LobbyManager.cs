@@ -283,7 +283,8 @@ public class LobbyManager : MonoBehaviour
             var (damage, winner) = CombatManager.SimulateBattle(
                 player1.board,
                 player2.board,
-                Mathf.Max(player1.currentTavernTier, player2.currentTavernTier),
+                player1.currentTavernTier,
+                player2.currentTavernTier,
                 $"Player {p1Id}",
                 $"Player {p2Id}"
             );

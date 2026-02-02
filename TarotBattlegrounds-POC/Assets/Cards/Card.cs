@@ -165,8 +165,17 @@ public class Card : ScriptableObject
         // Register abilities for cloned card (needed for combat simulation)
         clone.RegisterAbility();
 
-        // Store base stats for the clone
-        clone.StoreBaseStats();
+        // Propagate original base stats from source card (not current buffed stats)
+        if (this._hasStoredBaseStats)
+        {
+            clone._baseAttack = this._baseAttack;
+            clone._baseHealth = this._baseHealth;
+            clone._hasStoredBaseStats = true;
+        }
+        else
+        {
+            clone.StoreBaseStats();
+        }
 
         return clone;
     }

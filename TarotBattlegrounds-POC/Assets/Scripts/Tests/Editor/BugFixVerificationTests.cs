@@ -86,7 +86,7 @@ public class BugFixVerificationTests
         AbilityManager.RegisterAbility(attacker, testAbility);
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(attackerBoard, defenderBoard, 1, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(attackerBoard, defenderBoard, 1, 1, "P1", "P2");
 
         // Assert: OnAttack should NOT trigger because Aegis blocked
         Assert.AreEqual(0, onAttackCount, "OnAttack should not trigger when Aegis blocks the attack");
@@ -123,7 +123,7 @@ public class BugFixVerificationTests
         AbilityManager.RegisterAbility(attacker, testAbility);
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(attackerBoard, defenderBoard, 1, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(attackerBoard, defenderBoard, 1, 1, "P1", "P2");
 
         // Assert: OnAttack SHOULD trigger because attack connected
         // Note: CombatManager clones cards, so the ability won't actually trigger on the original
@@ -159,7 +159,7 @@ public class BugFixVerificationTests
         int originalAttack = attacker.attack;
 
         // Act: Simulate battle (Aegis should block, but attack should be restored)
-        var (damage, winner) = CombatManager.SimulateBattle(attackerBoard, defenderBoard, 1, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(attackerBoard, defenderBoard, 1, 1, "P1", "P2");
 
         // Note: CombatManager uses cloned cards, so we can't directly check the attacker
         // But the test verifies the code structure is correct (save/restore wrapping)
@@ -189,7 +189,7 @@ public class BugFixVerificationTests
         }
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, 6, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, 6, 6, "P1", "P2");
 
         // Assert: Damage should NOT be capped at 5
         Assert.IsTrue(damage > 5, $"Damage should exceed 5 (got {damage}). Old bug capped at 5.");
@@ -213,7 +213,7 @@ public class BugFixVerificationTests
         int tavernTier = 3;
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, tavernTier, "P1", "P2");
 
         // Assert: Damage should be card tier (1) + tavern tier (3) = 4
         Assert.AreEqual(4, damage, "Damage should include both card tier and tavern tier");
@@ -247,7 +247,7 @@ public class BugFixVerificationTests
         {
             var (d, winner) = CombatManager.SimulateBattle(board1.Select(c => c.Clone()).ToList(),
                                                            board2.Select(c => c.Clone()).ToList(),
-                                                           1, "P1", "P2");
+                                                           1, 1, "P1", "P2");
             if (winner == "Tie")
             {
                 gotTie = true;
@@ -519,7 +519,7 @@ public class BugFixVerificationTests
         defenderBoard.Add(defender);
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(attackerBoard, defenderBoard, 1, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(attackerBoard, defenderBoard, 1, 1, "P1", "P2");
 
         // Assert: Aegis should block counterattack (code inspection verified at lines 228-261)
         Assert.Pass("Aegis counterattack blocking verified by code inspection");
@@ -532,7 +532,7 @@ public class BugFixVerificationTests
         var emptyBoard1 = new List<Card>();
         var emptyBoard2 = new List<Card>();
 
-        var (damage, winner) = CombatManager.SimulateBattle(emptyBoard1, emptyBoard2, 5, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(emptyBoard1, emptyBoard2, 5, 5, "P1", "P2");
 
         Assert.AreEqual(0, damage, "Empty board should deal 0 damage");
         Assert.AreEqual("Tie", winner, "Empty boards should tie");
@@ -664,7 +664,7 @@ public class BugFixVerificationTests
         int tavernTier = 4;
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, tavernTier, "P1", "P2");
 
         // Assert: Damage should be 3 (minion count) + 4 (tavern tier) = 7
         // NOT 15 (tier sum: 5+5+5) + 4 = 19
@@ -689,7 +689,7 @@ public class BugFixVerificationTests
         int tavernTier = 1;
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, tavernTier, "P1", "P2");
 
         // Assert: Damage should be 1 (minion count) + 1 (tavern tier) = 2
         Assert.AreEqual(2, damage, "Damage should be minion count (1) + tavern tier (1) = 2");
@@ -716,7 +716,7 @@ public class BugFixVerificationTests
         int tavernTier = 6;
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, tavernTier, "P1", "P2");
 
         // Assert: Damage should be 5 (minion count) + 6 (tavern tier) = 11
         // NOT 30 (tier sum: 6+6+6+6+6) + 6 = 36
@@ -732,7 +732,7 @@ public class BugFixVerificationTests
         var emptyBoard2 = new List<Card>();
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(emptyBoard1, emptyBoard2, 5, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(emptyBoard1, emptyBoard2, 5, 5, "P1", "P2");
 
         // Assert: Damage should be 0 for tie
         Assert.AreEqual(0, damage, "Empty board should result in 0 damage");
@@ -770,7 +770,7 @@ public class BugFixVerificationTests
         int tavernTier = 3;
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, tavernTier, "P1", "P2");
 
         // Assert: Damage should be 3 (minion count) + 3 (tavern tier) = 6
         // NOT 9 (tier sum: 1+3+5) + 3 = 12
@@ -798,7 +798,7 @@ public class BugFixVerificationTests
         int tavernTier = 6;
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, tavernTier, "P1", "P2");
 
         // Assert: Damage should be 2 (minion count) + 6 (tavern tier) = 8
         // NOT 2 (tier sum: 1+1) + 6 = 8 (coincidentally same in this case)
@@ -865,7 +865,7 @@ public class BugFixVerificationTests
         var emptyBoard1 = new List<Card>();
         var emptyBoard2 = new List<Card>();
 
-        var (damage, winner) = CombatManager.SimulateBattle(emptyBoard1, emptyBoard2, 5, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(emptyBoard1, emptyBoard2, 5, 5, "P1", "P2");
 
         Assert.AreEqual(0, damage, "Empty board should deal 0 damage");
         Assert.AreEqual("Tie", winner, "Empty boards should tie");
@@ -887,7 +887,7 @@ public class BugFixVerificationTests
 
         int tavernTier = 3;
 
-        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(winnerBoard, loserBoard, tavernTier, tavernTier, "P1", "P2");
 
         // Damage should be 1 (minion count) + 3 (tavern tier) = 4
         Assert.AreEqual(4, damage, "Damage should be 1 + 3 = 4");
@@ -916,7 +916,7 @@ public class BugFixVerificationTests
         board2.Add(card2);
 
         // Act: Simulate battle
-        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 2, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 2, 2, "P1", "P2");
 
         // Assert: Winner should be determined, and damage should be calculated correctly
         Assert.IsTrue(winner == "P1" || winner == "P2" || winner == "Tie", "Winner should be valid");

@@ -29,7 +29,7 @@ public class CombatTests
         var board1 = new List<Card>();
         var board2 = new List<Card>();
         
-        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 1, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 1, 1, "P1", "P2");
         
         Assert.AreEqual("Tie", winner);
         Assert.AreEqual(0, damage);
@@ -41,7 +41,7 @@ public class CombatTests
         var board1 = new List<Card>();
         var board2 = CreateBoard(1, 1, 3);
         
-        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 1, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 1, 1, "P1", "P2");
         
         Assert.AreEqual("P2", winner);
         Assert.IsTrue(damage > 0);
@@ -53,7 +53,7 @@ public class CombatTests
         var board1 = CreateBoard(1, 1, 3);
         var board2 = new List<Card>();
         
-        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 1, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 1, 1, "P1", "P2");
         
         Assert.AreEqual("P1", winner);
         Assert.IsTrue(damage > 0);
@@ -65,7 +65,7 @@ public class CombatTests
         var board1 = CreateBoard(2, 2, 2);
         var board2 = CreateBoard(2, 2, 2);
         
-        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 1, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 1, 1, "P1", "P2");
         
         // Either someone wins or it's a tie
         Assert.IsTrue(winner == "P1" || winner == "P2" || winner == "Tie");
@@ -78,7 +78,7 @@ public class CombatTests
         var board1 = CreateBoard(7, 1, 10, 3); // 7 tier-3 cards
         var board2 = new List<Card>();
         
-        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 3, "P1", "P2");
+        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 3, 3, "P1", "P2");
         
         Assert.IsTrue(damage <= 5, $"Damage {damage} should be capped at 5");
     }
@@ -96,7 +96,7 @@ public class CombatTests
             var board1 = CreateBoard(3, 5, 5); // Strong board
             var board2 = CreateBoard(3, 1, 1); // Weak board
             
-            var (_, winner) = CombatManager.SimulateBattle(board1, board2, 1, "P1", "P2");
+            var (_, winner) = CombatManager.SimulateBattle(board1, board2, 1, 1, "P1", "P2");
             
             if (winner == "P1") p1Wins++;
             else if (winner == "P2") p2Wins++;
@@ -121,8 +121,8 @@ public class CombatTests
         var board2 = new List<Card> { aegisCard };
         
         // Run multiple times to test aegis
-        var (_, winner) = CombatManager.SimulateBattle(board1, board2, 1, "P1", "P2");
-        
+        var (_, winner) = CombatManager.SimulateBattle(board1, board2, 1, 1, "P1", "P2");
+
         // Test passes if no exception thrown
         Assert.Pass("Aegis combat simulation completed");
     }
@@ -153,7 +153,7 @@ public class CombatTests
         var board2 = new List<Card> { target, guardian }; // Guardian should be hit
         
         // Test completes without exception
-        var (_, winner) = CombatManager.SimulateBattle(board1, board2, 1, "P1", "P2");
+        var (_, winner) = CombatManager.SimulateBattle(board1, board2, 1, 1, "P1", "P2");
         Assert.Pass("Guardian combat simulation completed");
     }
 }

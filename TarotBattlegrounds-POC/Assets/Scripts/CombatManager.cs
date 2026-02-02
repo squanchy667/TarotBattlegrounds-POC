@@ -42,9 +42,9 @@ public static class CombatManager
     /// <summary>
     /// Simulate a battle between two boards
     /// </summary>
-    public static (int damage, string winner) SimulateBattle(List<Card> pBoard, List<Card> aBoard, int tavernTier, string pName, string aName)
+    public static (int damage, string winner) SimulateBattle(List<Card> pBoard, List<Card> aBoard, int pTavernTier, int aTavernTier, string pName, string aName)
     {
-        Debug.Log($"CombatManager: Simulating battle with {pName}={pBoard.Count}, {aName}={aBoard.Count}, Tavern Tier={tavernTier}");
+        Debug.Log($"CombatManager: Simulating battle with {pName}={pBoard.Count} (Tier {pTavernTier}), {aName}={aBoard.Count} (Tier {aTavernTier})");
         
         // Notify combat start
         OnCombatStart?.Invoke(pName, aName);
@@ -74,7 +74,7 @@ public static class CombatManager
 
         if (pBoardCopy.Count == 0)
         {
-            int damage = CalculateDamage(aBoardCopy, tavernTier);
+            int damage = CalculateDamage(aBoardCopy, aTavernTier);
             LogEntry(new CombatLogEntry
             {
                 Type = CombatLogEntry.LogType.BattleResult,
@@ -89,7 +89,7 @@ public static class CombatManager
 
         if (aBoardCopy.Count == 0)
         {
-            int damage = CalculateDamage(pBoardCopy, tavernTier);
+            int damage = CalculateDamage(pBoardCopy, pTavernTier);
             LogEntry(new CombatLogEntry
             {
                 Type = CombatLogEntry.LogType.BattleResult,
@@ -307,9 +307,9 @@ public static class CombatManager
         
         Debug.Log($"Post-removal state: {pName}={pBoardCopy.Count}, {aName}={aBoardCopy.Count}");
         
-        // Calculate results (damage = count of surviving minions + tavern tier, per Hearthstone Battlegrounds rules)
-        int survivingTier = pBoardCopy.Count > 0 ? pBoardCopy.Count + tavernTier :
-                           aBoardCopy.Count > 0 ? aBoardCopy.Count + tavernTier : 0;
+        // Calculate results (damage = count of surviving minions + winner's tavern tier, per Hearthstone Battlegrounds rules)
+        int survivingTier = pBoardCopy.Count > 0 ? pBoardCopy.Count + pTavernTier :
+                           aBoardCopy.Count > 0 ? aBoardCopy.Count + aTavernTier : 0;
         
         int finalDamage = pBoardCopy.Count == 0 && aBoardCopy.Count == 0 ? 0 : survivingTier;
         

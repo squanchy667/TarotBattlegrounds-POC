@@ -121,7 +121,7 @@ public class EdgeCaseTests
         var board2 = new List<Card>();
         
         var (damage, winner) = CombatManager.SimulateBattle(
-            board1, board2, 1, "P1", "P2");
+            board1, board2, 1, 1, "P1", "P2");
         
         Assert.AreEqual("Tie", winner);
         Assert.AreEqual(0, damage);
@@ -139,7 +139,7 @@ public class EdgeCaseTests
         var board2 = new List<Card>();
         
         var (damage, winner) = CombatManager.SimulateBattle(
-            board1, board2, 1, "P1", "P2");
+            board1, board2, 1, 1, "P1", "P2");
         
         Assert.AreEqual("P1", winner);
         Assert.IsTrue(damage > 0);
@@ -159,7 +159,7 @@ public class EdgeCaseTests
         }
         
         var (damage, _) = CombatManager.SimulateBattle(
-            cards, new List<Card>(), 6, "P1", "P2");
+            cards, new List<Card>(), 6, 6, "P1", "P2");
         
         Assert.LessOrEqual(damage, 5);
     }

@@ -443,7 +443,7 @@ public class GameManager : MonoBehaviour
                     var board2 = players[p2].board;
                     string p1Name = $"Player {p1 + 1}" + (GameConfig.IsHumanPlayer(p1) ? "" : " (AI)");
                     string p2Name = $"Player {p2 + 1}" + (GameConfig.IsHumanPlayer(p2) ? "" : " (AI)");
-                    var (damage, winner) = CombatManager.SimulateBattle(board1, board2, Mathf.Max(players[p1].currentTavernTier, players[p2].currentTavernTier), p1Name, p2Name);
+                    var (damage, winner) = CombatManager.SimulateBattle(board1, board2, players[p1].currentTavernTier, players[p2].currentTavernTier, p1Name, p2Name);
                     Debug.Log($"[Combat] {p1Name} vs {p2Name}");
                     Debug.Log($"  {p1Name} Board: " + string.Join(", ", board1.Select(c => c.cardName)));
                     Debug.Log($"  {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName)));

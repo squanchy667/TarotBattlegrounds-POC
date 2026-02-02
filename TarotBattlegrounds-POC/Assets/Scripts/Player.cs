@@ -104,6 +104,7 @@ public class Player : MonoBehaviour
     }
 
     private TavernManager tavern;
+    private List<Card> _pendingDiscoveryCards = new List<Card>();
     
     // Dictionary for base upgrade costs: key = target tier, value = base cost
     private Dictionary<int, int> baseUpgradeCosts = new Dictionary<int, int>()
@@ -208,10 +209,16 @@ public class Player : MonoBehaviour
         coins += value; // This triggers OnCoinsChanged via property setter
         AbilityManager.UnregisterCard(card); // Clean up abilities
 
-        // Reset card to base stats before returning to pool
-        card.ResetToBaseStats();
-
-        tavern.ReturnCardToPool(card);
+        // Golden cards are consumed (never return to pool), normal cards reset and return
+        if (card.isGolden)
+        {
+            Debug.Log($"Player {playerId}: Golden card {card.cardName} consumed on sell (not returned to pool)");
+        }
+        else
+        {
+            card.ResetToBaseStats();
+            tavern.ReturnCardToPool(card);
+        }
         board.RemoveAt(index);
 
         // Update synergy counts after board change
@@ -244,10 +251,16 @@ public class Player : MonoBehaviour
         coins += value; // This triggers OnCoinsChanged via property setter
         AbilityManager.UnregisterCard(card); // Clean up abilities
 
-        // Reset card to base stats before returning to pool
-        card.ResetToBaseStats();
-
-        tavern.ReturnCardToPool(card);
+        // Golden cards are consumed (never return to pool), normal cards reset and return
+        if (card.isGolden)
+        {
+            Debug.Log($"Player {playerId}: Golden card {card.cardName} consumed on sell from hand (not returned to pool)");
+        }
+        else
+        {
+            card.ResetToBaseStats();
+            tavern.ReturnCardToPool(card);
+        }
         hand.RemoveAt(index);
 
         // Fire events
@@ -331,13 +344,14 @@ public class Player : MonoBehaviour
             OnBoardChanged?.Invoke();
             OnAnyPlayerStateChanged?.Invoke(this);
 
-            // Trigger discovery reward
+            // Trigger discovery reward (cards are reserved from pool until player chooses)
             int discoveryTier = Mathf.Min(currentTavernTier + 1, 6);
             if (tavern != null)
             {
                 List<Card> discoveryCards = tavern.GetDiscoveryCards(discoveryTier, 3);
                 if (discoveryCards.Count > 0)
                 {
+                    _pendingDiscoveryCards = new List<Card>(discoveryCards);
                     Debug.Log($"Player {playerId}: Triple discovery! Offering {discoveryCards.Count} tier {discoveryTier} cards.");
                     OnTripleDiscovery?.Invoke(this, discoveryCards);
                 }
@@ -357,14 +371,15 @@ public class Player : MonoBehaviour
     /// </summary>
     public void AddDiscoveryCard(Card card)
     {
-
         Card newCard = card.Clone();
         hand.Add(newCard);
 
-        // Remove chosen discovery card from pool (same as buying)
-        if (tavern != null)
+        // Return unchosen discovery cards to pool (chosen card stays removed since GetDiscoveryCards reserved it)
+        if (tavern != null && _pendingDiscoveryCards.Count > 0)
         {
-            tavern.RemoveCardFromPool(card);
+            var unchosen = _pendingDiscoveryCards.Where(c => c != card).ToList();
+            tavern.ReturnDiscoveryCards(unchosen);
+            _pendingDiscoveryCards.Clear();
         }
 
         OnHandChanged?.Invoke();
@@ -619,9 +634,15 @@ public class Player : MonoBehaviour
             Debug.LogError($"Player {playerId}: Cannot reroll shop, TavernManager not found!");
             return;
         }
-        
+
         if (coins >= 1)
         {
+            // Clear freeze when manually rerolling (player chose to replace frozen shop)
+            if (_shopFrozen)
+            {
+                ShopFrozen = false;
+                Debug.Log($"Player {playerId}: Shop freeze cleared by manual reroll.");
+            }
             coins -= 1; // Triggers OnCoinsChanged
             tavern.RefreshPlayerShop(playerId, currentTavernTier);
             
@@ -649,6 +670,17 @@ public class Player : MonoBehaviour
         OnAnyPlayerStateChanged?.Invoke(this);
     }
     
+    void OnDestroy()
+    {
+        // Return any pending discovery cards to the pool on disconnect/destroy
+        if (tavern != null && _pendingDiscoveryCards.Count > 0)
+        {
+            tavern.ReturnDiscoveryCards(_pendingDiscoveryCards);
+            Debug.Log($"Player {playerId}: OnDestroy - returned {_pendingDiscoveryCards.Count} pending discovery cards to pool");
+            _pendingDiscoveryCards.Clear();
+        }
+    }
+
     public void LogBoardState()
     {
         if (board.Count == 0)

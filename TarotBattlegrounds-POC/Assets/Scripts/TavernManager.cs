@@ -147,8 +147,8 @@ public class TavernManager : MonoBehaviour
 
     /// <summary>
     /// Get random discovery cards from the pool at the specified tier.
-    /// The chosen card is removed from pool when AddDiscoveryCard() is called.
-    /// Unchosen cards remain in the pool.
+    /// Cards are reserved (removed from pool) until the player chooses.
+    /// Call ReturnDiscoveryCards() with unchosen cards after selection.
     /// </summary>
     public List<Card> GetDiscoveryCards(int tier, int count)
     {
@@ -177,7 +177,27 @@ public class TavernManager : MonoBehaviour
             result.Add(shuffled[i]);
         }
 
+        // Reserve discovery cards from pool so other players can't get them
+        foreach (var card in result)
+        {
+            allCards.Remove(card);
+        }
+        Debug.Log($"[TavernManager] Reserved {result.Count} discovery cards from pool (pool size: {allCards.Count})");
+
         return result;
+    }
+
+    /// <summary>
+    /// Return unchosen discovery cards back to the pool after player selects one.
+    /// </summary>
+    public void ReturnDiscoveryCards(List<Card> unchosenCards)
+    {
+        foreach (var card in unchosenCards)
+        {
+            allCards.Add(card);
+        }
+        if (unchosenCards.Count > 0)
+            Debug.Log($"[TavernManager] Returned {unchosenCards.Count} unchosen discovery cards to pool (pool size: {allCards.Count})");
     }
 
     /// <summary>
