@@ -312,9 +312,14 @@ public class Player : MonoBehaviour
                 hand.RemoveAt(idx);
             }
 
-            // Create golden card and add to hand
+            // Create golden card and add to hand (can temporarily exceed limit, like Hearthstone Battlegrounds)
             Card goldenCard = Card.CreateGoldenVersion(baseCard);
             hand.Add(goldenCard);
+
+            if (hand.Count > 10)
+            {
+                Debug.Log($"Player {playerId}: Golden triple added at hand position {hand.Count} (exceeds normal limit). Sell or play cards before buying more.");
+            }
 
             // Fire UI events
             OnHandChanged?.Invoke();
@@ -351,6 +356,12 @@ public class Player : MonoBehaviour
 
         Card newCard = card.Clone();
         hand.Add(newCard);
+
+        // Remove chosen discovery card from pool (same as buying)
+        if (tavern != null)
+        {
+            tavern.RemoveCardFromPool(card);
+        }
 
         OnHandChanged?.Invoke();
         OnAnyPlayerStateChanged?.Invoke(this);

@@ -147,7 +147,8 @@ public class TavernManager : MonoBehaviour
 
     /// <summary>
     /// Get random discovery cards from the pool at the specified tier.
-    /// These are not removed from the pool (discovery creates copies).
+    /// The chosen card is removed from pool when AddDiscoveryCard() is called.
+    /// Unchosen cards remain in the pool.
     /// </summary>
     public List<Card> GetDiscoveryCards(int tier, int count)
     {

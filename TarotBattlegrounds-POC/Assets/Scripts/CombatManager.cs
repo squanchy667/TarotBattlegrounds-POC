@@ -185,9 +185,6 @@ public static class CombatManager
                     // Save original attack before OnAttack abilities (bonus damage temporarily boosts it)
                     int originalAttack = attacker.attack;
 
-                    // Trigger OnAttack abilities
-                    TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target, attackers, targetBoard);
-
                     // Apply attack damage
                     if (target.hasAegis)
                     {
@@ -206,6 +203,9 @@ public static class CombatManager
                     }
                     else
                     {
+                        // Trigger OnAttack abilities only when attack connects (not blocked by Aegis)
+                        TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target, attackers, targetBoard);
+
                         target.health -= attacker.attack;
                         
                         LogEntry(new CombatLogEntry
@@ -303,7 +303,7 @@ public static class CombatManager
         int survivingTier = pBoardCopy.Count > 0 ? pBoardCopy.Sum(c => c.tier) + tavernTier : 
                            aBoardCopy.Count > 0 ? aBoardCopy.Sum(c => c.tier) + tavernTier : 0;
         
-        int finalDamage = pBoardCopy.Count == 0 && aBoardCopy.Count == 0 ? 0 : Mathf.Min(5, survivingTier);
+        int finalDamage = pBoardCopy.Count == 0 && aBoardCopy.Count == 0 ? 0 : survivingTier;
         
         string winner = pBoardCopy.Count == 0 && aBoardCopy.Count == 0 ? "Tie" :
                        pBoardCopy.Count > 0 ? pName : aName;
@@ -429,7 +429,7 @@ public static class CombatManager
     private static int CalculateDamage(List<Card> survivingBoard, int tavernTier)
     {
         int tierSum = survivingBoard.Sum(c => c.tier) + tavernTier;
-        return Mathf.Min(5, tierSum);
+        return tierSum;
     }
     
     private static void LogEntry(CombatLogEntry entry)
