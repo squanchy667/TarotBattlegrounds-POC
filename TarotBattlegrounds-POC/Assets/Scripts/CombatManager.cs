@@ -308,13 +308,17 @@ public static class CombatManager
         Debug.Log($"Post-removal state: {pName}={pBoardCopy.Count}, {aName}={aBoardCopy.Count}");
         
         // Calculate results (damage = count of surviving minions + winner's tavern tier, per Hearthstone Battlegrounds rules)
-        int survivingTier = pBoardCopy.Count > 0 ? pBoardCopy.Count + pTavernTier :
-                           aBoardCopy.Count > 0 ? aBoardCopy.Count + aTavernTier : 0;
-        
-        int finalDamage = pBoardCopy.Count == 0 && aBoardCopy.Count == 0 ? 0 : survivingTier;
-        
-        string winner = pBoardCopy.Count == 0 && aBoardCopy.Count == 0 ? "Tie" :
-                       pBoardCopy.Count > 0 ? pName : aName;
+        // Filter for alive cards only to be safe (ProcessDeaths should have removed dead cards, but be defensive)
+        int pAlive = pBoardCopy.Count(c => c.health > 0);
+        int aAlive = aBoardCopy.Count(c => c.health > 0);
+
+        int survivingTier = pAlive > 0 ? pAlive + pTavernTier :
+                           aAlive > 0 ? aAlive + aTavernTier : 0;
+
+        int finalDamage = pAlive == 0 && aAlive == 0 ? 0 : survivingTier;
+
+        string winner = pAlive == 0 && aAlive == 0 ? "Tie" :
+                       pAlive > 0 ? pName : aName;
         
         // Log battle result
         LogEntry(new CombatLogEntry

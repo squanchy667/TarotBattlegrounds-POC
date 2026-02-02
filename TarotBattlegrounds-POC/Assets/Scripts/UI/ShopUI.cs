@@ -55,7 +55,10 @@ public class ShopUI : MonoBehaviour, IThemeable
         UnsubscribeFromPlayer();
         subscribedPlayer = player;
         if (subscribedPlayer != null)
+        {
             subscribedPlayer.OnShopFreezeChanged += OnShopFreezeChanged;
+            subscribedPlayer.OnBoardChanged += OnBoardChanged;
+        }
     }
 
     private void UnsubscribeFromPlayer()
@@ -63,6 +66,7 @@ public class ShopUI : MonoBehaviour, IThemeable
         if (subscribedPlayer != null)
         {
             subscribedPlayer.OnShopFreezeChanged -= OnShopFreezeChanged;
+            subscribedPlayer.OnBoardChanged -= OnBoardChanged;
             subscribedPlayer = null;
         }
     }
@@ -75,6 +79,26 @@ public class ShopUI : MonoBehaviour, IThemeable
             var cardUI = cardObj.GetComponent<CardDisplayUI>();
             if (cardUI != null)
                 cardUI.SetFrozen(frozen);
+        }
+    }
+
+    private void OnBoardChanged()
+    {
+        // Re-calculate synergy-based costs when board composition changes
+        var player = GetActivePlayer();
+        if (player == null || SynergyManager.Instance == null) return;
+
+        foreach (var cardObj in currentShopCards)
+        {
+            if (cardObj == null) continue;
+            var cardUI = cardObj.GetComponent<CardDisplayUI>();
+            if (cardUI == null) continue;
+
+            Card card = cardUI.GetCard();
+            if (card == null) continue;
+
+            int displayCost = SynergyManager.Instance.GetEffectiveCost(card, player.board);
+            cardUI.SetCostVisible(true, displayCost);
         }
     }
 
