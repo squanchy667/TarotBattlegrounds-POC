@@ -439,13 +439,16 @@ public class AIController : MonoBehaviour
             // Move high-health units to front, glass cannons to back
             player.board.Sort((a, b) =>
             {
-                // Guardians always first
-                if (a.effectType == Card.EffectType.Guardian) return -1;
-                if (b.effectType == Card.EffectType.Guardian) return 1;
+                // Guardians/Taunt always first (check both legacy and new ability system)
+                bool aGuardian = a.effectType == Card.EffectType.Guardian || a.abilityEffect == Card.AbilityEffectType.Taunt;
+                bool bGuardian = b.effectType == Card.EffectType.Guardian || b.abilityEffect == Card.AbilityEffectType.Taunt;
+                if (aGuardian && !bGuardian) return -1;
+                if (bGuardian && !aGuardian) return 1;
 
                 // Then by health (tankier units front)
                 return b.health.CompareTo(a.health);
             });
+            player.NotifyBoardChanged();
         }
     }
 

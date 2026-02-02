@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -17,11 +18,14 @@ public static class AbilityManager
     {
         if (card == null || ability == null) return;
 
-        // Check if this card already has abilities registered (prevent duplicates)
+        // Prevent duplicate registration of the same ability type
         if (_cardAbilities.ContainsKey(card) && _cardAbilities[card].Count > 0)
         {
-            Debug.Log($"[AbilityManager] {card.cardName} already has abilities registered, skipping duplicate");
-            return;
+            if (_cardAbilities[card].Any(a => a.GetType() == ability.GetType()))
+            {
+                Debug.Log($"[AbilityManager] {card.cardName} already has {ability.GetType().Name} registered, skipping duplicate");
+                return;
+            }
         }
 
         if (!_cardAbilities.ContainsKey(card))

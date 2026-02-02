@@ -167,8 +167,10 @@ public static class CombatManager
             {
                 var aliveTargets = targetBoard.Where(c => c.health > 0).ToList();
                 
-                // Check for Guardian (taunt)
-                var guardianTarget = aliveTargets.FirstOrDefault(c => c.effectType == Card.EffectType.Guardian);
+                // Check for Guardian/Taunt (legacy effectType or new ability system)
+                var guardianTarget = aliveTargets.FirstOrDefault(c =>
+                    c.effectType == Card.EffectType.Guardian ||
+                    c.abilityEffect == Card.AbilityEffectType.Taunt);
                 Card target = guardianTarget ?? aliveTargets.OrderBy(x => UnityEngine.Random.value).FirstOrDefault();
                 
                 if (target != null)

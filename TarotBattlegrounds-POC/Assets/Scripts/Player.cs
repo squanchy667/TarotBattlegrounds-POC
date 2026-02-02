@@ -312,15 +312,13 @@ public class Player : MonoBehaviour
             foreach (int idx in boardRemovals)
             {
                 AbilityManager.UnregisterCard(board[idx]);
-                board[idx].ResetToBaseStats();
-                if (tavern != null) tavern.ReturnCardToPool(board[idx]);
+                // Triple copies are consumed, not returned to pool (matches Hearthstone)
                 board.RemoveAt(idx);
             }
             foreach (int idx in handRemovals)
             {
                 AbilityManager.UnregisterCard(hand[idx]);
-                hand[idx].ResetToBaseStats();
-                if (tavern != null) tavern.ReturnCardToPool(hand[idx]);
+                // Triple copies are consumed, not returned to pool (matches Hearthstone)
                 hand.RemoveAt(idx);
             }
 
@@ -347,6 +345,10 @@ public class Player : MonoBehaviour
                 {
                     Debug.Log($"Player {playerId}: Triple discovery! Offering {discoveryCards.Count} tier {discoveryTier} cards.");
                     OnTripleDiscovery?.Invoke(this, discoveryCards);
+                }
+                else
+                {
+                    Debug.LogWarning($"Player {playerId}: No discovery cards available at tier {discoveryTier}. Pool may be depleted.");
                 }
             }
 
@@ -415,6 +417,9 @@ public class Player : MonoBehaviour
         OnAnyPlayerStateChanged?.Invoke(this);
 
         Debug.Log($"Player {playerId}: Played {card.cardName} (Tier {card.tier}) to board position {boardIndex}. Board size: {board.Count}, Hand size: {hand.Count}");
+
+        // Check for triples after playing (card from hand may complete a triple on board)
+        CheckAndResolveTriples();
     }
     
     public void SwapBoardCards(int indexA, int indexB)
@@ -434,6 +439,17 @@ public class Player : MonoBehaviour
         OnAnyPlayerStateChanged?.Invoke(this);
 
         Debug.Log($"Player {playerId}: Swapped board cards at positions {indexA} and {indexB}");
+    }
+
+    /// <summary>
+    /// Notify UI that board state changed after external mutation (e.g., AI sorting).
+    /// </summary>
+    public void NotifyBoardChanged()
+    {
+        if (SynergyManager.Instance != null)
+            SynergyManager.Instance.UpdateTribeCounts(board);
+        OnBoardChanged?.Invoke();
+        OnAnyPlayerStateChanged?.Invoke(this);
     }
 
     public void EndRecruitPhase()
@@ -557,7 +573,8 @@ public class Player : MonoBehaviour
         }
 
         int baseCost = baseUpgradeCosts[nextTier];
-        int turnsElapsed = tierTurnCounter.ContainsKey(currentTavernTier) ? tierTurnCounter[currentTavernTier] : 0;
+        // Subtract 1 because counter increments at turn start before player acts
+        int turnsElapsed = tierTurnCounter.ContainsKey(currentTavernTier) ? Mathf.Max(0, tierTurnCounter[currentTavernTier] - 1) : 0;
         int cost = Mathf.Max(baseCost - turnsElapsed, 1);
         return cost;
     }
