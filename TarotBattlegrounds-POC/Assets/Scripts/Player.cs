@@ -146,7 +146,19 @@ public class Player : MonoBehaviour
         
         Card card = tavern.availableCards[playerId][index];
         int cost = 3 + card.buyCostModifier;
-        
+
+        // Apply synergy cost reduction (e.g., Pentacles)
+        if (SynergyManager.Instance != null)
+        {
+            var snapshot = SynergyManager.Instance.CalculateSynergies(board);
+            int reduction = SynergyManager.Instance.GetCostReduction(card, snapshot);
+            if (reduction > 0)
+            {
+                cost = Mathf.Max(1, cost - reduction);
+                Debug.Log($"[Synergy] Cost reduction: -{reduction} gold (final cost: {cost})");
+            }
+        }
+
         if (coins >= cost && hand.Count < 10)
         {
             coins -= cost; // This triggers OnCoinsChanged via property setter

@@ -489,7 +489,10 @@ public class GameUIManager : MonoBehaviour, IThemeable
     public void UpdateTimer(float time)
     {
         if (timerText != null)
-            timerText.text = $"{Mathf.CeilToInt(time)}s";
+        {
+            int display = time <= 0f ? 0 : Mathf.CeilToInt(time);
+            timerText.text = $"{display}s";
+        }
     }
     
     private bool IsOnlineMode => GameManager.Instance != null && GameManager.Instance.IsOnlineMode;
