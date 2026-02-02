@@ -45,6 +45,9 @@ public class GameManager : MonoBehaviour
     private HashSet<int> playersReadyForCombat = new HashSet<int>();
     private List<int> eliminationOrder = new List<int>(); // Players eliminated in order (first eliminated = last place)
 
+    // Matchmaking history to avoid consecutive same opponents
+    private Dictionary<int, HashSet<int>> recentOpponents = new Dictionary<int, HashSet<int>>();
+
     public GamePhase CurrentPhase => currentPhase;
     public int TurnNumber => turnNumber;
 
@@ -334,6 +337,11 @@ public class GameManager : MonoBehaviour
         }
 
         playerHealths = new List<int>(Enumerable.Repeat(40, playerCount).ToArray());
+
+        // Initialize matchmaking history
+        recentOpponents.Clear();
+        for (int i = 0; i < playerCount; i++)
+            recentOpponents[i] = new HashSet<int>();
     }
 
     /// <summary>
@@ -422,6 +430,10 @@ public class GameManager : MonoBehaviour
                 TriggerGameOver(activePlayers[0]);
                 yield break;
             }
+            // Clear old opponent history after turn 2
+            if (turnNumber > 2)
+                ClearOldOpponentHistory();
+
             List<(int, int)> battles = GeneratePairwiseBattles(activePlayers);
             foreach (var (p1, p2) in battles)
             {
@@ -466,6 +478,10 @@ public class GameManager : MonoBehaviour
                         NetworkGameBridge.Instance.BroadcastPlayerState(p2);
                     }
 #endif
+
+                    // Track recent opponents for matchmaking
+                    recentOpponents[p1].Add(p2);
+                    recentOpponents[p2].Add(p1);
                 }
             }
             turnNumber++;
@@ -502,27 +518,64 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Generate match pairings avoiding recent opponents when possible.
+    /// </summary>
     private List<(int, int)> GeneratePairwiseBattles(List<int> activePlayers)
     {
         List<(int, int)> battles = new List<(int, int)>();
+        var available = new List<int>(activePlayers);
 
-        // Clone and shuffle the list
-        var shuffled = activePlayers.OrderBy(x => Random.value).ToList();
+        // Shuffle for randomness base
+        available = available.OrderBy(x => Random.value).ToList();
 
-        // Handle odd number of players - one gets a bye (no battle)
-        if (shuffled.Count % 2 != 0)
+        // Handle odd number of players - give bye to player with fewest recent fights
+        if (available.Count % 2 != 0)
         {
-            int byePlayer = shuffled[shuffled.Count - 1];
-            shuffled.RemoveAt(shuffled.Count - 1);
-            Debug.Log($"[GameManager] Player {byePlayer + 1} gets a bye this round");
+            int byePlayer = available.OrderBy(p => recentOpponents.ContainsKey(p) ? recentOpponents[p].Count : 0).First();
+            available.Remove(byePlayer);
+            Debug.Log($"[GameManager] Player {byePlayer + 1} gets a bye this round (fewest recent matches)");
         }
 
-        // Pair up remaining players
-        for (int i = 0; i < shuffled.Count; i += 2)
+        // Pair up players, preferring opponents not recently fought
+        while (available.Count >= 2)
         {
-            battles.Add((shuffled[i], shuffled[i + 1]));
+            int p1 = available[0];
+            available.RemoveAt(0);
+
+            int bestOpponent = -1;
+            int bestScore = int.MaxValue;
+
+            foreach (int p2 in available)
+            {
+                int score = (recentOpponents.ContainsKey(p1) && recentOpponents[p1].Contains(p2)) ? 10 : 0;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    bestOpponent = p2;
+                }
+            }
+
+            if (bestOpponent >= 0)
+            {
+                available.Remove(bestOpponent);
+                battles.Add((p1, bestOpponent));
+            }
         }
+
         return battles;
+    }
+
+    /// <summary>
+    /// Clear opponent history when it gets too large.
+    /// </summary>
+    private void ClearOldOpponentHistory()
+    {
+        foreach (var kvp in recentOpponents)
+        {
+            if (kvp.Value.Count > 2)
+                kvp.Value.Clear();
+        }
     }
 
     private IEnumerator RecruitPhase()

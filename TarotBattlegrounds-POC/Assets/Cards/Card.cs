@@ -177,7 +177,8 @@ public class Card : ScriptableObject
         golden.isGolden = true;
         golden.attack = baseCard.attack * 2;
         golden.health = baseCard.health * 2;
-        golden.abilityValue = baseCard.abilityValue * 2;
+        // Golden cards only double stats, not ability values
+        // abilityValue is already correctly copied from Clone()
 
         // Re-store base stats for the golden version
         golden._baseAttack = golden.attack;

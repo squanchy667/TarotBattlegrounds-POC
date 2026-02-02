@@ -182,6 +182,9 @@ public static class CombatManager
                     
                     Debug.Log($"Run Attack - {attacker.cardName} ({attackerName}) targets {target.cardName} ({targetName}), damage {attacker.attack}");
 
+                    // Save original attack before OnAttack abilities (bonus damage temporarily boosts it)
+                    int originalAttack = attacker.attack;
+
                     // Trigger OnAttack abilities
                     TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target, attackers, targetBoard);
 
@@ -256,56 +259,13 @@ public static class CombatManager
                         Debug.Log($"Aegis: {attacker.cardName} ({attackerName}) blocks counterattack");
                         attacker.hasAegis = false;
                     }
-                    
-                    // Handle target death
-                    if (target.health <= 0)
-                    {
-                        LogEntry(new CombatLogEntry
-                        {
-                            Type = CombatLogEntry.LogType.CardDeath,
-                            DefenderName = target.cardName,
-                            DefenderOwner = targetName,
-                            Message = $"{target.cardName} is destroyed!",
-                            TurnNumber = turnCount
-                        });
-                        
-                        // Echo effect (legacy)
-                        if (target.effectType == Card.EffectType.Echo)
-                        {
-                            TriggerEcho(target, targetBoard, targetName, turnCount);
-                        }
 
-                        // Trigger Deathrattle abilities
-                        TriggerCombatAbility(AbilityTrigger.Deathrattle, target, null, targetBoard, attackers);
+                    // Restore original attack after damage (bonus damage was temporary)
+                    attacker.attack = originalAttack;
 
-                        targetBoard.Remove(target);
-                        Debug.Log($"{target.cardName} removed from {targetName} board");
-                    }
-
-                    // Handle attacker death
-                    if (attacker.health <= 0)
-                    {
-                        LogEntry(new CombatLogEntry
-                        {
-                            Type = CombatLogEntry.LogType.CardDeath,
-                            DefenderName = attacker.cardName,
-                            DefenderOwner = attackerName,
-                            Message = $"{attacker.cardName} is destroyed!",
-                            TurnNumber = turnCount
-                        });
-
-                        // Echo effect (legacy)
-                        if (attacker.effectType == Card.EffectType.Echo)
-                        {
-                            TriggerEcho(attacker, attackers, attackerName, turnCount);
-                        }
-
-                        // Trigger Deathrattle abilities
-                        TriggerCombatAbility(AbilityTrigger.Deathrattle, attacker, null, attackers, targetBoard);
-
-                        attackers.Remove(attacker);
-                        Debug.Log($"{attacker.cardName} removed from {attackerName} board");
-                    }
+                    // Process all deaths from this attack using death queue
+                    // Handles cleave victims, deterministic deathrattle order, and cascade deaths
+                    ProcessDeaths(attackers, targetBoard, attackerName, targetName, turnCount);
                 }
                 else
                 {
@@ -365,6 +325,67 @@ public static class CombatManager
         return (finalDamage, winner);
     }
     
+    /// <summary>
+    /// Process all deaths from combat damage using a death queue pattern.
+    /// Ensures deterministic deathrattle order and handles cascade deaths.
+    /// Order: attacker board first (left to right), then defender board (left to right).
+    /// </summary>
+    private static void ProcessDeaths(List<Card> attackerBoard, List<Card> defenderBoard,
+        string attackerName, string defenderName, int turnCount)
+    {
+        const int MAX_CASCADE_ITERATIONS = 10;
+        int cascadeCount = 0;
+
+        while (cascadeCount < MAX_CASCADE_ITERATIONS)
+        {
+            var deathQueue = new List<(Card card, List<Card> ownerBoard, string ownerName, List<Card> enemyBoard)>();
+
+            // Attacker board deaths first (left to right)
+            foreach (var card in attackerBoard.ToList())
+            {
+                if (card.health <= 0)
+                    deathQueue.Add((card, attackerBoard, attackerName, defenderBoard));
+            }
+
+            // Defender board deaths second (left to right)
+            foreach (var card in defenderBoard.ToList())
+            {
+                if (card.health <= 0)
+                    deathQueue.Add((card, defenderBoard, defenderName, attackerBoard));
+            }
+
+            if (deathQueue.Count == 0)
+                break;
+
+            Debug.Log($"[Death Queue] Processing {deathQueue.Count} deaths (cascade {cascadeCount})");
+
+            foreach (var (deadCard, ownerBoard, ownerName, enemyBoard) in deathQueue)
+            {
+                LogEntry(new CombatLogEntry
+                {
+                    Type = CombatLogEntry.LogType.CardDeath,
+                    DefenderName = deadCard.cardName,
+                    DefenderOwner = ownerName,
+                    Message = $"{deadCard.cardName} is destroyed!",
+                    TurnNumber = turnCount
+                });
+
+                if (deadCard.effectType == Card.EffectType.Echo)
+                    TriggerEcho(deadCard, ownerBoard, ownerName, turnCount);
+
+                TriggerCombatAbility(AbilityTrigger.Deathrattle, deadCard, null, ownerBoard, enemyBoard);
+
+                ownerBoard.Remove(deadCard);
+                Debug.Log($"{deadCard.cardName} removed from {ownerName} board");
+            }
+
+            cascadeCount++;
+        }
+
+        if (cascadeCount >= MAX_CASCADE_ITERATIONS)
+            Debug.LogWarning($"[Death Queue] Reached max cascade iterations ({MAX_CASCADE_ITERATIONS})");
+    }
+
     private static void TriggerEcho(Card dyingCard, List<Card> board, string ownerName, int turn)
     {
         Card ally = board.Where(c => c != dyingCard && c.health > 0).OrderBy(x => UnityEngine.Random.value).FirstOrDefault();

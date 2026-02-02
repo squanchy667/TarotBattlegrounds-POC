@@ -59,10 +59,11 @@ public class OnAttackAbility : AbilityBase
                 AbilityEffects.BuffHealth(context.SourceCard, _value);
                 break;
             case OnAttackEffect.DealBonusDamage:
-                if (context.TargetCard != null)
+                // Boost attack temporarily so Aegis blocks the full combined damage
+                if (context.SourceCard != null)
                 {
-                    AbilityEffects.DealDamage(context.TargetCard, _value);
-                    Debug.Log($"[OnAttack] {context.SourceCard?.cardName} deals {_value} bonus damage to {context.TargetCard.cardName}");
+                    context.SourceCard.attack += _value;
+                    Debug.Log($"[OnAttack] {context.SourceCard.cardName} attack boosted by +{_value} for this strike (now {context.SourceCard.attack})");
                 }
                 break;
             case OnAttackEffect.DealDamageToAdjacent:
