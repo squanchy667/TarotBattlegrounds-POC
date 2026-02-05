@@ -92,6 +92,13 @@ public class Player : MonoBehaviour
     }
 
     /// <summary>
+    /// Current upgrade cost for this player. Reduces by 1 each turn (game lifecycle event).
+    /// Resets to base cost when player upgrades to new tier.
+    /// Synced from host in multiplayer.
+    /// </summary>
+    public int currentUpgradeCost = 5; // Default for tier 1→2
+
+    /// <summary>
     /// Upgrade cost synced from host. Used by clients to display correct cost.
     /// -1 means use local calculation.
     /// </summary>
@@ -553,10 +560,19 @@ public class Player : MonoBehaviour
         {
             coins -= cost; // Triggers OnCoinsChanged
             currentTavernTier++; // Triggers OnTierChanged
-            // Initialize to -1 so first increment in RefreshShop brings it to 0
-            tierTurnCounter[currentTavernTier] = -1;
 
-            Debug.Log($"Player {playerId}: Upgraded to Tavern Tier {currentTavernTier} for {cost} coins. Coins left: {coins}, Next Upgrade Cost: {GetUpgradeCost()}");
+            // M5 FIX: Reset current upgrade cost to base cost for next tier
+            int nextTier = currentTavernTier + 1;
+            if (baseUpgradeCosts.ContainsKey(nextTier))
+            {
+                currentUpgradeCost = baseUpgradeCosts[nextTier];
+            }
+            else
+            {
+                currentUpgradeCost = 0; // Max tier reached
+            }
+
+            Debug.Log($"Player {playerId}: Upgraded to Tavern Tier {currentTavernTier} for {cost} coins. Coins left: {coins}, Next Upgrade Cost: {currentUpgradeCost}");
         }
         else
         {
@@ -566,37 +582,16 @@ public class Player : MonoBehaviour
     
     public int GetUpgradeCost()
     {
-        // M5 FIX: In multiplayer, clients ALWAYS use synced value from host
+        // M5 FIX (REVISED): Simple game lifecycle mechanic
+        // In multiplayer, clients use synced value from host
         if (GameManager.Instance != null && GameManager.Instance.IsOnlineMode && !GameManager.Instance.IsHost)
         {
-            // Clients must use synced cost (don't have tierTurnCounter populated)
-            return SyncedUpgradeCost >= 0 ? SyncedUpgradeCost : 999;
+            return SyncedUpgradeCost >= 0 ? SyncedUpgradeCost : currentUpgradeCost;
         }
 
-        // Host/offline: Calculate upgrade cost
-        int nextTier = currentTavernTier + 1;
-        if (nextTier > 6)
-        {
-            return 0; // Already at max tier
-        }
-
-        if (!baseUpgradeCosts.ContainsKey(nextTier))
-        {
-            return 999; // Invalid tier
-        }
-
-        int baseCost = baseUpgradeCosts[nextTier];
-
-        // M5 FIX: Cost reduces by 1 per GAME TURN (global), not per-tier
-        // This ensures cost keeps decreasing even after you upgrade
-        int currentTurn = GameManager.Instance != null ? GameManager.Instance.TurnNumber : 1;
-        int globalReduction = currentTurn - 1; // Turn 1 = 0, Turn 2 = 1, Turn 3 = 2, etc.
-
-        int finalCost = Mathf.Max(1, baseCost - globalReduction);
-
-        Debug.Log($"[Player {playerId}] GetUpgradeCost: Tier {currentTavernTier}→{nextTier}, Base={baseCost}, Turn={currentTurn}, Reduction={globalReduction}, Final={finalCost}");
-
-        return finalCost;
+        // Host/offline: Just return the current tracked cost
+        // (Reduced by 1 each turn via game lifecycle event in GameManager)
+        return Mathf.Max(0, currentUpgradeCost);
     }
     
     public void RefreshShop(int gameTurn)

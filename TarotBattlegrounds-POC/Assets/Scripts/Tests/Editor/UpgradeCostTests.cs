@@ -4,7 +4,8 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Tests for tavern upgrade cost reduction logic (M5 bug fix).
-/// Verifies that upgrade costs decrease globally each turn, not per-tier.
+/// Verifies that upgrade costs are reduced by 1 each turn as a game lifecycle event.
+/// Costs reset to base when player upgrades to new tier.
 /// </summary>
 [TestFixture]
 public class UpgradeCostTests
@@ -68,6 +69,7 @@ public class UpgradeCostTests
     {
         // Arrange: Turn 1, Tier 1
         // Base cost for tier 1→2 should be 5 (no reduction on turn 1)
+        player.currentUpgradeCost = 5; // Initialize
 
         // Act
         int cost = player.GetUpgradeCost();
@@ -79,8 +81,11 @@ public class UpgradeCostTests
     [Test]
     public void UpgradeCost_Turn2_ReducedBy1()
     {
-        // Arrange: Simulate turn 2
-        player.RefreshShop(2); // Turn 2
+        // Arrange: Start at cost 5, then lifecycle event reduces by 1
+        player.currentUpgradeCost = 5;
+
+        // Simulate lifecycle event (Turn 2 starts)
+        player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
 
         // Act
         int cost = player.GetUpgradeCost();
@@ -92,9 +97,13 @@ public class UpgradeCostTests
     [Test]
     public void UpgradeCost_Turn3_ReducedBy2()
     {
-        // Arrange: Simulate turn 3
-        player.RefreshShop(2); // Turn 2
-        player.RefreshShop(3); // Turn 3
+        // Arrange: Start at cost 5, two lifecycle events
+        player.currentUpgradeCost = 5;
+
+        // Turn 2 lifecycle event
+        player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
+        // Turn 3 lifecycle event
+        player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
 
         // Act
         int cost = player.GetUpgradeCost();
@@ -104,54 +113,59 @@ public class UpgradeCostTests
     }
 
     [Test]
-    public void UpgradeCost_AfterUpgrade_StillDecreasesGlobally()
+    public void UpgradeCost_AfterUpgrade_ResetsToBase()
     {
-        // Arrange: Upgrade on turn 2, then check cost on turn 3
-        player.RefreshShop(2); // Turn 2
-        player.UpgradeTavern(); // Now tier 2
-        player.RefreshShop(3); // Turn 3
+        // Arrange: Cost at 3, then upgrade to tier 2
+        player.currentUpgradeCost = 3;
+        player.currentTavernTier = 1;
+        player.coins = 10;
 
-        // Act: Cost for tier 2→3 upgrade
-        int cost = player.GetUpgradeCost();
+        // Act: Upgrade (should reset cost to base 8 for tier 2→3)
+        player.UpgradeTavern();
 
-        // Assert: Base cost for tier 3 is 8, with 2 turns elapsed (turn 3 - 1) = 8 - 2 = 6
-        Assert.AreEqual(6, cost, "Turn 3 cost for tier 2→3 should be 6 (base 8 - 2 turns = 6), NOT reset to base cost");
+        // Assert: Cost should be BASE for tier 2→3 (8 gold)
+        Assert.AreEqual(8, player.currentUpgradeCost, "After upgrade, cost should reset to base (8 for tier 2→3)");
+        Assert.AreEqual(2, player.currentTavernTier, "Player should now be tier 2");
     }
 
     [Test]
-    public void UpgradeCost_MultipleUpgrades_ContinuesDecreasing()
+    public void UpgradeCost_AfterUpgrade_ContinuesDecreasing()
     {
-        // Arrange: Upgrade twice, verify cost keeps decreasing
-        player.RefreshShop(2); // Turn 2
-        player.UpgradeTavern(); // Tier 1→2
+        // Arrange: Upgrade to tier 2, then simulate lifecycle events
+        player.currentUpgradeCost = 3;
+        player.currentTavernTier = 1;
+        player.coins = 20;
 
-        player.RefreshShop(3); // Turn 3
-        int costBefore = player.GetUpgradeCost(); // Should be 6
+        // Upgrade to tier 2 (cost resets to 8)
+        player.UpgradeTavern();
+        Assert.AreEqual(8, player.currentUpgradeCost, "After upgrade, cost = 8");
 
-        player.UpgradeTavern(); // Tier 2→3
+        // Lifecycle event (next turn)
+        player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
+        Assert.AreEqual(7, player.currentUpgradeCost, "After 1 turn at tier 2, cost = 7");
 
-        player.RefreshShop(4); // Turn 4
-        int costAfter = player.GetUpgradeCost(); // Should be 6 (base 9 - 3 turns = 6)
-
-        // Assert: Cost should continue to decrease based on game turn
-        Assert.AreEqual(6, costBefore, "Turn 3: Tier 2→3 cost should be 6");
-        Assert.AreEqual(6, costAfter, "Turn 4: Tier 3→4 cost should be 6 (base 9 - 3 = 6)");
+        // Another lifecycle event
+        player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
+        Assert.AreEqual(6, player.currentUpgradeCost, "After 2 turns at tier 2, cost = 6");
     }
 
     [Test]
-    public void UpgradeCost_NeverBelowOne()
+    public void UpgradeCost_NeverBelowZero()
     {
-        // Arrange: Simulate many turns to test minimum cost
-        for (int turn = 1; turn <= 20; turn++)
+        // Arrange: Reduce cost many times to test minimum
+        player.currentUpgradeCost = 2;
+
+        // Reduce multiple times
+        for (int i = 0; i < 10; i++)
         {
-            player.RefreshShop(turn);
+            player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
         }
 
         // Act
         int cost = player.GetUpgradeCost();
 
-        // Assert: Cost should be clamped to minimum of 1
-        Assert.GreaterOrEqual(cost, 1, "Upgrade cost should never go below 1");
+        // Assert: Cost should be clamped to minimum of 0
+        Assert.AreEqual(0, cost, "Upgrade cost should never go below 0");
     }
 
     [Test]
@@ -168,7 +182,7 @@ public class UpgradeCostTests
     }
 
     [Test]
-    public void UpgradeCost_ConsistentForAllPlayers()
+    public void UpgradeCost_LifecycleEvent_ReducesForAllPlayers()
     {
         // Arrange: Create second player
         var player2Obj = new GameObject("TestPlayer2");
@@ -176,44 +190,44 @@ public class UpgradeCostTests
         player2.playerId = 2;
         player2.coins = 20;
         player2.currentTavernTier = 1;
+        player2.currentUpgradeCost = 5;
         gameManager.players.Add(player2);
 
-        // Both players on turn 3
-        player.RefreshShop(3);
-        player2.RefreshShop(3);
+        player.currentUpgradeCost = 5;
 
-        // Act
-        int cost1 = player.GetUpgradeCost();
-        int cost2 = player2.GetUpgradeCost();
+        // Act: Simulate lifecycle event (reduces ALL players by 1)
+        player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
+        player2.currentUpgradeCost = Mathf.Max(0, player2.currentUpgradeCost - 1);
 
-        // Assert: Both should see same cost
-        Assert.AreEqual(cost1, cost2, "All players should see same upgrade cost on same turn");
+        // Assert: Both should have reduced
+        Assert.AreEqual(4, player.GetUpgradeCost(), "Player 1 cost should reduce to 4");
+        Assert.AreEqual(4, player2.GetUpgradeCost(), "Player 2 cost should reduce to 4");
 
         Object.DestroyImmediate(player2Obj);
     }
 
     [Test]
-    public void UpgradeCost_DifferentTiers_SameTurn_DifferentBaseCosts()
+    public void UpgradeCost_DifferentTiers_LifecycleReducesBoth()
     {
-        // Arrange: Player 1 at tier 1, Player 2 at tier 2
+        // Arrange: Player 1 at tier 1 (cost 3), Player 2 at tier 2 (cost 7)
         var player2Obj = new GameObject("TestPlayer2");
         var player2 = player2Obj.AddComponent<Player>();
         player2.playerId = 2;
         player2.coins = 20;
         player2.currentTavernTier = 2; // Higher tier
+        player2.currentUpgradeCost = 7; // Tier 2→3 base is 8, already reduced once
         gameManager.players.Add(player2);
 
-        // Both on turn 3
-        player.RefreshShop(3); // Tier 1
-        player2.RefreshShop(3); // Tier 2
+        player.currentTavernTier = 1;
+        player.currentUpgradeCost = 3; // Tier 1→2 base is 5, already reduced twice
 
-        // Act
-        int cost1 = player.GetUpgradeCost(); // Tier 1→2: base 5 - 2 = 3
-        int cost2 = player2.GetUpgradeCost(); // Tier 2→3: base 8 - 2 = 6
+        // Act: Lifecycle event reduces both
+        player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
+        player2.currentUpgradeCost = Mathf.Max(0, player2.currentUpgradeCost - 1);
 
-        // Assert
-        Assert.AreEqual(3, cost1, "Tier 1→2 on turn 3 should cost 3");
-        Assert.AreEqual(6, cost2, "Tier 2→3 on turn 3 should cost 6");
+        // Assert: Both reduced, but from different bases
+        Assert.AreEqual(2, player.GetUpgradeCost(), "Tier 1 player: 3 → 2");
+        Assert.AreEqual(6, player2.GetUpgradeCost(), "Tier 2 player: 7 → 6");
 
         Object.DestroyImmediate(player2Obj);
     }

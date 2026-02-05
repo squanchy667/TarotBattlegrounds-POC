@@ -590,6 +590,19 @@ public class GameManager : MonoBehaviour
 #endif
 
         Debug.Log("Current Phase: " + currentPhase);
+
+        // M5 FIX: Game lifecycle event - Reduce upgrade costs for ALL players by 1 each turn
+        if (turnNumber > 1)
+        {
+            for (int i = 0; i < playerCount; i++)
+            {
+                if (playerHealths[i] <= 0) continue;
+                var player = players[i];
+                player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
+                Debug.Log($"[Lifecycle Event] Player {i + 1}: Upgrade cost reduced to {player.currentUpgradeCost}");
+            }
+        }
+
         float timer = recruitTimer;
         for (int i = 0; i < playerCount; i++)
         {
