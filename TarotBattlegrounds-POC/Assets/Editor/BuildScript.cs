@@ -29,10 +29,6 @@ public static class BuildScript
         // Set WebGL-specific settings
         PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
         PlayerSettings.WebGL.template = "PROJECT:TarotBattlegrounds";
-        PlayerSettings.SetIl2CppCodeGeneration(
-            NamedBuildTarget.WebGL,
-            Il2CppCodeGeneration.OptimizeSize
-        );
 
         Debug.Log("[BuildScript] Starting WebGL build...");
         var report = BuildPipeline.BuildPlayer(buildOptions);
