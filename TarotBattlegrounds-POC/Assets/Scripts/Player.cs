@@ -465,6 +465,16 @@ public class Player : MonoBehaviour
 
     public void EndRecruitPhase()
     {
+        // BUG FIX: Disabled legacy LastReading system to prevent triple buffing
+        // LastReading was buffing cards, then Synergies buffed again, then Abilities buffed again
+        // Result: Cards became way too strong (3/3 → 9/X after one combat!)
+        //
+        // LastReading is now REPLACED by:
+        // - Synergy System (handles tribal buffs based on 2/4/6 thresholds)
+        // - Ability System (handles per-card OnAttack, Battlecry, etc.)
+        //
+        // Keeping the method below for reference, but commented out:
+        /*
         foreach (var card in board)
         {
             if (card.effectType == Card.EffectType.LastReading)
@@ -472,6 +482,7 @@ public class Player : MonoBehaviour
                 TriggerLastReading(card);
             }
         }
+        */
 
         // Trigger EndOfTurn synergies — M1: use per-player snapshot
         if (SynergyManager.Instance != null)
@@ -480,7 +491,7 @@ public class Player : MonoBehaviour
             SynergyManager.Instance.TriggerSynergies(SynergyTrigger.EndOfTurn, board, this, snapshot);
         }
 
-        Debug.Log($"Player {playerId}: Recruit phase ended. LastReading and synergy effects triggered.");
+        Debug.Log($"Player {playerId}: Recruit phase ended. Synergy effects triggered.");
     }
     
     private void TriggerSummoning(Card card)
