@@ -87,7 +87,11 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
 
     private void ShowDiscovery(Player player, List<Card> cards)
     {
-        if (discoveryPanel == null || cards == null || cards.Count == 0) return;
+        if (discoveryPanel == null || cards == null || cards.Count == 0)
+        {
+            Debug.LogWarning($"[DiscoveryUI] Cannot show discovery: panel={discoveryPanel != null}, cards={cards != null}, count={cards?.Count ?? 0}");
+            return;
+        }
 
         // Only show discovery UI for human players
         if (!GameConfig.IsHumanPlayer(player.playerId - 1))
@@ -109,23 +113,31 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
             int localSlot = NetworkGameBridge.Instance.LocalPlayerSlot;
             if (player.playerId - 1 != localSlot)
             {
-                // Not our discovery, skip UI
+                // Not our discovery, skip UI (stored for network resolution)
+                Debug.Log($"[DiscoveryUI/M2] Player {player.playerId} discovery stored, but not showing UI (localSlot={localSlot})");
                 return;
             }
+            Debug.Log($"[DiscoveryUI/M2] Showing discovery for local player {player.playerId} (slot {localSlot})");
         }
 #endif
 
-        discoveryPanel.SetActive(true);
+        // BUG FIX M2: Always clear previous choices before showing new discovery
+        // This ensures UI is fresh even if panel was already active
+        ClearChoices();
+
+        // Ensure panel is active and visible
+        discoveryPanel.SetActive(false); // Force deactivate first
+        discoveryPanel.SetActive(true);  // Then reactivate to trigger UI refresh
 
         if (titleText != null)
             titleText.text = "Triple! Choose a Card:";
-
-        ClearChoices();
 
         for (int i = 0; i < cards.Count; i++)
         {
             CreateChoiceCard(cards[i], i);
         }
+
+        Debug.Log($"[DiscoveryUI/M2] Displayed {cards.Count} discovery choices for Player {player.playerId}");
     }
 
     /// <summary>

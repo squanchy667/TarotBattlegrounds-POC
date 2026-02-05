@@ -579,10 +579,6 @@ public class GameManager : MonoBehaviour
     {
         currentPhase = GamePhase.Recruit;
 
-        // Notify UI of phase change (enables End Turn, Freeze buttons)
-        if (GameUIManager.Instance != null)
-            GameUIManager.Instance.RefreshAllUI();
-
 #if PHOTON_UNITY_NETWORKING
         // Broadcast phase change to clients
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
@@ -633,6 +629,11 @@ public class GameManager : MonoBehaviour
             }
         }
 #endif
+
+        // BUG FIX M5 (UI): Refresh UI AFTER lifecycle events and state broadcasts
+        // This ensures upgrade costs are updated before UI reads them
+        if (GameUIManager.Instance != null)
+            GameUIManager.Instance.RefreshAllUI();
 
         // AI players make their decisions at start of recruit phase, then auto-ready
         foreach (var kvp in aiControllers)
