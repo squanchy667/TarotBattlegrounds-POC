@@ -5,6 +5,18 @@ using System.Linq;
 /// <summary>
 /// Manages tribe synergies, counting tribe members and applying bonuses.
 /// Attach to a GameObject in the scene and assign TribeSynergy ScriptableObjects.
+///
+/// MULTIPLAYER PATTERN (M1 FIX):
+/// Always use CalculateSynergies(board) to get a per-player snapshot, then pass
+/// that snapshot to methods like TriggerSynergies(), GetSellBonus(), GetCostReduction().
+///
+/// Example:
+///   var snapshot = SynergyManager.Instance.CalculateSynergies(player.board);
+///   SynergyManager.Instance.TriggerSynergies(trigger, board, player, snapshot);
+///   int bonus = SynergyManager.Instance.GetSellBonus(card, snapshot);
+///
+/// DO NOT use the deprecated global state methods (UpdateTribeCounts, GetTribeCount, etc.)
+/// as they cause bugs in multiplayer when multiple players' synergies overwrite each other.
 /// </summary>
 public class SynergyManager : MonoBehaviour
 {
@@ -81,8 +93,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Count all tribes on a player's board and update active synergies.
-    /// Call this whenever the board changes.
+    /// [OBSOLETE] This method mutates global singleton state and causes bugs in multiplayer.
+    /// Use CalculateSynergies(board) instead to get a per-player snapshot.
     /// </summary>
+    [System.Obsolete("Use CalculateSynergies(board) instead for per-player synergy calculations", true)]
     public void UpdateTribeCounts(List<Card> board)
     {
         _tribeCounts.Clear();
@@ -277,7 +291,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Get the count of a specific tribe on the board.
+    /// [OBSOLETE] This method uses global singleton state and causes bugs in multiplayer.
+    /// Use CalculateSynergies(board) to get a snapshot, then check snapshot.tribeCounts.
     /// </summary>
+    [System.Obsolete("Use CalculateSynergies(board).tribeCounts instead", true)]
     public int GetTribeCount(TribeType tribe)
     {
         return _tribeCounts.TryGetValue(tribe, out int count) ? count : 0;
@@ -285,7 +302,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Get all current tribe counts.
+    /// [OBSOLETE] This method uses global singleton state and causes bugs in multiplayer.
+    /// Use CalculateSynergies(board).tribeCounts instead.
     /// </summary>
+    [System.Obsolete("Use CalculateSynergies(board).tribeCounts instead", true)]
     public Dictionary<TribeType, int> GetAllTribeCounts()
     {
         return new Dictionary<TribeType, int>(_tribeCounts);
@@ -293,7 +313,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Get the active tier for a tribe, or null if no tier is active.
+    /// [OBSOLETE] This method uses global singleton state and causes bugs in multiplayer.
+    /// Use CalculateSynergies(board).activeTiers instead.
     /// </summary>
+    [System.Obsolete("Use CalculateSynergies(board).activeTiers instead", true)]
     public SynergyTier GetActiveTier(TribeType tribe)
     {
         return _activeTiers.TryGetValue(tribe, out SynergyTier tier) ? tier : null;
@@ -301,7 +324,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Get all active tiers.
+    /// [OBSOLETE] This method uses global singleton state and causes bugs in multiplayer.
+    /// Use CalculateSynergies(board).activeTiers instead.
     /// </summary>
+    [System.Obsolete("Use CalculateSynergies(board).activeTiers instead", true)]
     public Dictionary<TribeType, SynergyTier> GetAllActiveTiers()
     {
         return new Dictionary<TribeType, SynergyTier>(_activeTiers);
@@ -309,7 +335,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Check if a specific combo is active.
+    /// [OBSOLETE] This method uses global singleton state and causes bugs in multiplayer.
+    /// Use CalculateSynergies(board).activeCombos instead.
     /// </summary>
+    [System.Obsolete("Use CalculateSynergies(board).activeCombos instead", true)]
     public bool IsComboActive(TribeType tribe1, TribeType tribe2)
     {
         var combo = tribe1 < tribe2 ? (tribe1, tribe2) : (tribe2, tribe1);
@@ -318,7 +347,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Get all active combos.
+    /// [OBSOLETE] This method uses global singleton state and causes bugs in multiplayer.
+    /// Use CalculateSynergies(board).activeCombos instead.
     /// </summary>
+    [System.Obsolete("Use CalculateSynergies(board).activeCombos instead", true)]
     public List<(TribeType, TribeType)> GetActiveCombos()
     {
         return new List<(TribeType, TribeType)>(_activeCombos);
@@ -334,7 +366,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Trigger all synergies that match a specific trigger type.
+    /// [OBSOLETE] This method uses global singleton state and causes bugs in multiplayer.
+    /// Use TriggerSynergies(trigger, board, owner, snapshot) with a pre-computed snapshot instead.
     /// </summary>
+    [System.Obsolete("Use TriggerSynergies(trigger, board, owner, CalculateSynergies(board)) instead", true)]
     public void TriggerSynergies(SynergyTrigger trigger, List<Card> board, Player owner)
     {
         string playerName = owner != null ? $"Player {owner.playerId}" : "Unknown";
@@ -489,7 +524,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Calculate bonus sell value from synergies (e.g., economy-focused tribes).
+    /// [OBSOLETE] This method uses global singleton state and causes bugs in multiplayer.
+    /// Use GetSellBonus(card, snapshot) with a pre-computed snapshot instead.
     /// </summary>
+    [System.Obsolete("Use GetSellBonus(card, CalculateSynergies(board)) instead", true)]
     public int GetSellBonus(Card card)
     {
         int bonus = 0;
@@ -506,7 +544,10 @@ public class SynergyManager : MonoBehaviour
 
     /// <summary>
     /// Calculate cost reduction from synergies.
+    /// [OBSOLETE] This method uses global singleton state and causes bugs in multiplayer.
+    /// Use GetCostReduction(card, snapshot) with a pre-computed snapshot instead.
     /// </summary>
+    [System.Obsolete("Use GetCostReduction(card, CalculateSynergies(board)) instead", true)]
     public int GetCostReduction(Card card)
     {
         int reduction = 0;

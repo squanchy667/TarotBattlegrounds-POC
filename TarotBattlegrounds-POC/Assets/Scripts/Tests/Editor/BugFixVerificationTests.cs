@@ -33,7 +33,7 @@ public class BugFixVerificationTests
                 card.tier = tier;
                 card.attack = tier;
                 card.health = tier;
-                card.tribe = TribeType.Wands;
+                card.tribe = "Wands";
                 tavern.masterCards.Add(card);
             }
         }

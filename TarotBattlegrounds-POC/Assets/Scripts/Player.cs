@@ -221,10 +221,6 @@ public class Player : MonoBehaviour
         }
         board.RemoveAt(index);
 
-        // Update synergy counts after board change
-        if (SynergyManager.Instance != null)
-            SynergyManager.Instance.UpdateTribeCounts(board);
-
         // Fire events
         OnBoardChanged?.Invoke();
         OnAnyPlayerStateChanged?.Invoke(this);
@@ -420,10 +416,6 @@ public class Player : MonoBehaviour
         var battlecryContext = AbilityManager.CreateBattlecryContext(card, this);
         AbilityManager.TriggerAbilities(AbilityTrigger.Battlecry, battlecryContext);
 
-        // Update synergy counts after board change
-        if (SynergyManager.Instance != null)
-            SynergyManager.Instance.UpdateTribeCounts(board);
-
         // Fire events
         OnHandChanged?.Invoke();
         OnBoardChanged?.Invoke();
@@ -459,8 +451,6 @@ public class Player : MonoBehaviour
     /// </summary>
     public void NotifyBoardChanged()
     {
-        if (SynergyManager.Instance != null)
-            SynergyManager.Instance.UpdateTribeCounts(board);
         OnBoardChanged?.Invoke();
         OnAnyPlayerStateChanged?.Invoke(this);
     }

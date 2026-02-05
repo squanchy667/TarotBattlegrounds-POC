@@ -7,6 +7,7 @@ using System.Linq;
 /// Automated tests for tribe synergy system.
 /// Covers threshold activation (2/4/6), cross-tribe combos,
 /// multi-tribe card counting, and synergy effect application.
+/// Updated to use per-player snapshot pattern instead of global state.
 /// </summary>
 [TestFixture]
 public class SynergyTests
@@ -47,6 +48,22 @@ public class SynergyTests
         return card;
     }
 
+    private int GetTribeCount(SynergyManager.SynergySnapshot snapshot, TribeType tribe)
+    {
+        return snapshot.tribeCounts.TryGetValue(tribe, out int count) ? count : 0;
+    }
+
+    private SynergyTier GetActiveTier(SynergyManager.SynergySnapshot snapshot, TribeType tribe)
+    {
+        return snapshot.activeTiers.TryGetValue(tribe, out SynergyTier tier) ? tier : null;
+    }
+
+    private bool IsComboActive(SynergyManager.SynergySnapshot snapshot, TribeType tribe1, TribeType tribe2)
+    {
+        var combo = tribe1 < tribe2 ? (tribe1, tribe2) : (tribe2, tribe1);
+        return snapshot.activeCombos.Contains(combo);
+    }
+
     // =====================================================
     // TRIBE COUNTING TESTS
     // =====================================================
@@ -55,12 +72,12 @@ public class SynergyTests
     public void TribeCounting_EmptyBoard_NoTribes()
     {
         var board = new List<Card>();
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.AreEqual(0, synergyManager.GetTribeCount(TribeType.Pentacles));
-        Assert.AreEqual(0, synergyManager.GetTribeCount(TribeType.Cups));
-        Assert.AreEqual(0, synergyManager.GetTribeCount(TribeType.Swords));
-        Assert.AreEqual(0, synergyManager.GetTribeCount(TribeType.Wands));
+        Assert.AreEqual(0, GetTribeCount(snapshot, TribeType.Pentacles));
+        Assert.AreEqual(0, GetTribeCount(snapshot, TribeType.Cups));
+        Assert.AreEqual(0, GetTribeCount(snapshot, TribeType.Swords));
+        Assert.AreEqual(0, GetTribeCount(snapshot, TribeType.Wands));
     }
 
     [Test]
@@ -73,12 +90,12 @@ public class SynergyTests
             CreateCard("Cup1", new[] { TribeType.Cups })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.AreEqual(2, synergyManager.GetTribeCount(TribeType.Swords));
-        Assert.AreEqual(1, synergyManager.GetTribeCount(TribeType.Cups));
-        Assert.AreEqual(0, synergyManager.GetTribeCount(TribeType.Pentacles));
-        Assert.AreEqual(0, synergyManager.GetTribeCount(TribeType.Wands));
+        Assert.AreEqual(2, GetTribeCount(snapshot, TribeType.Swords));
+        Assert.AreEqual(1, GetTribeCount(snapshot, TribeType.Cups));
+        Assert.AreEqual(0, GetTribeCount(snapshot, TribeType.Pentacles));
+        Assert.AreEqual(0, GetTribeCount(snapshot, TribeType.Wands));
     }
 
     [Test]
@@ -89,10 +106,10 @@ public class SynergyTests
             CreateCard("DualCard", new[] { TribeType.Pentacles, TribeType.Cups })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.AreEqual(1, synergyManager.GetTribeCount(TribeType.Pentacles));
-        Assert.AreEqual(1, synergyManager.GetTribeCount(TribeType.Cups));
+        Assert.AreEqual(1, GetTribeCount(snapshot, TribeType.Pentacles));
+        Assert.AreEqual(1, GetTribeCount(snapshot, TribeType.Cups));
     }
 
     [Test]
@@ -103,12 +120,12 @@ public class SynergyTests
             CreateCard("TripleCard", new[] { TribeType.Cups, TribeType.Wands, TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.AreEqual(1, synergyManager.GetTribeCount(TribeType.Cups));
-        Assert.AreEqual(1, synergyManager.GetTribeCount(TribeType.Wands));
-        Assert.AreEqual(1, synergyManager.GetTribeCount(TribeType.Swords));
-        Assert.AreEqual(0, synergyManager.GetTribeCount(TribeType.Pentacles));
+        Assert.AreEqual(1, GetTribeCount(snapshot, TribeType.Cups));
+        Assert.AreEqual(1, GetTribeCount(snapshot, TribeType.Wands));
+        Assert.AreEqual(1, GetTribeCount(snapshot, TribeType.Swords));
+        Assert.AreEqual(0, GetTribeCount(snapshot, TribeType.Pentacles));
     }
 
     [Test]
@@ -121,17 +138,17 @@ public class SynergyTests
             CreateCard("Pent1", new[] { TribeType.Pentacles })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.AreEqual(2, synergyManager.GetTribeCount(TribeType.Swords));
-        Assert.AreEqual(2, synergyManager.GetTribeCount(TribeType.Pentacles));
+        Assert.AreEqual(2, GetTribeCount(snapshot, TribeType.Swords));
+        Assert.AreEqual(2, GetTribeCount(snapshot, TribeType.Pentacles));
     }
 
     [Test]
     public void TribeCounting_NullBoard_NoError()
     {
-        synergyManager.UpdateTribeCounts(null);
-        Assert.AreEqual(0, synergyManager.GetTribeCount(TribeType.Swords));
+        var snapshot = synergyManager.CalculateSynergies(null);
+        Assert.AreEqual(0, GetTribeCount(snapshot, TribeType.Swords));
     }
 
     [Test]
@@ -143,11 +160,10 @@ public class SynergyTests
             CreateCard("Sword1", new[] { TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.AreEqual(1, synergyManager.GetTribeCount(TribeType.Swords));
-        var allCounts = synergyManager.GetAllTribeCounts();
-        Assert.AreEqual(1, allCounts.Count, "Only one tribe should be counted");
+        Assert.AreEqual(1, GetTribeCount(snapshot, TribeType.Swords));
+        Assert.AreEqual(1, snapshot.tribeCounts.Count, "Only one tribe should be counted");
     }
 
     // =====================================================
@@ -162,9 +178,9 @@ public class SynergyTests
             CreateCard("Sword1", new[] { TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsNull(synergyManager.GetActiveTier(TribeType.Swords),
+        Assert.IsNull(GetActiveTier(snapshot, TribeType.Swords),
             "1 tribe member should not activate any tier");
     }
 
@@ -177,9 +193,9 @@ public class SynergyTests
             CreateCard("Sword2", new[] { TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Swords);
+        var tier = GetActiveTier(snapshot, TribeType.Swords);
         Assert.IsNotNull(tier, "2 Swords should activate tier 2");
         Assert.AreEqual(2, tier.threshold);
         Assert.AreEqual(SynergyEffect.BuffAttack, tier.effect);
@@ -196,9 +212,9 @@ public class SynergyTests
             CreateCard("Sword4", new[] { TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Swords);
+        var tier = GetActiveTier(snapshot, TribeType.Swords);
         Assert.IsNotNull(tier, "4 Swords should activate tier 4");
         Assert.AreEqual(4, tier.threshold);
         Assert.AreEqual(SynergyEffect.BonusDamage, tier.effect);
@@ -208,9 +224,9 @@ public class SynergyTests
     public void Threshold_SixWands_Tier6Active()
     {
         var board = SynergyTestCards.CreateTestBoard_WandsTier6();
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Wands);
+        var tier = GetActiveTier(snapshot, TribeType.Wands);
         Assert.IsNotNull(tier, "6 Wands should activate tier 6");
         Assert.AreEqual(6, tier.threshold);
         Assert.AreEqual(SynergyEffect.BuffAttack, tier.effect);
@@ -227,9 +243,9 @@ public class SynergyTests
             CreateCard("Pent3", new[] { TribeType.Pentacles })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Pentacles);
+        var tier = GetActiveTier(snapshot, TribeType.Pentacles);
         Assert.IsNotNull(tier);
         Assert.AreEqual(2, tier.threshold, "3 members should activate tier 2, not tier 4");
     }
@@ -246,9 +262,9 @@ public class SynergyTests
             CreateCard("Cup5", new[] { TribeType.Cups })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Cups);
+        var tier = GetActiveTier(snapshot, TribeType.Cups);
         Assert.IsNotNull(tier);
         Assert.AreEqual(4, tier.threshold, "5 members should activate tier 4, not tier 6");
     }
@@ -267,9 +283,9 @@ public class SynergyTests
             CreateCard("Wand7", new[] { TribeType.Wands })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Wands);
+        var tier = GetActiveTier(snapshot, TribeType.Wands);
         Assert.IsNotNull(tier);
         Assert.AreEqual(6, tier.threshold, "7+ members should still be tier 6 (highest)");
     }
@@ -290,12 +306,12 @@ public class SynergyTests
             // Only 1 Wand - should NOT activate
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsNotNull(synergyManager.GetActiveTier(TribeType.Pentacles), "Pentacles tier 2 should be active");
-        Assert.IsNotNull(synergyManager.GetActiveTier(TribeType.Cups), "Cups tier 2 should be active");
-        Assert.IsNotNull(synergyManager.GetActiveTier(TribeType.Swords), "Swords tier 2 should be active");
-        Assert.IsNull(synergyManager.GetActiveTier(TribeType.Wands), "Wands should NOT be active (only 1)");
+        Assert.IsNotNull(GetActiveTier(snapshot, TribeType.Pentacles), "Pentacles tier 2 should be active");
+        Assert.IsNotNull(GetActiveTier(snapshot, TribeType.Cups), "Cups tier 2 should be active");
+        Assert.IsNotNull(GetActiveTier(snapshot, TribeType.Swords), "Swords tier 2 should be active");
+        Assert.IsNull(GetActiveTier(snapshot, TribeType.Wands), "Wands should NOT be active (only 1)");
     }
 
     [Test]
@@ -309,10 +325,10 @@ public class SynergyTests
             CreateCard("Cup1", new[] { TribeType.Cups })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsNotNull(synergyManager.GetActiveTier(TribeType.Pentacles), "Pentacles should be active at tier 2");
-        Assert.IsNotNull(synergyManager.GetActiveTier(TribeType.Cups), "Cups should be active at tier 2");
+        Assert.IsNotNull(GetActiveTier(snapshot, TribeType.Pentacles), "Pentacles should be active at tier 2");
+        Assert.IsNotNull(GetActiveTier(snapshot, TribeType.Cups), "Cups should be active at tier 2");
     }
 
     // =====================================================
@@ -328,9 +344,9 @@ public class SynergyTests
             CreateCard("Pent2", new[] { TribeType.Pentacles })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Pentacles);
+        var tier = GetActiveTier(snapshot, TribeType.Pentacles);
         Assert.AreEqual(SynergyTrigger.OnSell, tier.trigger);
         Assert.AreEqual(SynergyEffect.BonusGold, tier.effect);
         Assert.AreEqual(1, tier.value);
@@ -345,9 +361,9 @@ public class SynergyTests
             CreateCard("Cup2", new[] { TribeType.Cups })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Cups);
+        var tier = GetActiveTier(snapshot, TribeType.Cups);
         Assert.AreEqual(SynergyTrigger.EndOfTurn, tier.trigger);
         Assert.AreEqual(SynergyEffect.HealFlat, tier.effect);
         Assert.AreEqual(SynergyTarget.Adjacent, tier.target);
@@ -358,9 +374,9 @@ public class SynergyTests
     public void Swords_Tier4_BonusDamage()
     {
         var board = SynergyTestCards.CreateTestBoard_SwordsTier4();
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Swords);
+        var tier = GetActiveTier(snapshot, TribeType.Swords);
         Assert.AreEqual(4, tier.threshold);
         Assert.AreEqual(SynergyEffect.BonusDamage, tier.effect);
         Assert.AreEqual(2, tier.value);
@@ -377,9 +393,9 @@ public class SynergyTests
             CreateCard("Wand4", new[] { TribeType.Wands })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Wands);
+        var tier = GetActiveTier(snapshot, TribeType.Wands);
         Assert.AreEqual(4, tier.threshold);
         Assert.AreEqual(SynergyEffect.BuffStats, tier.effect);
         Assert.AreEqual(SynergyTarget.AllTribeMembers, tier.target);
@@ -398,9 +414,9 @@ public class SynergyTests
             CreateCard("Cup6", new[] { TribeType.Cups })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Cups);
+        var tier = GetActiveTier(snapshot, TribeType.Cups);
         Assert.AreEqual(6, tier.threshold);
         Assert.AreEqual(SynergyTrigger.StartOfCombat, tier.trigger);
         Assert.AreEqual(SynergyEffect.Shield, tier.effect);
@@ -420,9 +436,9 @@ public class SynergyTests
             CreateCard("Pent6", new[] { TribeType.Pentacles })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Pentacles);
+        var tier = GetActiveTier(snapshot, TribeType.Pentacles);
         Assert.AreEqual(6, tier.threshold);
         Assert.AreEqual(SynergyEffect.ReduceCost, tier.effect);
     }
@@ -435,9 +451,9 @@ public class SynergyTests
     public void Combo_PentaclesCups_ActiveWith2Each()
     {
         var board = SynergyTestCards.CreateTestBoard_PentaclesCups();
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsTrue(synergyManager.IsComboActive(TribeType.Pentacles, TribeType.Cups),
+        Assert.IsTrue(IsComboActive(snapshot, TribeType.Pentacles, TribeType.Cups),
             "Pentacles+Cups combo should be active with 2 of each");
     }
 
@@ -451,9 +467,9 @@ public class SynergyTests
             CreateCard("Cup1", new[] { TribeType.Cups }) // Only 1 Cup
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsFalse(synergyManager.IsComboActive(TribeType.Pentacles, TribeType.Cups),
+        Assert.IsFalse(IsComboActive(snapshot, TribeType.Pentacles, TribeType.Cups),
             "Combo should NOT be active with only 1 Cup");
     }
 
@@ -468,9 +484,9 @@ public class SynergyTests
             CreateCard("Pent2", new[] { TribeType.Pentacles })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsTrue(synergyManager.IsComboActive(TribeType.Swords, TribeType.Pentacles));
+        Assert.IsTrue(IsComboActive(snapshot, TribeType.Swords, TribeType.Pentacles));
     }
 
     [Test]
@@ -484,9 +500,9 @@ public class SynergyTests
             CreateCard("Sword2", new[] { TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsTrue(synergyManager.IsComboActive(TribeType.Wands, TribeType.Swords));
+        Assert.IsTrue(IsComboActive(snapshot, TribeType.Wands, TribeType.Swords));
     }
 
     [Test]
@@ -500,9 +516,9 @@ public class SynergyTests
             CreateCard("Wand2", new[] { TribeType.Wands })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsTrue(synergyManager.IsComboActive(TribeType.Cups, TribeType.Wands));
+        Assert.IsTrue(IsComboActive(snapshot, TribeType.Cups, TribeType.Wands));
     }
 
     [Test]
@@ -516,10 +532,10 @@ public class SynergyTests
             CreateCard("Sword2", new[] { TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
         // Cups combo partner is Wands, not Swords
-        Assert.IsFalse(synergyManager.IsComboActive(TribeType.Cups, TribeType.Swords),
+        Assert.IsFalse(IsComboActive(snapshot, TribeType.Cups, TribeType.Swords),
             "Cups+Swords is NOT a valid combo pair");
     }
 
@@ -534,9 +550,9 @@ public class SynergyTests
             CreateCard("Cup1", new[] { TribeType.Cups })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsTrue(synergyManager.IsComboActive(TribeType.Pentacles, TribeType.Cups),
+        Assert.IsTrue(IsComboActive(snapshot, TribeType.Pentacles, TribeType.Cups),
             "Multi-tribe card should enable combo activation");
     }
 
@@ -544,10 +560,10 @@ public class SynergyTests
     public void Combo_SymmetricCheck_OrderDoesNotMatter()
     {
         var board = SynergyTestCards.CreateTestBoard_PentaclesCups();
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        bool checkAB = synergyManager.IsComboActive(TribeType.Pentacles, TribeType.Cups);
-        bool checkBA = synergyManager.IsComboActive(TribeType.Cups, TribeType.Pentacles);
+        bool checkAB = IsComboActive(snapshot, TribeType.Pentacles, TribeType.Cups);
+        bool checkBA = IsComboActive(snapshot, TribeType.Cups, TribeType.Pentacles);
 
         Assert.AreEqual(checkAB, checkBA, "Combo check should be symmetric (A+B == B+A)");
     }
@@ -567,10 +583,9 @@ public class SynergyTests
             CreateCard("Sword2", new[] { TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var combos = synergyManager.GetActiveCombos();
-        Assert.IsTrue(combos.Count >= 2, $"Expected at least 2 combos, got {combos.Count}");
+        Assert.IsTrue(snapshot.activeCombos.Count >= 2, $"Expected at least 2 combos, got {snapshot.activeCombos.Count}");
     }
 
     // =====================================================
@@ -586,13 +601,13 @@ public class SynergyTests
             CreateCard("Sword2", new[] { TribeType.Swords }, attack: 3, health: 2)
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
         int originalAtk1 = board[0].attack;
         int originalAtk2 = board[1].attack;
 
         // Swords tier 2: +1 attack to all tribe members at StartOfCombat
-        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null);
+        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null, snapshot);
 
         Assert.AreEqual(originalAtk1 + 1, board[0].attack, "Sword card 1 should gain +1 attack");
         Assert.AreEqual(originalAtk2 + 1, board[1].attack, "Sword card 2 should gain +1 attack");
@@ -608,10 +623,10 @@ public class SynergyTests
             CreateCard("Cup1", new[] { TribeType.Cups }, attack: 1)
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
         int cupOriginalAtk = board[2].attack;
-        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null);
+        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null, snapshot);
 
         Assert.AreEqual(cupOriginalAtk, board[2].attack,
             "Non-Swords card should not receive Swords attack buff");
@@ -621,12 +636,12 @@ public class SynergyTests
     public void Effect_WandsTier6_BuffsAllFriendly()
     {
         var board = SynergyTestCards.CreateTestBoard_WandsTier6();
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
         int[] originalAttacks = board.Select(c => c.attack).ToArray();
 
         // Wands tier 6: +2 attack to all friendly at StartOfCombat
-        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null);
+        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null, snapshot);
 
         for (int i = 0; i < board.Count; i++)
         {
@@ -649,8 +664,8 @@ public class SynergyTests
             CreateCard("Neutral", new TribeType[0]) // Non-Cup also gets Aegis (AllFriendly)
         };
 
-        synergyManager.UpdateTribeCounts(board);
-        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null);
+        var snapshot = synergyManager.CalculateSynergies(board);
+        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null, snapshot);
 
         foreach (var card in board)
         {
@@ -668,9 +683,9 @@ public class SynergyTests
             CreateCard("Pent2", new[] { TribeType.Pentacles })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        int bonus = synergyManager.GetSellBonus(board[0]);
+        int bonus = synergyManager.GetSellBonus(board[0], snapshot);
         Assert.AreEqual(1, bonus, "Pentacles tier 2 should give +1 sell bonus");
     }
 
@@ -687,9 +702,9 @@ public class SynergyTests
             CreateCard("Pent6", new[] { TribeType.Pentacles })
         };
 
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        int reduction = synergyManager.GetCostReduction(board[0]);
+        int reduction = synergyManager.GetCostReduction(board[0], snapshot);
         Assert.AreEqual(1, reduction, "Pentacles tier 6 should give -1 cost reduction");
     }
 
@@ -706,14 +721,14 @@ public class SynergyTests
             CreateCard("Sword1", new[] { TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
-        Assert.IsNull(synergyManager.GetActiveTier(TribeType.Swords));
+        var snapshot1 = synergyManager.CalculateSynergies(board);
+        Assert.IsNull(GetActiveTier(snapshot1, TribeType.Swords));
 
         // Add second Sword (tier 2)
         board.Add(CreateCard("Sword2", new[] { TribeType.Swords }));
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot2 = synergyManager.CalculateSynergies(board);
 
-        Assert.IsNotNull(synergyManager.GetActiveTier(TribeType.Swords),
+        Assert.IsNotNull(GetActiveTier(snapshot2, TribeType.Swords),
             "Adding a second Sword should activate tier 2");
     }
 
@@ -726,14 +741,14 @@ public class SynergyTests
             CreateCard("Sword2", new[] { TribeType.Swords })
         };
 
-        synergyManager.UpdateTribeCounts(board);
-        Assert.IsNotNull(synergyManager.GetActiveTier(TribeType.Swords));
+        var snapshot1 = synergyManager.CalculateSynergies(board);
+        Assert.IsNotNull(GetActiveTier(snapshot1, TribeType.Swords));
 
         // Remove a Sword
         board.RemoveAt(1);
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot2 = synergyManager.CalculateSynergies(board);
 
-        Assert.IsNull(synergyManager.GetActiveTier(TribeType.Swords),
+        Assert.IsNull(GetActiveTier(snapshot2, TribeType.Swords),
             "Removing a Sword should deactivate tier 2");
     }
 
@@ -745,20 +760,20 @@ public class SynergyTests
     public void PrebuiltBoard_PentaclesCups_BothTier2AndCombo()
     {
         var board = SynergyTestCards.CreateTestBoard_PentaclesCups();
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        Assert.IsNotNull(synergyManager.GetActiveTier(TribeType.Pentacles));
-        Assert.IsNotNull(synergyManager.GetActiveTier(TribeType.Cups));
-        Assert.IsTrue(synergyManager.IsComboActive(TribeType.Pentacles, TribeType.Cups));
+        Assert.IsNotNull(GetActiveTier(snapshot, TribeType.Pentacles));
+        Assert.IsNotNull(GetActiveTier(snapshot, TribeType.Cups));
+        Assert.IsTrue(IsComboActive(snapshot, TribeType.Pentacles, TribeType.Cups));
     }
 
     [Test]
     public void PrebuiltBoard_SwordsTier4_CorrectTier()
     {
         var board = SynergyTestCards.CreateTestBoard_SwordsTier4();
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var tier = synergyManager.GetActiveTier(TribeType.Swords);
+        var tier = GetActiveTier(snapshot, TribeType.Swords);
         Assert.IsNotNull(tier);
         Assert.AreEqual(4, tier.threshold);
     }
@@ -767,10 +782,9 @@ public class SynergyTests
     public void PrebuiltBoard_AllTribes_HasMultipleActiveTiers()
     {
         var board = SynergyTestCards.CreateTestBoard_AllTribes();
-        synergyManager.UpdateTribeCounts(board);
+        var snapshot = synergyManager.CalculateSynergies(board);
 
-        var allTiers = synergyManager.GetAllActiveTiers();
-        Assert.IsTrue(allTiers.Count >= 2,
-            $"All-tribes board should activate multiple synergies, got {allTiers.Count}");
+        Assert.IsTrue(snapshot.activeTiers.Count >= 2,
+            $"All-tribes board should activate multiple synergies, got {snapshot.activeTiers.Count}");
     }
 }
