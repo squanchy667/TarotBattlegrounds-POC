@@ -1,0 +1,65 @@
+Unity Editor version:    2022.3.48f1 (8bf49c377ebf)
+Branch:                  2022.3/release
+Build type:              Release
+Batch mode:              YES
+macOS version:           Version 26.2 (Build 25C56)
+Darwin version:          25.2.0
+Architecture:            arm64
+Running under Rosetta:   NO
+Available memory:        18432 MB
+[Licensing::Module] Trying to connect to existing licensing client channel...
+[Licensing::IpcConnector] Successfully connected to the License Client on channel: "LicenseClient-ofek" at "2026-02-05T14:50:15.206246Z"
+[Licensing::Client] Error: Code 10 while verifying Licensing Client signature (process Id: 1812, path: "/Applications/Unity Hub.app/Contents/Frameworks/UnityLicensingClient_V1.app/Contents/MacOS/Unity.Licensing.Client")
+[Licensing::Module] Error: LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.17.4+4293ba1
+  Session Id:              aad9a6e7a1724e7f969b4e88151658a9
+  Correlation Id:          1f37e7fc0beb76ab4ec6d561f1f27fa1
+  External correlation Id: 827166198537666324
+  Machine Id:              wB+VO4O0npvsOnvrTsQJz/KauhM=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ofek" (connect: 0.00s, validation: 0.01s, handshake: 0.23s)
+[Licensing::IpcConnector] Successfully connected to the License Notification on channel: "LicenseClient-ofek-notifications" at "2026-02-05T14:50:15.447071Z"
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully updated license
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Serial number assigned to: "16768204293239-UnityPersXXXX"
+Pro License: NO
+[Licensing::Client] Successfully resolved entitlement details
+Launching external process: /Applications/Unity/Hub/Editor/2022.3.48f1/Unity.app/Contents/Resources/PackageManager/Server/UnityPackageManager
+
+COMMAND LINE ARGUMENTS:
+/Applications/Unity/Hub/Editor/2022.3.48f1/Unity.app/Contents/MacOS/Unity
+-runTests
+-batchmode
+-projectPath
+.
+-testResults
+TestResults_UpgradeCost.xml
+-testPlatform
+EditMode
+-testFilter
+UpgradeCostTests
+-logFile
+-
+Successfully changed project path to: /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/TarotBattlegrounds-POC
+/Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/TarotBattlegrounds-POC
+It looks like another Unity instance is running with this project open.
+
+Multiple Unity instances cannot open the same project.
+
+Project: /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/TarotBattlegrounds-POC
+Fatal Error! It looks like another Unity instance is running with this project open.
+
+Multiple Unity instances cannot open the same project.
+
+Project: /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/TarotBattlegrounds-POC
+
+Aborting batchmode due to fatal error:
+It looks like another Unity instance is running with this project open.
+
+Multiple Unity instances cannot open the same project.
+
+Project: /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/TarotBattlegrounds-POC
+
+
+[Package Manager] Server::Kill -- Server was shutdown
