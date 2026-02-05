@@ -1,0 +1,24 @@
+<linker>
+    <!-- Photon PUN 2 -->
+    <assembly fullname="PhotonUnityNetworking" preserve="all"/>
+    <assembly fullname="PhotonRealtime" preserve="all"/>
+    <assembly fullname="PhotonChat" preserve="all"/>
+    <assembly fullname="PhotonWebSocket" preserve="all"/>
+
+    <!-- Photon Core -->
+    <assembly fullname="Photon3Unity3D" preserve="all"/>
+
+    <!-- JSON serialization used by Photon -->
+    <assembly fullname="Newtonsoft.Json" preserve="all"/>
+
+    <!-- WebSocket transport for WebGL -->
+    <assembly fullname="websocket-sharp" preserve="all"/>
+
+    <!-- Unity modules that Photon needs -->
+    <assembly fullname="UnityEngine">
+        <type fullname="UnityEngine.Networking.UnityWebRequest" preserve="all"/>
+        <type fullname="UnityEngine.Networking.UploadHandlerRaw" preserve="all"/>
+        <type fullname="UnityEngine.Networking.DownloadHandler" preserve="all"/>
+        <type fullname="UnityEngine.Networking.DownloadHandlerBuffer" preserve="all"/>
+    </assembly>
+</linker>

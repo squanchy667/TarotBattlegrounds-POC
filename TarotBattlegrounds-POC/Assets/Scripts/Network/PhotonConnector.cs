@@ -35,6 +35,11 @@ public class PhotonConnector : MonoBehaviourPunCallbacks
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        PhotonNetwork.PhotonServerSettings.AppSettings.Protocol =
+            ExitGames.Client.Photon.ConnectionProtocol.WebSocketSecure;
+#endif
+
         PhotonNetwork.AutomaticallySyncScene = true;
     }
 
