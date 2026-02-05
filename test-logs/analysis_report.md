@@ -1,17 +1,17 @@
 # Phase M - Log Analysis Report
 
-**Generated:** 2026-02-05 21:01:35
-**Host Log:** /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/test-logs/0502202620:59regular.txt
-**Client Log:** /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/test-logs/0502202620:59clone.txt
+**Generated:** 2026-02-05 21:45:04
+**Host Log:** /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/test-logs/0502202621:17regular.txt
+**Client Log:** /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/test-logs/0502202621:17clone.txt
 
 ---
 
 ## 📊 Test Statistics
 
-- **Host Lines:** 24611
-- **Client Lines:** 28673
-- **Host Events:** 991
-- **Client Events:** 648
+- **Host Lines:** 65394
+- **Client Lines:** 105465
+- **Host Events:** 2475
+- **Client Events:** 2063
 - **Desyncs Found:** 0
 - **Errors:** 0
 
