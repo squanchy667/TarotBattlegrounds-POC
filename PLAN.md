@@ -58,10 +58,10 @@
 | ID | Task | Priority | Status | Effort | Files | Dependencies |
 |----|------|----------|--------|--------|-------|--------------|
 | M1 | SynergyManager per-player state | P0 | ✅ DONE | 0h | SynergyManager.cs | None |
-| M3 | Shop pool card reservation | P0 | 🟡 IN PROGRESS | 2h remaining | TavernManager.cs | None |
-| M4 | Player 2 buy RPC sync | P0 | 🟡 IN PROGRESS | 2h remaining | NetworkGameBridge.cs, Player.cs | M3 |
+| M3 | Shop pool card reservation | P0 | ✅ FIXED | 0h | CardLookup.cs | None |
+| M4 | Player 2 buy RPC sync | P0 | 🟡 TESTING | 1h remaining | NetworkGameBridge.cs, Player.cs | M3 |
+| M5 | Tavern upgrade cost reduction | P0 | 🔴 TODO | 3h | Player.cs, GameManager.cs | None |
 | M2 | DiscoveryUI per-player queue | P1 | 🟡 TODO | 2h | DiscoveryUI.cs | None |
-| M5 | Tavern upgrade state sync | P1 | 🟡 TODO | 2h | NetworkPlayerState, Player.cs | None |
 | M6 | AbilityManager memory leak | P1 | 🟡 TODO | 3h | AbilityManager.cs | None |
 | M8 | RefreshShop coin setter | P2 | 🟢 TODO | 1h | TavernManager.cs, Player.cs | None |
 | M7 | Combat log local filter | P2 | 🟢 TODO | 2h | CombatLogUI.cs, CombatManager.cs | None |
@@ -191,47 +191,67 @@ private void RPC_RequestBuyCard(int shopIndex, PhotonMessageInfo info)
 
 ### IMPORTANT (P1) - Affects UX
 
-#### BUG 2: Tavern Upgrade Cost Not Synced 🟡
-**Task:** M5
-**Symptom:** Player 2 (non-host) sees incorrect tavern upgrade cost
-**Root Cause:** `NetworkPlayerState.upgradeCost` exists but client may not use it
-**Impact:** Confusing UX, player might think they can/can't afford upgrade
-**Files:**
-- `NetworkPlayerState.cs` → line 17 has `upgradeCost` field
-- `Player.cs` → `GetUpgradeCost()` needs to check `SyncedUpgradeCost`
-- `GameManager.cs` → `ApplyNetworkPlayerState()` needs to set `SyncedUpgradeCost`
+#### BUG 2: Tavern Upgrade Cost Reduction Inconsistent 🔴 HIGH
+**Task:** M5 (REVISED - More complex than initially thought)
+**Symptom:**
+- Turn 2: Host sees cost 4, Client sees cost 5 (should both be 4)
+- Turn 3: Client sees cost 4, Host who upgraded sees 8 for next tier (should be lower)
+- **Cost reduction resets when you upgrade tiers** (incorrect)
 
-**Expected Fix:**
+**Root Cause (Multiple Issues):**
+1. **Clients don't run RefreshShop()** → their `tierTurnCounter` is empty → fall back to wrong calculation
+2. **Cost reduction is per-tier, not global** → upgrading resets the discount
+3. **Network sync timing** → client's `SyncedUpgradeCost` may not be set before UI reads it
+
+**Impact:** CRITICAL - Upgrade costs are wrong for clients, inconsistent for all players
+
+**Expected Behavior:**
+- Base cost for tier upgrade (e.g., 1→2 = 5 gold)
+- Each turn, cost decreases by 1 for ALL players (even if you upgraded)
+- Turn 1: 5 gold
+- Turn 2: 4 gold
+- Turn 3: 3 gold
+- **Does NOT reset when you upgrade**
+
+**Files:**
+- `Player.cs` → `GetUpgradeCost()`, `RefreshShop()`, `tierTurnCounter` logic
+- `NetworkPlayerState.cs` → may need to sync `tierTurnCounter` or change logic
+- `GameManager.cs` → ensure state broadcast timing is correct
+
+**Proposed Fix:**
+Change from **per-tier turn counter** to **global turn tracking**:
+
 ```csharp
 // Player.cs - GetUpgradeCost()
 public int GetUpgradeCost()
 {
-    // In multiplayer, use synced value from host if available
-    if (GameManager.Instance.IsOnlineMode && !GameManager.Instance.IsHost)
+    // In multiplayer, clients ALWAYS use synced value from host
+    if (GameManager.Instance != null && GameManager.Instance.IsOnlineMode && !GameManager.Instance.IsHost)
     {
-        if (SyncedUpgradeCost >= 0)
-            return SyncedUpgradeCost;
+        return SyncedUpgradeCost >= 0 ? SyncedUpgradeCost : 999;
     }
 
-    // Local calculation (host or offline mode)
-    if (currentTavernTier >= 6)
-        return 0; // Already max tier
+    // Host/offline: Calculate based on GAME TURN, not tier turn
+    int nextTier = currentTavernTier + 1;
+    if (nextTier > 6) return 0; // Max tier
 
-    int targetTier = currentTavernTier + 1;
-    if (!baseUpgradeCosts.ContainsKey(targetTier))
+    if (!baseUpgradeCosts.ContainsKey(nextTier))
         return 999;
 
-    int baseCost = baseUpgradeCosts[targetTier];
-    int turnsSinceTier = tierTurnCounter.ContainsKey(currentTavernTier)
-        ? tierTurnCounter[currentTavernTier] : 0;
+    int baseCost = baseUpgradeCosts[nextTier];
 
-    return Mathf.Max(0, baseCost - turnsSinceTier);
+    // NEW: Reduce cost by 1 per turn GLOBALLY, not per-tier
+    int currentTurn = GameManager.Instance != null ? GameManager.Instance.TurnNumber : 1;
+    int reduction = currentTurn - 1; // Turn 1 = 0 reduction, Turn 2 = 1, etc.
+
+    return Mathf.Max(1, baseCost - reduction);
 }
 ```
 
 **Test Verification:**
-- ParrelSync 2-player test: both players see same upgrade cost
-- Unit test: `UpgradeCost_SyncedToAllClients()`
+1. Unit test: `UpgradeCost_DecreasesEveryTurn_GloballyNotPerTier()`
+2. Unit test: `UpgradeCost_ConsistentAcrossAllPlayers()`
+3. ParrelSync test: Both players see same cost every turn
 
 ---
 
