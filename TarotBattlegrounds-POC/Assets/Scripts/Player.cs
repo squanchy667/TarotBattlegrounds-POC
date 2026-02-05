@@ -114,9 +114,10 @@ public class Player : MonoBehaviour
     private List<Card> _pendingDiscoveryCards = new List<Card>();
     
     // Dictionary for base upgrade costs: key = target tier, value = base cost
+    // Based on Hearthstone Battlegrounds standard costs
     private Dictionary<int, int> baseUpgradeCosts = new Dictionary<int, int>()
     {
-        {2, 6}, {3, 8}, {4, 9}, {5, 10}, {6, 11}
+        {2, 5}, {3, 8}, {4, 11}, {5, 11}, {6, 11}
     };
     
     // Dictionary to track turns since each tier was reached
