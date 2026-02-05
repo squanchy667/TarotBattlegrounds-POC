@@ -157,7 +157,9 @@ public class Card : ScriptableObject
         clone.effectType = this.effectType;
         clone.effectParameter = this.effectParameter;
         clone.hasAegis = this.hasAegis;
-        clone.isGolden = this.isGolden;
+        // BUG FIX: Do NOT copy isGolden! It should ONLY be set by CreateGoldenVersion()
+        // clone.isGolden = this.isGolden; // REMOVED - was causing golden contamination
+        clone.isGolden = false; // Always start as non-golden
         // New ability system fields
         clone.abilityTrigger = this.abilityTrigger;
         clone.abilityEffect = this.abilityEffect;
