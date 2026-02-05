@@ -2,11 +2,21 @@
 
 Analyze Unity console logs from ParrelSync multiplayer testing to identify bugs, desyncs, and issues.
 
-## Usage
+## Quick Start
 
 ```bash
-/analyze-logs
+# From project root - auto-detects most recent logs
+./analyze-logs.sh
+
+# Or specify logs manually
+./analyze-logs.sh test-logs/host.txt test-logs/client.txt
 ```
+
+## Full Workflow
+
+See `TESTING_WORKFLOW.md` for complete testing methodology.
+
+## Usage
 
 This command will:
 1. Look for log files in `test-logs/` directory
