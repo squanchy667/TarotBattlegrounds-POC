@@ -60,7 +60,7 @@
 | M1 | SynergyManager per-player state | P0 | ✅ DONE | 0h | SynergyManager.cs | None |
 | M3 | Shop pool card reservation | P0 | ✅ FIXED | 0h | CardLookup.cs | None |
 | M4 | Player 2 buy RPC sync | P0 | 🟡 TESTING | 1h remaining | NetworkGameBridge.cs, Player.cs | M3 |
-| M5 | Tavern upgrade cost reduction | P0 | 🔴 TODO | 3h | Player.cs, GameManager.cs | None |
+| M5 | Tavern upgrade cost reduction | P0 | ✅ FIXED | 0h | Player.cs, GameManager.cs | None |
 | M2 | DiscoveryUI per-player queue | P1 | 🟡 TODO | 2h | DiscoveryUI.cs | None |
 | M6 | AbilityManager memory leak | P1 | 🟡 TODO | 3h | AbilityManager.cs | None |
 | M8 | RefreshShop coin setter | P2 | 🟢 TODO | 1h | TavernManager.cs, Player.cs | None |
@@ -75,13 +75,13 @@
 
 **Day 1: Critical Path**
 1. ✅ M1: Already complete (per-player synergy snapshots)
-2. 🔴 M3: Fix shop pool reservation (4h)
-3. 🔴 M4: Fix Player 2 buy RPC (3h) - depends on M3
-4. ✅ Verify with ParrelSync 2-player test
+2. ✅ M3: FIXED - Shop pool reservation via CardLookup fix (0h)
+3. 🟡 M4: Fix Player 2 buy RPC (testing required) - depends on M3
+4. 🟡 Verify with ParrelSync 2-player test (PENDING)
 
 **Day 2: Important Fixes**
 5. 🟡 M2: Fix DiscoveryUI race condition (2h)
-6. 🟡 M5: Fix upgrade cost sync (2h)
+6. ✅ M5: FIXED - Lifecycle-based upgrade cost reduction (0h)
 7. 🟡 M6: Fix AbilityManager cleanup (3h)
 
 **Day 3: Polish & Testing**
@@ -688,12 +688,15 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
    - Host sent "Spark of Inspiration" but client couldn't deserialize it → NULL → 2 cards instead of 3
    - Commit: `bb5f8ea`
 
-4. **M5: Upgrade Cost Reduction FIXED** ✅
+4. **M5: Upgrade Cost Reduction FIXED** ✅ (REVISED to simpler design)
    - User found bug: cost reduction inconsistent between players
-   - **ROOT CAUSE:** Cost reduction was per-tier, reset on upgrade
-   - **FIX:** Changed to global turn-based reduction (decreases every turn for all players)
+   - **INITIAL FIX:** Global turn-based reduction (too complex)
+   - **USER FEEDBACK:** Wanted simple game lifecycle mechanic
+   - **FINAL FIX:** Lifecycle event reduces ALL players by 1 each turn
+   - When player upgrades: cost resets to BASE for next tier
+   - Simple, predictable, strategic (rush vs. patient play)
    - Created comprehensive test suite (9 tests in UpgradeCostTests.cs)
-   - Commit: `8df2b39`
+   - Commits: `8df2b39` (initial), `833facf` (final)
 
 ### 🔄 Next Steps (Immediate)
 
