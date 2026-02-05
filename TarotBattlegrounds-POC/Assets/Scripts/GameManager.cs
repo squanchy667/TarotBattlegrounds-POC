@@ -79,8 +79,6 @@ public class GameManager : MonoBehaviour
     public bool IsHost => true;
 #endif
 
-    private bool networkSetupComplete = false;
-
     /// <summary>
     /// Mark a player as ready to move to combat. The recruit phase ends early
     /// only when ALL alive players have called this.
@@ -385,7 +383,6 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void OnNetworkSetupComplete()
     {
-        networkSetupComplete = true;
         Debug.Log($"[GameManager] Network setup complete. IsHost={IsHost}");
 
         if (IsHost)

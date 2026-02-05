@@ -250,8 +250,9 @@ public class SynergyManager : MonoBehaviour
         {
             if (synergy.comboTribe == TribeType.None) continue;
 
-            int thisTribeCount = GetTribeCount(synergy.tribe);
-            int partnerCount = GetTribeCount(synergy.comboTribe);
+            // Use _tribeCounts directly instead of obsolete GetTribeCount()
+            int thisTribeCount = _tribeCounts.TryGetValue(synergy.tribe, out int count1) ? count1 : 0;
+            int partnerCount = _tribeCounts.TryGetValue(synergy.comboTribe, out int count2) ? count2 : 0;
 
             if (synergy.IsComboActive(thisTribeCount, partnerCount))
             {

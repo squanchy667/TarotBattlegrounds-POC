@@ -558,7 +558,7 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
     // DISCONNECTION HANDLING
     // ================================================================
 
-    private void OnEnable()
+    protected override void OnEnable()
     {
         base.OnEnable(); // Register PUN callbacks
         if (PhotonConnector.Instance != null)
@@ -567,7 +567,7 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
         }
     }
 
-    private void OnDisable()
+    protected override void OnDisable()
     {
         base.OnDisable(); // Unregister PUN callbacks
         if (PhotonConnector.Instance != null)
