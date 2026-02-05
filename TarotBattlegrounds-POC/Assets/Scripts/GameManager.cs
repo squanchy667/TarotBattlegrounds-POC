@@ -232,7 +232,11 @@ public class GameManager : MonoBehaviour
             {
                 Card card = cardData.ToCard();
                 if (card != null)
+                {
                     player.board.Add(card);
+                    // M6: Log card stats to verify ability effects are synced
+                    Debug.Log($"[Client/M6] P{state.playerIndex} board card: {card.cardName} {card.attack}/{card.health}, Aegis={card.hasAegis}");
+                }
                 else
                     boardFailed++;
             }

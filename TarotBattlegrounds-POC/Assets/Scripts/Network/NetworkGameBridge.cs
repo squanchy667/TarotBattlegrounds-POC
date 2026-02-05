@@ -217,7 +217,19 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
         if (!ValidateRequest(slot, "PlayCard")) return;
 
         Player player = GameManager.Instance.players[slot];
+
+        // Get card name before playing (for logging)
+        string cardName = handIndex >= 0 && handIndex < player.hand.Count ? player.hand[handIndex].cardName : "Unknown";
+
         player.PlayCard(handIndex, boardPos);
+
+        // Log card stats after ability triggers (for debugging M6)
+        if (boardPos >= 0 && boardPos < player.board.Count)
+        {
+            Card playedCard = player.board[boardPos];
+            Debug.Log($"[Host/M6] P{slot} played {cardName}: {playedCard.attack}/{playedCard.health}, Aegis={playedCard.hasAegis}");
+        }
+
         BroadcastPlayerState(slot);
     }
 
@@ -386,6 +398,37 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
+    /// M2 FIX: Broadcast discovery options to client when their player forms a triple.
+    /// </summary>
+    public void BroadcastDiscoveryForPlayer(int playerIndex, List<Card> discoveryCards)
+    {
+        if (!PhotonNetwork.IsMasterClient) return;
+        if (discoveryCards == null || discoveryCards.Count == 0) return;
+
+        Player player = GameManager.Instance.players[playerIndex];
+        NetworkCardData[] cardData = NetworkCardData.FromCardList(discoveryCards);
+
+        var payload = new DiscoverySyncData
+        {
+            playerIndex = playerIndex,
+            discoveryCards = cardData
+        };
+        string json = JsonConvert.SerializeObject(payload);
+
+        Debug.Log($"[Host/M2] Broadcasting discovery for P{playerIndex}: {discoveryCards.Count} choices");
+
+        // Send to the owning player only
+        if (SlotToActor.TryGetValue(playerIndex, out int actorNum) && actorNum >= 0)
+        {
+            var targetPlayer = FindPhotonPlayer(actorNum);
+            if (targetPlayer != null)
+            {
+                photonView.RPC(nameof(RPC_ShowDiscovery), targetPlayer, json);
+            }
+        }
+    }
+
+    /// <summary>
     /// Broadcast all player states (e.g., after combat).
     /// </summary>
     public void BroadcastAllPlayerStates()
@@ -495,6 +538,45 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
             Debug.Log($"[Client/M3] This is our shop (LocalPlayerSlot={LocalPlayerSlot}), refreshing UI");
             var shopUI = GameUIManager.Instance.GetShopUI();
             if (shopUI != null) shopUI.RefreshShopDisplay();
+        }
+    }
+
+    [PunRPC]
+    private void RPC_ShowDiscovery(string json)
+    {
+        DiscoverySyncData data = JsonConvert.DeserializeObject<DiscoverySyncData>(json);
+
+        Debug.Log($"[Client/M2] Received discovery for P{data.playerIndex}: {data.discoveryCards.Length} choices");
+
+        if (GameManager.Instance == null || data.playerIndex < 0 || data.playerIndex >= GameManager.Instance.players.Count)
+        {
+            Debug.LogError($"[Client/M2] Invalid player index: {data.playerIndex}");
+            return;
+        }
+
+        Player player = GameManager.Instance.players[data.playerIndex];
+        List<Card> cards = NetworkCardData.ToCardList(data.discoveryCards);
+
+        // Store for network resolution when player makes choice
+        DiscoveryUI.PendingDiscoveryByPlayer[player.playerId] = cards;
+
+        // Only show UI if this is the local player's discovery
+        if (data.playerIndex == LocalPlayerSlot)
+        {
+            Debug.Log($"[Client/M2] This is our discovery (LocalPlayerSlot={LocalPlayerSlot}), showing UI");
+            var discoveryUI = UnityEngine.Object.FindObjectOfType<DiscoveryUI>();
+            if (discoveryUI != null)
+            {
+                discoveryUI.ShowDiscoveryFromNetwork(player, cards);
+            }
+            else
+            {
+                Debug.LogError("[Client/M2] DiscoveryUI not found in scene!");
+            }
+        }
+        else
+        {
+            Debug.Log($"[Client/M2] Not our discovery (LocalPlayerSlot={LocalPlayerSlot}), storing only");
         }
     }
 
@@ -710,5 +792,12 @@ public struct NetworkGameOverData
     public int winnerPlayerIndex;
     public int[] standings;
     public int totalTurns;
+}
+
+[System.Serializable]
+public struct DiscoverySyncData
+{
+    public int playerIndex;
+    public NetworkCardData[] discoveryCards;
 }
 #endif

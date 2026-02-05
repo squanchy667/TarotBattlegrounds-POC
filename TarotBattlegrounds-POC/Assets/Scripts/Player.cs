@@ -357,7 +357,18 @@ public class Player : MonoBehaviour
                 {
                     _pendingDiscoveryCards = new List<Card>(discoveryCards);
                     Debug.Log($"Player {playerId}: Triple discovery! Offering {discoveryCards.Count} tier {discoveryTier} cards.");
+
+                    // Trigger local event (for host's UI)
                     OnTripleDiscovery?.Invoke(this, discoveryCards);
+
+#if PHOTON_UNITY_NETWORKING
+                    // M2 FIX: In online mode, broadcast discovery to client
+                    if (GameManager.Instance != null && GameManager.Instance.IsOnlineMode &&
+                        NetworkGameBridge.Instance != null && GameManager.Instance.IsHost)
+                    {
+                        NetworkGameBridge.Instance.BroadcastDiscoveryForPlayer(playerId - 1, discoveryCards);
+                    }
+#endif
                 }
                 else
                 {

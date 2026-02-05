@@ -1,17 +1,17 @@
 # Phase M - Log Analysis Report
 
-**Generated:** 2026-02-05 17:36:03
-**Host Log:** test-logs/0502202617:29regular.txt
-**Client Log:** test-logs/0502202617:29clone.txt
+**Generated:** 2026-02-05 21:01:35
+**Host Log:** /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/test-logs/0502202620:59regular.txt
+**Client Log:** /Users/ofek/Projects/Claude/BattleNet/TarotBattlegrounds-POC/test-logs/0502202620:59clone.txt
 
 ---
 
 ## 📊 Test Statistics
 
-- **Host Lines:** 28423
-- **Client Lines:** 21236
-- **Host Events:** 693
-- **Client Events:** 815
+- **Host Lines:** 24611
+- **Client Lines:** 28673
+- **Host Events:** 991
+- **Client Events:** 648
 - **Desyncs Found:** 0
 - **Errors:** 0
 
@@ -32,6 +32,8 @@
 ## ✅ Verified Working Systems
 
 - ✅ M1: Synergy per-player calculations
+
+- ✅ M3: Shop sync and CardLookup
 
 - ✅ M5: Upgrade cost reduction
 
