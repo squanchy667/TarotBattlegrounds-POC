@@ -116,20 +116,31 @@ public class TavernManager : MonoBehaviour
             availableCards[playerId] = new List<Card>();
         }
 
+        // M3: Debug logging before refresh
+        Debug.Log($"[TavernManager/M3] RefreshPlayerShop START: playerId={playerId}, tier={tavernTier}, " +
+                  $"current shop size={availableCards[playerId].Count}, pool size={allCards.Count}");
+
         // M3: Return previous un-bought shop cards to pool before generating new shop
+        int returnedCount = 0;
         foreach (var card in availableCards[playerId])
         {
             if (card != null)
+            {
                 allCards.Add(card);
+                returnedCount++;
+            }
         }
+        Debug.Log($"[TavernManager/M3] Returned {returnedCount} cards to pool, new pool size={allCards.Count}");
         availableCards[playerId].Clear();
 
         List<Card> tempPool = allCards.Where(card => card.tier <= tavernTier).ToList();
         int cardsToShow = shopSizes.ContainsKey(tavernTier) ? shopSizes[tavernTier] : 3;
         cardsToShow = Mathf.Min(cardsToShow, tempPool.Count);
+        Debug.Log($"[TavernManager/M3] Target shop size={cardsToShow}, eligible cards in pool={tempPool.Count}");
+
         if (tempPool.Count == 0)
         {
-            Debug.LogWarning($"Player {playerId}: No cards available for Tier {tavernTier} in shared pool (size: {allCards.Count})");
+            Debug.LogWarning($"[TavernManager/M3] Player {playerId}: No cards available for Tier {tavernTier} in shared pool (size: {allCards.Count})");
             return;
         }
         for (int i = 0; i < cardsToShow; i++)
@@ -141,8 +152,9 @@ public class TavernManager : MonoBehaviour
             // M3: Remove from master pool to reserve this card
             allCards.Remove(picked);
             tempPool.RemoveAt(randomIndex);
-            Debug.Log($"Player {playerId}: Available card: {availableCards[playerId][i].cardName} in place {i+1}/{cardsToShow}");
+            Debug.Log($"[TavernManager/M3] Player {playerId}: Shop[{i}] = {picked.cardName} (Tier {picked.tier})");
         }
+        Debug.Log($"[TavernManager/M3] RefreshPlayerShop COMPLETE: playerId={playerId}, final shop size={availableCards[playerId].Count}");
     }
 
     /// <summary>

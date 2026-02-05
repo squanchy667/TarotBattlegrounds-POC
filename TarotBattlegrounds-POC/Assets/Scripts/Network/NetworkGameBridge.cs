@@ -160,13 +160,28 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
         Player player = GameManager.Instance.players[slot];
         int playerId = player.playerId;
 
+        // M4: Debug logging for buy request
+        Debug.Log($"[Host/M4] RPC_RequestBuyCard: sender=P{slot} (playerId={playerId}), shopIndex={shopIndex}, " +
+                  $"coins={player.coins}");
+
         // M4: Bounds check against host's shop before buying
-        if (TavernManager.Instance == null || !TavernManager.Instance.availableCards.ContainsKey(playerId)
-            || shopIndex < 0 || shopIndex >= TavernManager.Instance.availableCards[playerId].Count)
+        if (TavernManager.Instance == null || !TavernManager.Instance.availableCards.ContainsKey(playerId))
         {
-            Debug.LogWarning($"[NetworkGameBridge] BuyCard: invalid shopIndex {shopIndex} for player {playerId}");
+            Debug.LogError($"[Host/M4] BuyCard FAILED: TavernManager or shop not found for playerId {playerId}");
             return;
         }
+
+        var hostShop = TavernManager.Instance.availableCards[playerId];
+        Debug.Log($"[Host/M4] Host shop for P{playerId} has {hostShop.Count} cards");
+
+        if (shopIndex < 0 || shopIndex >= hostShop.Count)
+        {
+            Debug.LogError($"[Host/M4] BuyCard FAILED: invalid shopIndex {shopIndex}, shop has {hostShop.Count} cards");
+            return;
+        }
+
+        var cardToBuy = hostShop[shopIndex];
+        Debug.Log($"[Host/M4] Attempting to buy: {(cardToBuy != null ? cardToBuy.cardName : "NULL")} from index {shopIndex}");
 
         player.BuyCard(shopIndex);
         BroadcastPlayerState(slot);
@@ -344,6 +359,17 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
             var shopCards = TavernManager.Instance.availableCards[playerId];
             NetworkCardData[] shopData = NetworkCardData.FromCardList(shopCards);
 
+            // M3: Debug logging to track shop sync
+            Debug.Log($"[Host/M3] Broadcasting shop for P{playerIndex} (playerId={playerId}): {shopCards.Count} cards in host shop");
+            for (int i = 0; i < shopCards.Count; i++)
+            {
+                if (shopCards[i] != null)
+                    Debug.Log($"[Host/M3]   Shop[{i}]: {shopCards[i].cardName} (Tier {shopCards[i].tier})");
+                else
+                    Debug.LogWarning($"[Host/M3]   Shop[{i}]: NULL CARD!");
+            }
+            Debug.Log($"[Host/M3] Serialized to {shopData.Length} NetworkCardData entries");
+
             var payload = new ShopSyncData { playerIndex = playerIndex, shopCards = shopData };
             string json = JsonConvert.SerializeObject(payload);
 
@@ -443,15 +469,30 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
     private void RPC_SyncShopForPlayer(string json)
     {
         ShopSyncData data = JsonConvert.DeserializeObject<ShopSyncData>(json);
+
+        // M3: Debug logging to track client-side shop reception
+        Debug.Log($"[Client/M3] Received shop sync for P{data.playerIndex}: {data.shopCards.Length} NetworkCardData entries");
+
         if (TavernManager.Instance != null)
         {
             List<Card> shopCards = NetworkCardData.ToCardList(data.shopCards);
+            Debug.Log($"[Client/M3] Deserialized to {shopCards.Count} Card objects");
+            for (int i = 0; i < shopCards.Count; i++)
+            {
+                if (shopCards[i] != null)
+                    Debug.Log($"[Client/M3]   Shop[{i}]: {shopCards[i].cardName} (Tier {shopCards[i].tier})");
+                else
+                    Debug.LogWarning($"[Client/M3]   Shop[{i}]: NULL CARD!");
+            }
+
             TavernManager.Instance.SetShopFromNetwork(data.playerIndex, shopCards);
+            Debug.Log($"[Client/M3] Applied to TavernManager for P{data.playerIndex}");
         }
 
         // Refresh shop UI if this is our player
         if (data.playerIndex == LocalPlayerSlot && GameUIManager.Instance != null)
         {
+            Debug.Log($"[Client/M3] This is our shop (LocalPlayerSlot={LocalPlayerSlot}), refreshing UI");
             var shopUI = GameUIManager.Instance.GetShopUI();
             if (shopUI != null) shopUI.RefreshShopDisplay();
         }
