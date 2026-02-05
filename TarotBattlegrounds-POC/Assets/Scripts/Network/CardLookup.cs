@@ -11,17 +11,29 @@ public static class CardLookup
     private static bool _initialized = false;
 
     /// <summary>
-    /// Build the lookup from CardDatabase. Call once at game start.
+    /// Build the lookup from TavernManager's master cards (the actual game cards).
+    /// Call once at game start, after TavernManager is initialized.
     /// </summary>
     public static void Initialize()
     {
         if (_initialized) return;
 
         _templates.Clear();
-        List<Card> allCards = CardDatabase.GenerateAllCards();
+
+        // M3 FIX: Use TavernManager.masterCards instead of CardDatabase
+        // This ensures host and client use the same card templates
+        if (TavernManager.Instance == null || TavernManager.Instance.masterCards == null)
+        {
+            Debug.LogError("[CardLookup] Cannot initialize: TavernManager or masterCards not found!");
+            return;
+        }
+
+        List<Card> allCards = TavernManager.Instance.masterCards;
 
         foreach (Card card in allCards)
         {
+            if (card == null) continue;
+
             string key = MakeKey(card.cardName, card.tier);
             if (!_templates.ContainsKey(key))
             {
@@ -30,7 +42,7 @@ public static class CardLookup
         }
 
         _initialized = true;
-        Debug.Log($"[CardLookup] Initialized with {_templates.Count} templates.");
+        Debug.Log($"[CardLookup] Initialized with {_templates.Count} templates from TavernManager.masterCards.");
     }
 
     /// <summary>
