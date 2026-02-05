@@ -680,11 +680,20 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
    - Detailed architecture and design decisions
    - Commit: `a2e37d5`
 
-3. **M3+M4 Debug Logging** 🟡 IN PROGRESS
-   - Added comprehensive logging to 4 key methods
-   - Tracks shop generation, serialization, and RPC flow
-   - Ready for ParrelSync testing
-   - Commit: `67450ed`
+3. **M3: Shop Desync FIXED** ✅
+   - Added debug logging to track shop sync
+   - User tested with ParrelSync, provided logs
+   - **ROOT CAUSE:** CardLookup used different card source than TavernManager
+   - **FIX:** Changed CardLookup to use TavernManager.masterCards
+   - Host sent "Spark of Inspiration" but client couldn't deserialize it → NULL → 2 cards instead of 3
+   - Commit: `bb5f8ea`
+
+4. **M5: Upgrade Cost Reduction FIXED** ✅
+   - User found bug: cost reduction inconsistent between players
+   - **ROOT CAUSE:** Cost reduction was per-tier, reset on upgrade
+   - **FIX:** Changed to global turn-based reduction (decreases every turn for all players)
+   - Created comprehensive test suite (9 tests in UpgradeCostTests.cs)
+   - Commit: `8df2b39`
 
 ### 🔄 Next Steps (Immediate)
 
@@ -707,13 +716,15 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 **Option B: Analyze Code Further**
 If ParrelSync not available, I can continue static analysis and propose potential fixes based on code inspection.
 
-### 📊 Sprint 12 Progress: 10% Complete
+### 📊 Sprint 12 Progress: 40% Complete
 
 - ✅ M1: Done (architecture already compliant)
-- 🟡 M3+M4: Debug logging added, awaiting test results
-- 🔴 M2, M5, M6, M7, M8: Not started
+- ✅ M3: FIXED (shop desync via CardLookup fix)
+- ✅ M5: FIXED (upgrade cost reduction logic)
+- 🟡 M4: Awaiting retest (should be fixed by M3)
+- 🔴 M2, M6, M7, M8: Not started
 
-**Estimated Completion:** 2-3 more days of focused work
+**Estimated Completion:** 1-2 more days of focused work
 
 ---
 
