@@ -58,8 +58,8 @@
 | ID | Task | Priority | Status | Effort | Files | Dependencies |
 |----|------|----------|--------|--------|-------|--------------|
 | M1 | SynergyManager per-player state | P0 | ✅ DONE | 0h | SynergyManager.cs | None |
-| M3 | Shop pool card reservation | P0 | 🔴 TODO | 4h | TavernManager.cs | None |
-| M4 | Player 2 buy RPC sync | P0 | 🔴 TODO | 3h | NetworkGameBridge.cs, Player.cs | M3 |
+| M3 | Shop pool card reservation | P0 | 🟡 IN PROGRESS | 2h remaining | TavernManager.cs | None |
+| M4 | Player 2 buy RPC sync | P0 | 🟡 IN PROGRESS | 2h remaining | NetworkGameBridge.cs, Player.cs | M3 |
 | M2 | DiscoveryUI per-player queue | P1 | 🟡 TODO | 2h | DiscoveryUI.cs | None |
 | M5 | Tavern upgrade state sync | P1 | 🟡 TODO | 2h | NetworkPlayerState, Player.cs | None |
 | M6 | AbilityManager memory leak | P1 | 🟡 TODO | 3h | AbilityManager.cs | None |
@@ -642,9 +642,65 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 
 ---
 
+---
+
+## 📝 Current Session Progress (February 5, 2026)
+
+### ✅ Completed This Session
+
+1. **Full Pipeline Audit** (Phases 1-3)
+   - Analyzed 15 core game files
+   - Reviewed 124 tests (107 passing, 86.3%)
+   - Identified 3 multiplayer bugs with root causes
+   - Generated comprehensive audit report (Score: 8.05/10)
+
+2. **PLAN.md Creation**
+   - Created master project plan as source of truth
+   - Documented all Phase M tasks (M1-M8)
+   - Detailed architecture and design decisions
+   - Commit: `a2e37d5`
+
+3. **M3+M4 Debug Logging** 🟡 IN PROGRESS
+   - Added comprehensive logging to 4 key methods
+   - Tracks shop generation, serialization, and RPC flow
+   - Ready for ParrelSync testing
+   - Commit: `67450ed`
+
+### 🔄 Next Steps (Immediate)
+
+**Option A: Test with ParrelSync** (Recommended)
+1. Open two Unity editors (main + ParrelSync clone)
+2. Both editors: Open Lobby scene and press Play
+3. Editor 1 (Host): Create room
+4. Editor 2 (Client): Join room
+5. Editor 1: Start Game
+6. **Watch Console logs** in both editors for `[Host/M3]`, `[Client/M3]`, `[TavernManager/M3]` tags
+7. Observe shop card counts at turn start
+8. Editor 2: Try to buy a card, watch for `[Host/M4]` logs
+9. Analyze findings and determine fix
+
+**Expected Findings:**
+- If shop shows 2 cards instead of 3: Check if host is generating 3 but client receives 2
+- If buy fails: Check if shopIndex from client matches host's shop size
+- Look for NULL cards in serialization
+
+**Option B: Analyze Code Further**
+If ParrelSync not available, I can continue static analysis and propose potential fixes based on code inspection.
+
+### 📊 Sprint 12 Progress: 10% Complete
+
+- ✅ M1: Done (architecture already compliant)
+- 🟡 M3+M4: Debug logging added, awaiting test results
+- 🔴 M2, M5, M6, M7, M8: Not started
+
+**Estimated Completion:** 2-3 more days of focused work
+
+---
+
 **PLAN.md Version 2.0**
 **Source of Truth:** This document supersedes all conflicting information
 **Last Audit:** February 5, 2026 (Full Pipeline Audit - Score: 8.05/10)
+**Last Updated:** February 5, 2026 (Session: Debug logging for M3+M4)
 **Next Review:** February 10, 2026 (after Phase M completion)
 
 ---
