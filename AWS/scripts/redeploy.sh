@@ -3,11 +3,24 @@ set -euo pipefail
 
 # Tarot Battlegrounds — Quick Redeployment
 # Usage: bash AWS/scripts/redeploy.sh [build-dir]
+# If no build-dir given, auto-detects the latest WebGLBuildNN folder.
 # Syncs updated WebGL build to S3 and invalidates CloudFront cache.
 
 BUCKET_NAME="tarot-battlegrounds-webgl"
 REGION="us-east-1"
-BUILD_DIR="${1:-WebGLBuild}"
+WEBGL_ROOT="TarotBattlegrounds-POC/WebGLBuild"
+
+if [ -n "${1:-}" ]; then
+    BUILD_DIR="$1"
+else
+    # Auto-detect: pick the highest-numbered WebGLBuildNN directory
+    LATEST=$(ls -1d "$WEBGL_ROOT"/WebGLBuild[0-9]* 2>/dev/null | sort -t 'd' -k2 -n | tail -1)
+    if [ -z "$LATEST" ]; then
+        echo "ERROR: No WebGLBuild* directories found in $WEBGL_ROOT/"
+        exit 1
+    fi
+    BUILD_DIR="$LATEST"
+fi
 
 echo "=== Tarot Battlegrounds — Redeployment ==="
 
