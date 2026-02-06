@@ -474,6 +474,11 @@ public class GameManager : MonoBehaviour
                 ClearOldOpponentHistory();
 
             List<(int, int)> battles = GeneratePairwiseBattles(activePlayers);
+
+            // Begin tracking this combat round
+            if (MatchTracker.Instance != null)
+                MatchTracker.Instance.BeginRound(turnNumber);
+
             foreach (var (p1, p2) in battles)
             {
                 if (p1 >= 0 && p2 >= 0 && p1 < playerCount && p2 < playerCount)
@@ -487,26 +492,34 @@ public class GameManager : MonoBehaviour
                     Debug.Log($"  {p1Name} Board: " + string.Join(", ", board1.Select(c => c.cardName)));
                     Debug.Log($"  {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName)));
 
+                    int winnerIndex;
                     if (winner == "Tie")
                     {
                         playerHealths[p1] -= damage;
                         playerHealths[p2] -= damage;
                         players[p1].Health = playerHealths[p1];
                         players[p2].Health = playerHealths[p2];
+                        winnerIndex = -1;
                         Debug.Log($"[Combat] TIE! Both take {damage} damage. {p1Name}: {playerHealths[p1]} HP, {p2Name}: {playerHealths[p2]} HP");
                     }
                     else if (winner == p1Name)
                     {
                         playerHealths[p2] -= damage;
                         players[p2].Health = playerHealths[p2];
+                        winnerIndex = p1;
                         Debug.Log($"[Combat] {p1Name} WINS! {p2Name} takes {damage} damage. Health: {playerHealths[p2]}");
                     }
                     else
                     {
                         playerHealths[p1] -= damage;
                         players[p1].Health = playerHealths[p1];
+                        winnerIndex = p2;
                         Debug.Log($"[Combat] {p2Name} WINS! {p1Name} takes {damage} damage. Health: {playerHealths[p1]}");
                     }
+
+                    // Record battle for match info scoreboard
+                    if (MatchTracker.Instance != null)
+                        MatchTracker.Instance.RecordBattle(p1, p2, winnerIndex, damage);
 
 #if PHOTON_UNITY_NETWORKING
                     // Broadcast combat result and updated states to clients
@@ -523,6 +536,13 @@ public class GameManager : MonoBehaviour
                     recentOpponents[p2].Add(p1);
                 }
             }
+
+            // Finalize round tracking and auto-show scoreboard
+            if (MatchTracker.Instance != null)
+                MatchTracker.Instance.EndRound();
+            if (GameUIManager.Instance != null)
+                GameUIManager.Instance.ShowMatchInfoAfterCombat();
+
             turnNumber++;
 
             // Track newly eliminated players

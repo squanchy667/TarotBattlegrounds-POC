@@ -47,6 +47,9 @@ public class GameUIManager : MonoBehaviour, IThemeable
     [Header("Combat UI")]
     [SerializeField] private CombatLogUI combatLogUI;
 
+    [Header("Match Info")]
+    [SerializeField] private MatchInfoUI matchInfoUI;
+
     [Header("Panel Backgrounds (optional)")]
     [SerializeField] private Image mainPanelBackground;
 
@@ -820,9 +823,19 @@ public class GameUIManager : MonoBehaviour, IThemeable
             Instance = null;
     }
     
+    /// <summary>
+    /// Auto-show match info panel briefly after combat ends.
+    /// </summary>
+    public void ShowMatchInfoAfterCombat()
+    {
+        if (matchInfoUI != null)
+            matchInfoUI.AutoShowAfterCombat();
+    }
+
     // Accessor methods for child UI components
     public ShopUI GetShopUI() => shopUI;
     public HandUI GetHandUI() => handUI;
     public BoardUI GetBoardUI() => boardUI;
     public CombatLogUI GetCombatLogUI() => combatLogUI;
+    public MatchInfoUI GetMatchInfoUI() => matchInfoUI;
 }

@@ -110,7 +110,16 @@ public class Player : MonoBehaviour
         Debug.Log($"Player {playerId}: Shop freeze toggled to {ShopFrozen}");
     }
 
-    private TavernManager tavern;
+    private TavernManager _tavern;
+    private TavernManager tavern
+    {
+        get
+        {
+            if (_tavern == null) _tavern = TavernManager.Instance;
+            return _tavern;
+        }
+        set => _tavern = value;
+    }
     private List<Card> _pendingDiscoveryCards = new List<Card>();
     
     // Dictionary for base upgrade costs: key = target tier, value = base cost
@@ -624,6 +633,8 @@ public class Player : MonoBehaviour
             Debug.LogError($"Player {playerId}: Cannot refresh shop, TavernManager not found!");
             return;
         }
+        if (!tavern.availableCards.ContainsKey(playerId))
+            tavern.availableCards[playerId] = new List<Card>();
 
         int oldCoins = coins;
         coins = Mathf.Min(3 + (gameTurn - 1), 10); // M8: Use property setter
