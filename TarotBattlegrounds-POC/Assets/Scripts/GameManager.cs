@@ -39,6 +39,7 @@ public class GameManager : MonoBehaviour
     private GamePhase currentPhase = GamePhase.Recruit;
     private int turnNumber = 1;
     private float recruitTimer = 35f;
+    private int startingHealth = 40;
 
     [Header("AI Settings (Legacy - use GameConfig instead)")]
     [Tooltip("These are now read from GameConfig automatically")]
@@ -280,6 +281,9 @@ public class GameManager : MonoBehaviour
 
         GameConfig.LogConfig();
 
+        // Apply runtime config overrides if available
+        ApplyRuntimeConfig();
+
         // Spawn additional player objects if the scene doesn't have enough
         EnsurePlayerCount(playerCount);
 
@@ -302,6 +306,29 @@ public class GameManager : MonoBehaviour
         InitializePlayers();
         InitializeAI();
         StartCoroutine(GameLoop());
+    }
+
+    /// <summary>
+    /// Apply runtime balance config from RuntimeDataLoader if available.
+    /// </summary>
+    private void ApplyRuntimeConfig()
+    {
+        if (RuntimeDataLoader.Instance == null || !RuntimeDataLoader.Instance.IsLoaded) return;
+
+        var config = RuntimeDataLoader.Instance.Config;
+        if (config == null) return;
+
+        if (config.recruitTimerSeconds > 0)
+        {
+            recruitTimer = config.recruitTimerSeconds;
+            Debug.Log($"[GameManager] Runtime config: recruitTimer={recruitTimer}s");
+        }
+
+        if (config.startingHealth > 0)
+        {
+            startingHealth = config.startingHealth;
+            Debug.Log($"[GameManager] Runtime config: startingHealth={startingHealth}");
+        }
     }
 
     /// <summary>
@@ -376,7 +403,17 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        playerHealths = new List<int>(Enumerable.Repeat(40, playerCount).ToArray());
+        playerHealths = new List<int>(Enumerable.Repeat(startingHealth, playerCount).ToArray());
+
+        // Apply runtime config to each player (upgrade costs, etc.)
+        if (RuntimeDataLoader.Instance != null && RuntimeDataLoader.Instance.IsLoaded && RuntimeDataLoader.Instance.Config != null)
+        {
+            for (int i = 0; i < playerCount; i++)
+            {
+                players[i].Health = startingHealth;
+                players[i].ApplyRuntimeConfig(RuntimeDataLoader.Instance.Config);
+            }
+        }
 
         // Initialize matchmaking history
         recentOpponents.Clear();

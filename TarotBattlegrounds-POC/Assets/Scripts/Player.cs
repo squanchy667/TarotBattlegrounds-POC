@@ -124,10 +124,33 @@ public class Player : MonoBehaviour
     
     // Dictionary for base upgrade costs: key = target tier, value = base cost
     // Based on Hearthstone Battlegrounds standard costs
+    // Can be overridden at runtime via ApplyRuntimeConfig()
     private Dictionary<int, int> baseUpgradeCosts = new Dictionary<int, int>()
     {
         {2, 5}, {3, 8}, {4, 11}, {5, 11}, {6, 11}
     };
+
+    /// <summary>
+    /// Apply runtime config overrides for upgrade costs.
+    /// Called after RuntimeDataLoader completes.
+    /// </summary>
+    public void ApplyRuntimeConfig(RuntimeGameConfig config)
+    {
+        if (config == null) return;
+
+        if (config.tavernUpgradeCosts != null)
+        {
+            foreach (var kvp in config.tavernUpgradeCosts)
+            {
+                if (int.TryParse(kvp.Key, out int tier))
+                    baseUpgradeCosts[tier] = kvp.Value;
+            }
+            // Re-derive current upgrade cost
+            if (baseUpgradeCosts.ContainsKey(currentTavernTier + 1))
+                currentUpgradeCost = baseUpgradeCosts[currentTavernTier + 1];
+            Debug.Log($"[Player {playerId}] Applied runtime upgrade costs");
+        }
+    }
     
     // Dictionary to track turns since each tier was reached
     private Dictionary<int, int> tierTurnCounter = new Dictionary<int, int>()

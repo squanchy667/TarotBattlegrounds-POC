@@ -119,7 +119,7 @@ public class MatchInfoPanelSetup : EditorWindow
         MatchInfoUI matchInfoUI = holder.AddComponent<MatchInfoUI>();
 
         // === Toggle Button (top-right corner, always visible) ===
-        GameObject toggleBtn = CreateButton(canvasTransform, "MatchInfoToggleButton", "i", 50, 50);
+        GameObject toggleBtn = CreateButton(canvasTransform, "MatchInfoToggleButton", "i", 80, 80);
         RectTransform toggleRect = toggleBtn.GetComponent<RectTransform>();
         toggleRect.anchorMin = new Vector2(1, 1);
         toggleRect.anchorMax = new Vector2(1, 1);
@@ -212,51 +212,51 @@ public class MatchInfoPanelSetup : EditorWindow
 
         // === Content sections ===
         // Title
-        GameObject titleObj = CreateText(content.transform, "TitleText", "Match Status", 30,
+        GameObject titleObj = CreateText(content.transform, "TitleText", "Match Status", 42,
             FontStyles.Bold, new Color(1f, 0.84f, 0f), TextAlignmentOptions.Center);
 
         // Turn / Phase / Alive
-        GameObject turnObj = CreateText(content.transform, "TurnText", "Turn 1  |  Phase: Recruit  |  Alive: 4", 20,
+        GameObject turnObj = CreateText(content.transform, "TurnText", "Turn 1  |  Phase: Recruit  |  Alive: 4", 30,
             FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
 
         CreateSeparator(content.transform);
 
         // Section: Player Statuses
-        CreateText(content.transform, "StatusHeader", "PLAYERS", 18,
+        CreateText(content.transform, "StatusHeader", "PLAYERS", 28,
             FontStyles.Bold, new Color(0.6f, 0.8f, 1f), TextAlignmentOptions.Left);
 
         GameObject statusObj = CreateText(content.transform, "PlayerStatusText",
             "  P1 (You)  HP: 40  |  Tier 1  |  Coins: 3  |  Hand: 0  |  Board: 0/7\n" +
             "  P2 (AI)   HP: 40  |  Tier 1  |  Coins: 3  |  Hand: 0  |  Board: 0/7",
-            16, FontStyles.Normal, new Color(0.9f, 0.9f, 0.9f), TextAlignmentOptions.Left);
+            24, FontStyles.Normal, new Color(0.9f, 0.9f, 0.9f), TextAlignmentOptions.Left);
 
         CreateSeparator(content.transform);
 
         // Section: Boards
-        CreateText(content.transform, "BoardsHeader", "BOARDS", 18,
+        CreateText(content.transform, "BoardsHeader", "BOARDS", 28,
             FontStyles.Bold, new Color(0.6f, 1f, 0.8f), TextAlignmentOptions.Left);
 
         GameObject boardsObj = CreateText(content.transform, "BoardsText",
             "  P1 Board: (empty)\n  P2 Board: (empty)",
-            14, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left);
+            22, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left);
 
         CreateSeparator(content.transform);
 
         // Section: Last Round
-        CreateText(content.transform, "LastRoundHeader", "LAST ROUND", 18,
+        CreateText(content.transform, "LastRoundHeader", "LAST ROUND", 28,
             FontStyles.Bold, new Color(1f, 0.7f, 0.7f), TextAlignmentOptions.Left);
 
         GameObject lastRoundObj = CreateText(content.transform, "LastRoundText",
-            "No battles yet", 15, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left);
+            "No battles yet", 22, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left);
 
         CreateSeparator(content.transform);
 
         // Section: History
-        CreateText(content.transform, "HistoryHeader", "BATTLE HISTORY", 18,
+        CreateText(content.transform, "HistoryHeader", "BATTLE HISTORY", 28,
             FontStyles.Bold, new Color(1f, 0.85f, 0.6f), TextAlignmentOptions.Left);
 
         GameObject historyObj = CreateText(content.transform, "HistoryText",
-            "", 14, FontStyles.Normal, new Color(0.75f, 0.75f, 0.75f), TextAlignmentOptions.Left);
+            "", 20, FontStyles.Normal, new Color(0.75f, 0.75f, 0.75f), TextAlignmentOptions.Left);
 
         // === Wire serialized fields ===
         SerializedObject so = new SerializedObject(matchInfoUI);
