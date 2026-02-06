@@ -62,14 +62,19 @@ PhotonNetwork.PhotonServerSettings.AppSettings.Protocol =
 
 **BuildScript.cs** — CLI build support for automation
 
-### Step 2: Build in Unity Editor
+### Step 2: Build WebGL
 
-Manual step — cannot be automated:
-1. Open Unity Editor
-2. File → Build Settings → WebGL
-3. Select "TarotBattlegrounds" template
-4. Player Settings → Publishing: Brotli compression
-5. Build to `WebGLBuild/` folder
+**Option A — From Unity Editor:**
+1. Open Unity Editor → `Build > WebGL` menu item
+2. Build auto-increments to `WebGLBuild/WebGLBuildNN`, keeps last 10 builds
+
+**Option B — From CLI (Unity must be closed):**
+```bash
+/Applications/Unity/Hub/Editor/2022.3.48f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -nographics -quit \
+  -projectPath TarotBattlegrounds-POC \
+  -executeMethod BuildScript.BuildWebGLCLI
+```
 
 ### Step 3: Deploy to AWS
 
@@ -133,7 +138,9 @@ After building a new WebGL version:
 ```bash
 bash AWS/scripts/redeploy.sh
 ```
-This syncs files to S3 with correct MIME types and invalidates CloudFront cache.
+The script auto-detects the highest-numbered `WebGLBuild/WebGLBuildNN` directory, uploads to S3 with correct MIME types, and invalidates the CloudFront cache. You can also pass a specific path: `bash AWS/scripts/redeploy.sh path/to/build`
+
+**Live URL:** `https://dui22oafwco41.cloudfront.net`
 
 ---
 
@@ -144,10 +151,12 @@ This syncs files to S3 with correct MIME types and invalidates CloudFront cache.
 | `Assets/Scripts/Network/PhotonConnector.cs` | WSS protocol switch for WebGL |
 | `Assets/WebGLTemplates/TarotBattlegrounds/index.html` | Custom WebGL template |
 | `Assets/link.xml` | IL2CPP stripping protection |
-| `Assets/Editor/BuildScript.cs` | CLI build support |
+| `Assets/Editor/BuildScript.cs` | WebGL build with auto-increment + cleanup |
+| `Assets/Editor/MainMenuSceneSetup.cs` | Programmatic MainMenu scene setup |
+| `Assets/Editor/PlayerPrefabSetup.cs` | Programmatic Player prefab creation |
 | `AWS/scripts/deploy-webgl.sh` | First-time deployment |
 | `AWS/scripts/validate-deployment.sh` | Post-deploy validation |
-| `AWS/scripts/redeploy.sh` | Subsequent deployments |
+| `AWS/scripts/redeploy.sh` | Subsequent deployments (auto-detects latest build) |
 
 ---
 
@@ -174,4 +183,4 @@ This syncs files to S3 with correct MIME types and invalidates CloudFront cache.
 
 ---
 
-*Plan updated: February 2026 | Architecture: Photon PUN 2 + S3/CloudFront (no EC2)*
+*Plan updated: February 2026 | Architecture: Photon PUN 2 + S3/CloudFront (no EC2) | Build: auto-increment WebGLBuildNN*
