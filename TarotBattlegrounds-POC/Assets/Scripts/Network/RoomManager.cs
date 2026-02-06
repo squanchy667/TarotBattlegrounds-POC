@@ -33,7 +33,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
-    /// Create a room with the given name and max players (2-4).
+    /// Create a room with the given name and max players (2-8).
     /// </summary>
     public void CreateRoom(string roomName, byte maxPlayers)
     {
@@ -42,7 +42,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
             Debug.LogWarning("[RoomManager] Cannot create room: not ready.");
             return;
         }
-        maxPlayers = (byte)Mathf.Clamp(maxPlayers, 2, 4);
+        maxPlayers = (byte)Mathf.Clamp(maxPlayers, 2, 8);
 
         RoomOptions options = new RoomOptions
         {

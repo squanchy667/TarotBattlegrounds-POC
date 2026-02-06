@@ -31,6 +31,10 @@ public class GameManager : MonoBehaviour
     [Tooltip("Number of active players (read from GameConfig)")]
     public int playerCount = 2;
 
+    [Header("Dynamic Player Spawning")]
+    [Tooltip("Prefab used to instantiate additional players when count exceeds scene objects")]
+    [SerializeField] private GameObject playerPrefab;
+
     private List<int> playerHealths;
     private GamePhase currentPhase = GamePhase.Recruit;
     private int turnNumber = 1;
@@ -276,9 +280,12 @@ public class GameManager : MonoBehaviour
 
         GameConfig.LogConfig();
 
+        // Spawn additional player objects if the scene doesn't have enough
+        EnsurePlayerCount(playerCount);
+
         if (players == null || players.Count < playerCount)
         {
-            Debug.LogError($"GameManager requires at least {playerCount} Player instances! Found: {players?.Count ?? 0}");
+            Debug.LogError($"GameManager requires at least {playerCount} Player instances! Found: {players?.Count ?? 0}. Assign playerPrefab in the Inspector.");
             return;
         }
 
@@ -295,6 +302,37 @@ public class GameManager : MonoBehaviour
         InitializePlayers();
         InitializeAI();
         StartCoroutine(GameLoop());
+    }
+
+    /// <summary>
+    /// Ensure the players list has enough Player instances for the requested count.
+    /// Instantiates additional players from the prefab if needed.
+    /// </summary>
+    private void EnsurePlayerCount(int required)
+    {
+        if (players == null)
+            players = new List<Player>();
+
+        while (players.Count < required)
+        {
+            if (playerPrefab == null)
+            {
+                Debug.LogError($"[GameManager] playerPrefab is null — cannot spawn Player {players.Count + 1}. Assign it in the Inspector.");
+                return;
+            }
+
+            GameObject obj = Instantiate(playerPrefab);
+            obj.name = $"Player {players.Count + 1} (Spawned)";
+            Player p = obj.GetComponent<Player>();
+            if (p == null)
+            {
+                Debug.LogError($"[GameManager] playerPrefab has no Player component!");
+                Destroy(obj);
+                return;
+            }
+            players.Add(p);
+            Debug.Log($"[GameManager] Spawned additional Player {players.Count}");
+        }
     }
 
     /// <summary>

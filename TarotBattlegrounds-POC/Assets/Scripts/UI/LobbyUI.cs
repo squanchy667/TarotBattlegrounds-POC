@@ -59,7 +59,7 @@ public class LobbyUI : MonoBehaviour
         if (maxPlayersDropdown != null)
         {
             maxPlayersDropdown.ClearOptions();
-            maxPlayersDropdown.AddOptions(new List<string> { "2 Players", "3 Players", "4 Players" });
+            maxPlayersDropdown.AddOptions(new List<string> { "4 Players", "6 Players", "8 Players" });
             maxPlayersDropdown.value = 0;
         }
 
@@ -213,7 +213,8 @@ public class LobbyUI : MonoBehaviour
             roomName = PhotonNetwork.NickName + "'s Room";
         }
 
-        byte maxPlayers = (byte)(maxPlayersDropdown != null ? maxPlayersDropdown.value + 2 : 2);
+        int[] playerOptions = { 4, 6, 8 };
+        byte maxPlayers = (byte)(maxPlayersDropdown != null ? playerOptions[maxPlayersDropdown.value] : 4);
         RoomManager.Instance.CreateRoom(roomName, maxPlayers);
     }
 

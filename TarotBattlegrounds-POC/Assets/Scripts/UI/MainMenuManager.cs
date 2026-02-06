@@ -5,126 +5,125 @@ using TMPro;
 
 public class MainMenuManager : MonoBehaviour
 {
-    [Header("UI References")]
-    [SerializeField] private Button playButton;
+    [Header("Main Panel")]
+    [SerializeField] private GameObject mainPanel;
+    [SerializeField] private Button soloButton;
+    [SerializeField] private Button multiplayerButton;
     [SerializeField] private Button quitButton;
 
-    [Header("Game Settings UI (Optional)")]
-    [SerializeField] private TMP_Dropdown playerCountDropdown;
-    [SerializeField] private TMP_Dropdown gameModeDropdown;
+    [Header("Solo Panel")]
+    [SerializeField] private GameObject soloPanel;
+    [SerializeField] private Button players4Button;
+    [SerializeField] private Button players6Button;
+    [SerializeField] private Button players8Button;
     [SerializeField] private TMP_Dropdown difficultyDropdown;
+    [SerializeField] private Button playButton;
+    [SerializeField] private Button backButton;
 
-    [Header("Default Settings (used if UI not present)")]
-    [SerializeField] private int defaultPlayerCount = 2;
-    [SerializeField] private GameConfig.GameMode defaultGameMode = GameConfig.GameMode.HumanVsAI;
-    [SerializeField] private AIDifficulty defaultDifficulty = AIDifficulty.Medium;
+    private static readonly int[] PlayerOptions = { 4, 6, 8 };
+    private int selectedPlayerCount = 4;
+    private Button[] playerCountButtons;
 
     private void Start()
     {
         Debug.Log("MainMenuManager initialized");
 
-        // Setup button listeners
-        if (playButton != null)
-            playButton.onClick.AddListener(OnPlayClicked);
-        else
-            Debug.LogError("Play button not assigned!");
+        playerCountButtons = new Button[] { players4Button, players6Button, players8Button };
 
-        if (quitButton != null)
-            quitButton.onClick.AddListener(OnQuitClicked);
+        // Main panel buttons
+        if (soloButton != null) soloButton.onClick.AddListener(OnSoloClicked);
+        if (multiplayerButton != null) multiplayerButton.onClick.AddListener(OnMultiplayerClicked);
+        if (quitButton != null) quitButton.onClick.AddListener(OnQuitClicked);
 
-        // Setup dropdowns if present
-        SetupDropdowns();
+        // Solo panel buttons
+        if (players4Button != null) players4Button.onClick.AddListener(() => SelectPlayerCount(0));
+        if (players6Button != null) players6Button.onClick.AddListener(() => SelectPlayerCount(1));
+        if (players8Button != null) players8Button.onClick.AddListener(() => SelectPlayerCount(2));
+        if (playButton != null) playButton.onClick.AddListener(OnPlayClicked);
+        if (backButton != null) backButton.onClick.AddListener(OnBackClicked);
 
-        // Load saved settings
-        LoadSettings();
-    }
-
-    private void SetupDropdowns()
-    {
-        // Player count dropdown (2-4 players)
-        if (playerCountDropdown != null)
-        {
-            playerCountDropdown.ClearOptions();
-            playerCountDropdown.AddOptions(new System.Collections.Generic.List<string> { "2 Players", "3 Players", "4 Players" });
-            playerCountDropdown.onValueChanged.AddListener(OnPlayerCountChanged);
-        }
-
-        // Game mode dropdown
-        if (gameModeDropdown != null)
-        {
-            gameModeDropdown.ClearOptions();
-            gameModeDropdown.AddOptions(new System.Collections.Generic.List<string> { "Human vs AI", "AI vs AI (Spectate)", "Multiplayer (Online)" });
-            gameModeDropdown.onValueChanged.AddListener(OnGameModeChanged);
-        }
-
-        // Difficulty dropdown
+        // Setup difficulty dropdown
         if (difficultyDropdown != null)
         {
             difficultyDropdown.ClearOptions();
             difficultyDropdown.AddOptions(new System.Collections.Generic.List<string> { "Easy", "Medium", "Hard" });
+            difficultyDropdown.value = (int)GameConfig.DefaultAIDifficulty;
             difficultyDropdown.onValueChanged.AddListener(OnDifficultyChanged);
         }
+
+        // Show main panel by default
+        ShowMainPanel();
+
+        // Default selection
+        SelectPlayerCount(0);
     }
 
-    private void LoadSettings()
+    private void ShowMainPanel()
     {
-        // Apply saved/default settings to UI
-        if (playerCountDropdown != null)
-            playerCountDropdown.value = GameConfig.PlayerCount - 2; // 2 players = index 0
+        if (mainPanel != null) mainPanel.SetActive(true);
+        if (soloPanel != null) soloPanel.SetActive(false);
+    }
 
-        if (gameModeDropdown != null)
-            gameModeDropdown.value = (int)GameConfig.CurrentGameMode;
+    private void ShowSoloPanel()
+    {
+        if (mainPanel != null) mainPanel.SetActive(false);
+        if (soloPanel != null) soloPanel.SetActive(true);
+    }
+
+    private void SelectPlayerCount(int index)
+    {
+        selectedPlayerCount = PlayerOptions[index];
+
+        // Update button visuals — highlight the selected one
+        for (int i = 0; i < playerCountButtons.Length; i++)
+        {
+            if (playerCountButtons[i] == null) continue;
+            var colors = playerCountButtons[i].colors;
+            colors.normalColor = (i == index) ? new Color(0.4f, 0.8f, 0.4f) : Color.white;
+            playerCountButtons[i].colors = colors;
+        }
+
+        Debug.Log($"[MainMenu] Selected {selectedPlayerCount} players");
+    }
+
+    private void OnSoloClicked()
+    {
+        ShowSoloPanel();
+    }
+
+    private void OnMultiplayerClicked()
+    {
+        GameConfig.CurrentGameMode = GameConfig.GameMode.Multiplayer;
+        GameConfig.Save();
+        Debug.Log("[MainMenu] Loading Lobby for multiplayer...");
+        SceneManager.LoadScene("Lobby");
+    }
+
+    private void OnPlayClicked()
+    {
+        GameConfig.PlayerCount = selectedPlayerCount;
+        GameConfig.CurrentGameMode = GameConfig.GameMode.HumanVsAI;
+        GameConfig.HumanPlayerIndex = 0;
 
         if (difficultyDropdown != null)
-            difficultyDropdown.value = (int)GameConfig.DefaultAIDifficulty;
+            GameConfig.DefaultAIDifficulty = (AIDifficulty)difficultyDropdown.value;
+
+        GameConfig.Save();
+        GameConfig.LogConfig();
+
+        Debug.Log($"Starting solo game: {GameConfig.PlayerCount} players, AI: {GameConfig.DefaultAIDifficulty}");
+        SceneManager.LoadScene("Game");
     }
 
-    private void OnPlayerCountChanged(int index)
+    private void OnBackClicked()
     {
-        GameConfig.PlayerCount = index + 2; // index 0 = 2 players
-        Debug.Log($"[MainMenu] Player count set to: {GameConfig.PlayerCount}");
-    }
-
-    private void OnGameModeChanged(int index)
-    {
-        GameConfig.CurrentGameMode = (GameConfig.GameMode)index;
-        Debug.Log($"[MainMenu] Game mode set to: {GameConfig.CurrentGameMode}");
+        ShowMainPanel();
     }
 
     private void OnDifficultyChanged(int index)
     {
         GameConfig.DefaultAIDifficulty = (AIDifficulty)index;
         Debug.Log($"[MainMenu] AI difficulty set to: {GameConfig.DefaultAIDifficulty}");
-    }
-
-    private void OnPlayClicked()
-    {
-        // Apply default settings if dropdowns not present
-        if (playerCountDropdown == null)
-            GameConfig.PlayerCount = defaultPlayerCount;
-        if (gameModeDropdown == null)
-            GameConfig.CurrentGameMode = defaultGameMode;
-        if (difficultyDropdown == null)
-            GameConfig.DefaultAIDifficulty = defaultDifficulty;
-
-        // If Multiplayer mode, load Lobby scene instead of Game scene
-        if (GameConfig.CurrentGameMode == GameConfig.GameMode.Multiplayer)
-        {
-            GameConfig.Save();
-            Debug.Log("[MainMenu] Loading Lobby for multiplayer...");
-            SceneManager.LoadScene("Lobby");
-            return;
-        }
-
-        // Human is always player 1 (index 0) in HumanVsAI mode
-        GameConfig.HumanPlayerIndex = 0;
-
-        // Save and start
-        GameConfig.Save();
-        GameConfig.LogConfig();
-
-        Debug.Log($"Starting game: {GameConfig.PlayerCount} players, {GameConfig.CurrentGameMode}, AI: {GameConfig.DefaultAIDifficulty}");
-        SceneManager.LoadScene("Game");
     }
 
     private void OnQuitClicked()
@@ -139,15 +138,14 @@ public class MainMenuManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (playButton != null)
-            playButton.onClick.RemoveListener(OnPlayClicked);
-        if (quitButton != null)
-            quitButton.onClick.RemoveListener(OnQuitClicked);
-        if (playerCountDropdown != null)
-            playerCountDropdown.onValueChanged.RemoveListener(OnPlayerCountChanged);
-        if (gameModeDropdown != null)
-            gameModeDropdown.onValueChanged.RemoveListener(OnGameModeChanged);
-        if (difficultyDropdown != null)
-            difficultyDropdown.onValueChanged.RemoveListener(OnDifficultyChanged);
+        if (soloButton != null) soloButton.onClick.RemoveListener(OnSoloClicked);
+        if (multiplayerButton != null) multiplayerButton.onClick.RemoveListener(OnMultiplayerClicked);
+        if (quitButton != null) quitButton.onClick.RemoveListener(OnQuitClicked);
+        if (playButton != null) playButton.onClick.RemoveAllListeners();
+        if (backButton != null) backButton.onClick.RemoveListener(OnBackClicked);
+        if (players4Button != null) players4Button.onClick.RemoveAllListeners();
+        if (players6Button != null) players6Button.onClick.RemoveAllListeners();
+        if (players8Button != null) players8Button.onClick.RemoveAllListeners();
+        if (difficultyDropdown != null) difficultyDropdown.onValueChanged.RemoveListener(OnDifficultyChanged);
     }
 }

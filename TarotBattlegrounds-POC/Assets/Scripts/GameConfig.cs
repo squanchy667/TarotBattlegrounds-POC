@@ -30,12 +30,12 @@ public static class GameConfig
     }
 
     /// <summary>
-    /// Number of players (2-4).
+    /// Number of players (2-8).
     /// </summary>
     public static int PlayerCount
     {
         get => PlayerPrefs.GetInt(KEY_PLAYER_COUNT, 2);
-        set => PlayerPrefs.SetInt(KEY_PLAYER_COUNT, Mathf.Clamp(value, 2, 4));
+        set => PlayerPrefs.SetInt(KEY_PLAYER_COUNT, Mathf.Clamp(value, 2, 8));
     }
 
     /// <summary>
