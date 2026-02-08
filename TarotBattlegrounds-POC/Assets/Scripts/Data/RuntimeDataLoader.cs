@@ -32,6 +32,7 @@ public class RuntimeDataLoader : MonoBehaviour
     public List<RuntimeCardData> Cards { get; private set; }
     public List<RuntimeSynergyData> Synergies { get; private set; }
     public RuntimeGameConfig Config { get; private set; }
+    public RuntimeThemeData Theme { get; private set; }
 
     /// <summary>Fires when loading completes (success or failure).</summary>
     public event Action OnLoadComplete;
@@ -69,19 +70,22 @@ public class RuntimeDataLoader : MonoBehaviour
         string cardsJson = null;
         string synergiesJson = null;
         string configJson = null;
+        string themeJson = null;
         string cardsError = null;
         string synergiesError = null;
         string configError = null;
+        string themeError = null;
 
-        // Fetch all three in parallel using coroutines
-        bool cardsDone = false, synergiesDone = false, configDone = false;
+        // Fetch all four in parallel using coroutines
+        bool cardsDone = false, synergiesDone = false, configDone = false, themeDone = false;
 
         StartCoroutine(FetchJson(baseUrl + "cards.json", (json, err) => { cardsJson = json; cardsError = err; cardsDone = true; }));
         StartCoroutine(FetchJson(baseUrl + "synergies.json", (json, err) => { synergiesJson = json; synergiesError = err; synergiesDone = true; }));
         StartCoroutine(FetchJson(baseUrl + "config.json", (json, err) => { configJson = json; configError = err; configDone = true; }));
+        StartCoroutine(FetchJson(baseUrl + "theme.json", (json, err) => { themeJson = json; themeError = err; themeDone = true; }));
 
         // Wait for all to complete
-        while (!cardsDone || !synergiesDone || !configDone)
+        while (!cardsDone || !synergiesDone || !configDone || !themeDone)
             yield return null;
 
         // Parse results
@@ -142,6 +146,25 @@ public class RuntimeDataLoader : MonoBehaviour
         {
             Debug.LogWarning($"[RuntimeDataLoader] Failed to fetch config.json: {configError}");
             allGood = false;
+        }
+
+        // Theme is optional - don't fail the whole load if it's missing
+        if (themeJson != null)
+        {
+            try
+            {
+                Theme = JsonConvert.DeserializeObject<RuntimeThemeData>(themeJson, GetJsonSettings());
+                Debug.Log($"[RuntimeDataLoader] Loaded theme '{Theme.gameName}' from remote");
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[RuntimeDataLoader] Failed to parse theme.json: {e.Message}");
+                // Don't set allGood = false - theme is optional
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[RuntimeDataLoader] No theme.json found: {themeError}");
         }
 
         IsLoaded = allGood;
@@ -248,6 +271,97 @@ public class RuntimeDataLoader : MonoBehaviour
 
         Debug.Log($"[RuntimeDataLoader] Built {result.Count} Card objects from runtime data");
         return result;
+    }
+
+    /// <summary>
+    /// Convert loaded theme data into a ThemeConfig ScriptableObject.
+    /// </summary>
+    public ThemeConfig BuildTheme()
+    {
+        if (Theme == null) return null;
+
+        var config = ScriptableObject.CreateInstance<ThemeConfig>();
+        config.gameName = Theme.gameName ?? "Auto Battler";
+        config.themeId = Theme.gameName?.Replace(" ", "") ?? "AutoBattler";
+
+        // Parse colors
+        if (Theme.colors != null)
+        {
+            TryParseColor(Theme.colors.primary, ref config.primaryColor);
+            TryParseColor(Theme.colors.secondary, ref config.secondaryColor);
+            TryParseColor(Theme.colors.accent, ref config.accentColor);
+            TryParseColor(Theme.colors.positive, ref config.positiveColor);
+            TryParseColor(Theme.colors.negative, ref config.negativeColor);
+            TryParseColor(Theme.colors.textColorLight, ref config.textColorLight);
+            TryParseColor(Theme.colors.textColorDark, ref config.textColorDark);
+            TryParseColor(Theme.colors.gameBackgroundColor, ref config.gameBackgroundColor);
+            TryParseColor(Theme.colors.cardBackgroundColor, ref config.cardBackgroundColor);
+            TryParseColor(Theme.colors.goldenCardColor, ref config.goldenCardColor);
+        }
+
+        // Parse UI text
+        if (Theme.uiText != null)
+        {
+            if (Theme.uiText.shopTitle != null) config.shopTitle = Theme.uiText.shopTitle;
+            if (Theme.uiText.handTitle != null) config.handTitle = Theme.uiText.handTitle;
+            if (Theme.uiText.boardTitle != null) config.boardTitle = Theme.uiText.boardTitle;
+            if (Theme.uiText.buyButton != null) config.buyButtonText = Theme.uiText.buyButton;
+            if (Theme.uiText.sellButton != null) config.sellButtonText = Theme.uiText.sellButton;
+            if (Theme.uiText.coinsLabel != null) config.coinsLabel = Theme.uiText.coinsLabel;
+            if (Theme.uiText.healthLabel != null) config.healthLabel = Theme.uiText.healthLabel;
+            if (Theme.uiText.tierLabel != null) config.tierLabel = Theme.uiText.tierLabel;
+            if (Theme.uiText.playButton != null) config.playButtonText = Theme.uiText.playButton;
+            if (Theme.uiText.rerollButton != null) config.rerollButtonText = Theme.uiText.rerollButton;
+            if (Theme.uiText.upgradeButton != null) config.upgradeButtonText = Theme.uiText.upgradeButton;
+            if (Theme.uiText.maxTierText != null) config.maxTierText = Theme.uiText.maxTierText;
+            if (Theme.uiText.freezeButton != null) config.freezeButtonText = Theme.uiText.freezeButton;
+            if (Theme.uiText.unfreezeButton != null) config.unfreezeButtonText = Theme.uiText.unfreezeButton;
+            if (Theme.uiText.endTurnButton != null) config.endTurnButtonText = Theme.uiText.endTurnButton;
+            if (Theme.uiText.combatPhaseTitle != null) config.combatPhaseTitle = Theme.uiText.combatPhaseTitle;
+            if (Theme.uiText.recruitPhaseTitle != null) config.recruitPhaseTitle = Theme.uiText.recruitPhaseTitle;
+            if (Theme.uiText.victoryText != null) config.victoryText = Theme.uiText.victoryText;
+            if (Theme.uiText.defeatText != null) config.defeatText = Theme.uiText.defeatText;
+            if (Theme.uiText.tieText != null) config.tieText = Theme.uiText.tieText;
+            if (Theme.uiText.gameOverTitle != null) config.gameOverTitle = Theme.uiText.gameOverTitle;
+            if (Theme.uiText.playAgainText != null) config.playAgainText = Theme.uiText.playAgainText;
+            if (Theme.uiText.quitToMenuText != null) config.quitToMenuText = Theme.uiText.quitToMenuText;
+        }
+
+        // Parse tribe data
+        if (Theme.tribes != null)
+        {
+            // Map tribe keys to TribeThemeData array (index 0=Pentacles, 1=Cups, 2=Swords, 3=Wands)
+            string[] tribeOrder = { "Pentacles", "Cups", "Swords", "Wands" };
+            config.tribes = new TribeThemeData[4];
+            for (int i = 0; i < tribeOrder.Length; i++)
+            {
+                if (Theme.tribes.TryGetValue(tribeOrder[i], out RuntimeTribeThemeData tribeData))
+                {
+                    var td = new TribeThemeData();
+                    td.tribeName = tribeData.name ?? tribeOrder[i];
+                    td.description = tribeData.description ?? "";
+                    TryParseColor(tribeData.color, ref td.themeColor);
+                    td.aliases = tribeData.aliases;
+                    config.tribes[i] = td;
+                }
+                else
+                {
+                    config.tribes[i] = new TribeThemeData { tribeName = tribeOrder[i], description = "", themeColor = Color.gray };
+                }
+            }
+        }
+
+        Debug.Log($"[RuntimeDataLoader] Built ThemeConfig '{config.gameName}' from runtime data");
+        return config;
+    }
+
+    private static void TryParseColor(string hex, ref Color target)
+    {
+        if (string.IsNullOrEmpty(hex)) return;
+        // ColorUtility expects # prefix
+        if (!hex.StartsWith("#")) hex = "#" + hex;
+        if (ColorUtility.TryParseHtmlString(hex, out Color parsed))
+            target = parsed;
     }
 
     /// <summary>
@@ -377,4 +491,90 @@ public class RuntimeGameConfig
     public int maxGold;
     public Dictionary<string, int> tavernUpgradeCosts;
     public int startingHealth;
+}
+
+// ================================================================
+// Theme JSON data classes (match ThemeData from tarot-devzone/shared)
+// ================================================================
+
+[Serializable]
+public class RuntimeThemeData
+{
+    public string gameName;
+    public Dictionary<string, RuntimeTribeThemeData> tribes;
+    public RuntimeThemeColors colors;
+    public RuntimeUIText uiText;
+    public RuntimeThemeAssets assets;
+}
+
+[Serializable]
+public class RuntimeTribeThemeData
+{
+    public string name;
+    public string description;
+    public string color;
+    public string[] aliases;
+    public string iconUrl;
+}
+
+[Serializable]
+public class RuntimeThemeColors
+{
+    public string primary;
+    public string secondary;
+    public string accent;
+    public string positive;
+    public string negative;
+    public string textColorLight;
+    public string textColorDark;
+    public string gameBackgroundColor;
+    public string cardBackgroundColor;
+    public string goldenCardColor;
+}
+
+[Serializable]
+public class RuntimeUIText
+{
+    public string shopTitle;
+    public string handTitle;
+    public string boardTitle;
+    public string buyButton;
+    public string sellButton;
+    public string coinsLabel;
+    public string healthLabel;
+    public string tierLabel;
+    public string playButton;
+    public string rerollButton;
+    public string upgradeButton;
+    public string maxTierText;
+    public string freezeButton;
+    public string unfreezeButton;
+    public string endTurnButton;
+    public string combatPhaseTitle;
+    public string recruitPhaseTitle;
+    public string victoryText;
+    public string defeatText;
+    public string tieText;
+    public string gameOverTitle;
+    public string playAgainText;
+    public string quitToMenuText;
+}
+
+[Serializable]
+public class RuntimeThemeAssets
+{
+    public string gameBackground;
+    public string cardFrameCommon;
+    public string cardFrameRare;
+    public string cardFrameEpic;
+    public string cardBack;
+    public string panelBackground;
+    public string buttonNormal;
+    public string buttonHighlighted;
+    public string buttonPressed;
+    public string buttonDisabled;
+    public string coinIcon;
+    public string healthIcon;
+    public string attackIcon;
+    public string shieldIcon;
 }

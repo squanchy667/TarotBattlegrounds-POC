@@ -102,6 +102,17 @@ public class CardPoolInitializer : MonoBehaviour
         // Ensure ThemeManager exists
         ThemeManager.EnsureExists();
 
+        // Apply runtime theme if available
+        if (RuntimeDataLoader.Instance != null && RuntimeDataLoader.Instance.Theme != null)
+        {
+            var themeConfig = RuntimeDataLoader.Instance.BuildTheme();
+            if (themeConfig != null)
+            {
+                ThemeManager.Instance.ApplyRuntimeTheme(themeConfig, RuntimeThemeImageLoader.Instance);
+                Debug.Log("[CardPoolInitializer] Applied runtime theme from JSON");
+            }
+        }
+
         // Auto-create SynergyManager if it doesn't exist
         if (SynergyManager.Instance == null)
         {

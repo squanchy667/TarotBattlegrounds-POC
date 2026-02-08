@@ -83,6 +83,37 @@ public class ThemeManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Apply a runtime theme built from JSON data and optionally start loading sprite assets.
+    /// </summary>
+    public void ApplyRuntimeTheme(ThemeConfig runtimeConfig, RuntimeThemeImageLoader imageLoader = null)
+    {
+        if (runtimeConfig == null)
+        {
+            Debug.LogWarning("[ThemeManager] Cannot apply null runtime theme");
+            return;
+        }
+
+        _activeTheme = runtimeConfig;
+        Debug.Log($"[ThemeManager] Applied runtime theme: {runtimeConfig.gameName}");
+        OnThemeChanged?.Invoke(runtimeConfig);
+
+        // Start loading sprite assets if loader and assets are available
+        if (imageLoader != null && RuntimeDataLoader.Instance?.Theme?.assets != null)
+        {
+            imageLoader.LoadThemeAssets(RuntimeDataLoader.Instance.Theme, runtimeConfig);
+        }
+    }
+
+    /// <summary>
+    /// Notify listeners that the active theme has been updated (e.g., after sprite loading).
+    /// </summary>
+    public static void NotifyThemeChanged()
+    {
+        if (Instance != null && Instance._activeTheme != null)
+            OnThemeChanged?.Invoke(Instance._activeTheme);
+    }
+
+    /// <summary>
     /// Get display name for a tribe.
     /// </summary>
     public static string GetTribeName(TribeType tribe)

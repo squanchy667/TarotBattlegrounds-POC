@@ -201,6 +201,45 @@ public class ThemeConfig : ScriptableObject
     }
 
     /// <summary>
+    /// Set a sprite by its slot name (used for progressive runtime asset loading).
+    /// Returns true if the slot was found and set.
+    /// </summary>
+    public bool SetSpriteBySlotName(string slot, Sprite sprite)
+    {
+        switch (slot)
+        {
+            case "gameBackground": gameBackground = sprite; return true;
+            case "cardFrameCommon": cardFrameCommon = sprite; return true;
+            case "cardFrameRare": cardFrameRare = sprite; return true;
+            case "cardFrameEpic": cardFrameEpic = sprite; return true;
+            case "cardBack": cardBack = sprite; return true;
+            case "panelBackground": panelBackground = sprite; return true;
+            case "buttonNormal": buttonNormal = sprite; return true;
+            case "buttonHighlighted": buttonHighlighted = sprite; return true;
+            case "buttonPressed": buttonPressed = sprite; return true;
+            case "buttonDisabled": buttonDisabled = sprite; return true;
+            case "coinIcon": coinIcon = sprite; return true;
+            case "healthIcon": healthIcon = sprite; return true;
+            case "attackIcon": attackIcon = sprite; return true;
+            case "shieldIcon": shieldIcon = sprite; return true;
+            default: return false;
+        }
+    }
+
+    /// <summary>
+    /// Set a tribe icon sprite by tribe index (0-based).
+    /// </summary>
+    public bool SetTribeIcon(int tribeIndex, Sprite sprite)
+    {
+        if (tribeIndex >= 0 && tribeIndex < tribes.Length && tribes[tribeIndex] != null)
+        {
+            tribes[tribeIndex].tribeIcon = sprite;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Get valid tribe combination strings for CSV import validation.
     /// </summary>
     public string[] GetValidTribeCombinations()
