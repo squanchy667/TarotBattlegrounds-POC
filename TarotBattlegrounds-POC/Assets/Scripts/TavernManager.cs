@@ -17,6 +17,37 @@ public class TavernManager : MonoBehaviour
         {1, 3}, {2, 4}, {3, 4}, {4, 5}, {5, 5}, {6, 6}
     };
 
+    /// <summary>
+    /// Apply runtime config overrides for tierCopies and shopSizes.
+    /// Called by CardPoolInitializer after RuntimeDataLoader completes.
+    /// </summary>
+    public void ApplyRuntimeConfig(RuntimeGameConfig config)
+    {
+        if (config == null) return;
+
+        if (config.tierCopies != null)
+        {
+            tierCopies.Clear();
+            foreach (var kvp in config.tierCopies)
+            {
+                if (int.TryParse(kvp.Key, out int tier))
+                    tierCopies[tier] = kvp.Value;
+            }
+            Debug.Log($"[TavernManager] Applied runtime tierCopies: {string.Join(", ", tierCopies.Select(k => $"{k.Key}:{k.Value}"))}");
+        }
+
+        if (config.shopSizes != null)
+        {
+            shopSizes.Clear();
+            foreach (var kvp in config.shopSizes)
+            {
+                if (int.TryParse(kvp.Key, out int tier))
+                    shopSizes[tier] = kvp.Value;
+            }
+            Debug.Log($"[TavernManager] Applied runtime shopSizes: {string.Join(", ", shopSizes.Select(k => $"{k.Key}:{k.Value}"))}");
+        }
+    }
+
     void Awake()
     {
         if (Instance == null)
@@ -38,6 +69,12 @@ public class TavernManager : MonoBehaviour
 
     void Start()
     {
+        // Initialize immediately with CardDatabase (uses RuntimeDataLoader if already loaded,
+        // otherwise uses built-in 35 cards). This must be synchronous so GameManager can
+        // use the pool right away.
+        masterCards = CardDatabase.GenerateAllCards();
+        Debug.Log($"[TavernManager] Loaded {masterCards.Count} cards (runtime={CardDatabase.IsUsingRuntimeData})");
+
         if (allCards.Count == 0)
         {
             ResetPool();
@@ -45,10 +82,54 @@ public class TavernManager : MonoBehaviour
 
         // Initialize synergy system
         InitializeSynergies();
+
+        // If RuntimeDataLoader is still loading, subscribe to reload when it finishes
+        if (RuntimeDataLoader.Instance != null && !RuntimeDataLoader.Instance.IsComplete)
+        {
+            Debug.Log("[TavernManager] RuntimeDataLoader still loading, will reload when complete...");
+            RuntimeDataLoader.Instance.OnLoadComplete += OnRuntimeDataLoaded;
+        }
+        else if (RuntimeDataLoader.Instance != null && RuntimeDataLoader.Instance.IsLoaded)
+        {
+            // Already loaded — apply config overrides
+            if (RuntimeDataLoader.Instance.Config != null)
+            {
+                ApplyRuntimeConfig(RuntimeDataLoader.Instance.Config);
+                ResetPool();
+            }
+        }
+    }
+
+    private void OnRuntimeDataLoaded()
+    {
+        if (RuntimeDataLoader.Instance != null)
+            RuntimeDataLoader.Instance.OnLoadComplete -= OnRuntimeDataLoaded;
+
+        if (RuntimeDataLoader.Instance == null || !RuntimeDataLoader.Instance.IsLoaded)
+        {
+            Debug.Log("[TavernManager] RuntimeDataLoader failed, keeping built-in cards.");
+            return;
+        }
+
+        // Reload cards from runtime data
+        masterCards = CardDatabase.GenerateAllCards();
+        Debug.Log($"[TavernManager] Reloaded {masterCards.Count} cards from runtime data");
+
+        // Apply config overrides
+        if (RuntimeDataLoader.Instance.Config != null)
+            ApplyRuntimeConfig(RuntimeDataLoader.Instance.Config);
+
+        ResetPool();
+
+        // Reload synergies
+        InitializeSynergies();
     }
 
     private void InitializeSynergies()
     {
+        // Ensure ThemeManager exists
+        ThemeManager.EnsureExists();
+
         // Auto-create SynergyManager if it doesn't exist
         if (SynergyManager.Instance == null)
         {
@@ -57,10 +138,23 @@ public class TavernManager : MonoBehaviour
             synergyObj.AddComponent<SynergyManager>();
         }
 
-        // Load synergy data and reinitialize cache
+        // Try runtime synergies first
+        if (RuntimeDataLoader.Instance != null && RuntimeDataLoader.Instance.IsLoaded && RuntimeDataLoader.Instance.Synergies != null)
+        {
+            var runtimeSynergies = RuntimeDataLoader.Instance.BuildSynergies();
+            if (runtimeSynergies != null && runtimeSynergies.Length > 0)
+            {
+                SynergyManager.Instance.tribeSynergies = runtimeSynergies;
+                SynergyManager.Instance.InitializeSynergyCache();
+                Debug.Log($"[TavernManager] Synergies initialized with {runtimeSynergies.Length} runtime synergies");
+                return;
+            }
+        }
+
+        // Fallback to built-in synergy data
         SynergyManager.Instance.tribeSynergies = SynergyTestData.CreateAllTribeSynergies();
         SynergyManager.Instance.InitializeSynergyCache();
-        Debug.Log("[TavernManager] Synergies initialized with 4 tribe synergies");
+        Debug.Log("[TavernManager] Synergies initialized with 4 built-in tribe synergies");
     }
 
     public void ResetPool()

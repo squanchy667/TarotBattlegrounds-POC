@@ -1,8 +1,10 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
 /// Initializes the card pool with CardDatabase cards.
+/// If RuntimeDataLoader is present and loading, waits for it to complete first.
 /// Attach to a scene GameObject to auto-initialize on start.
 /// </summary>
 public class CardPoolInitializer : MonoBehaviour
@@ -20,11 +22,30 @@ public class CardPoolInitializer : MonoBehaviour
 
     private void Start()
     {
+        // If RuntimeDataLoader exists and hasn't finished yet, wait for it
+        if (RuntimeDataLoader.Instance != null && !RuntimeDataLoader.Instance.IsComplete)
+        {
+            Debug.Log("[CardPoolInitializer] Waiting for RuntimeDataLoader to complete...");
+            RuntimeDataLoader.Instance.OnLoadComplete += OnRuntimeDataLoaded;
+        }
+        else
+        {
+            Initialize();
+        }
+    }
+
+    private void OnRuntimeDataLoaded()
+    {
+        if (RuntimeDataLoader.Instance != null)
+            RuntimeDataLoader.Instance.OnLoadComplete -= OnRuntimeDataLoaded;
+
+        Debug.Log($"[CardPoolInitializer] RuntimeDataLoader complete (loaded={RuntimeDataLoader.Instance?.IsLoaded})");
         Initialize();
     }
 
     /// <summary>
     /// Initialize the card pool.
+    /// CardDatabase.GenerateAllCards() automatically checks RuntimeDataLoader for runtime data.
     /// </summary>
     [ContextMenu("Initialize Card Pool")]
     public void Initialize()
@@ -42,7 +63,13 @@ public class CardPoolInitializer : MonoBehaviour
             return;
         }
 
-        // Generate cards from database
+        // Apply runtime config overrides (tierCopies, shopSizes) before generating pool
+        if (RuntimeDataLoader.Instance != null && RuntimeDataLoader.Instance.IsLoaded && RuntimeDataLoader.Instance.Config != null)
+        {
+            tavern.ApplyRuntimeConfig(RuntimeDataLoader.Instance.Config);
+        }
+
+        // Generate cards from database (auto-uses runtime data if available)
         List<Card> databaseCards = CardDatabase.GenerateAllCards();
 
         // Assign to TavernManager's masterCards
@@ -51,12 +78,13 @@ public class CardPoolInitializer : MonoBehaviour
         // Reset the pool to regenerate with new cards
         tavern.ResetPool();
 
-        Debug.Log($"[CardPoolInitializer] Initialized TavernManager with {databaseCards.Count} cards from CardDatabase");
+        string source = CardDatabase.IsUsingRuntimeData ? "runtime JSON" : "built-in CardDatabase";
+        Debug.Log($"[CardPoolInitializer] Initialized TavernManager with {databaseCards.Count} cards from {source}");
 
-        // Optionally initialize synergies
+        // Initialize synergies (also checks RuntimeDataLoader)
         if (initializeSynergies)
         {
-            SynergyTestData.InitializeSynergyManager();
+            InitializeSynergiesFromBestSource();
         }
 
         // Print summary if requested
@@ -64,6 +92,38 @@ public class CardPoolInitializer : MonoBehaviour
         {
             CardDatabase.PrintCardPoolSummary();
         }
+    }
+
+    /// <summary>
+    /// Initialize synergies from runtime data if available, otherwise from SynergyTestData.
+    /// </summary>
+    private void InitializeSynergiesFromBestSource()
+    {
+        // Ensure ThemeManager exists
+        ThemeManager.EnsureExists();
+
+        // Auto-create SynergyManager if it doesn't exist
+        if (SynergyManager.Instance == null)
+        {
+            GameObject synergyManagerObj = new GameObject("SynergyManager");
+            synergyManagerObj.AddComponent<SynergyManager>();
+        }
+
+        // Try runtime data first
+        if (RuntimeDataLoader.Instance != null && RuntimeDataLoader.Instance.IsLoaded && RuntimeDataLoader.Instance.Synergies != null)
+        {
+            var runtimeSynergies = RuntimeDataLoader.Instance.BuildSynergies();
+            if (runtimeSynergies != null && runtimeSynergies.Length > 0)
+            {
+                SynergyManager.Instance.tribeSynergies = runtimeSynergies;
+                SynergyManager.Instance.InitializeSynergyCache();
+                Debug.Log($"[CardPoolInitializer] Initialized SynergyManager with {runtimeSynergies.Length} runtime synergies");
+                return;
+            }
+        }
+
+        // Fallback to built-in synergy data
+        SynergyTestData.InitializeSynergyManager();
     }
 
     /// <summary>

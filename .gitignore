@@ -40,3 +40,4 @@ Icon?
 TestLog.txt
 TestResults.xml
 mono_crash.*.json
+WebGLBuild/

@@ -2,8 +2,11 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// Central card database that generates the full 30-card pool.
-/// 5 cards per tier (1-6), with distributed abilities and tribes.
+/// Central card database that generates the full 35-card pool.
+/// 5-6 cards per tier (1-6), with distributed abilities and tribes.
+///
+/// Supports runtime data loading: if RuntimeDataLoader has fetched cards.json,
+/// GenerateAllCards() returns those cards instead of built-in definitions.
 ///
 /// Design Philosophy:
 /// - Tier 1-2: Simple stats, basic effects
@@ -18,11 +21,28 @@ using System.Collections.Generic;
 /// </summary>
 public static class CardDatabase
 {
+    /// <summary>Whether cards are sourced from runtime JSON data instead of built-in definitions.</summary>
+    public static bool IsUsingRuntimeData { get; private set; }
+
     /// <summary>
-    /// Generate the complete 30-card pool.
+    /// Generate the complete card pool.
+    /// If RuntimeDataLoader has loaded cards, uses those; otherwise falls back to built-in definitions.
     /// </summary>
     public static List<Card> GenerateAllCards()
     {
+        // Check for runtime-loaded data first
+        if (RuntimeDataLoader.Instance != null && RuntimeDataLoader.Instance.IsLoaded && RuntimeDataLoader.Instance.Cards != null)
+        {
+            var runtimeCards = RuntimeDataLoader.Instance.BuildCards();
+            if (runtimeCards != null && runtimeCards.Count > 0)
+            {
+                IsUsingRuntimeData = true;
+                Debug.Log($"[CardDatabase] Using {runtimeCards.Count} runtime-loaded cards");
+                return runtimeCards;
+            }
+        }
+
+        IsUsingRuntimeData = false;
         List<Card> cards = new List<Card>();
 
         // === TIER 1: Basic Units (5 cards) - No abilities ===
@@ -184,6 +204,33 @@ public static class CardDatabase
             new[] { TribeType.Cups, TribeType.Wands, TribeType.Swords },
             AbilityTrigger.Battlecry, Card.AbilityEffectType.BuffAdjacentStats, 2,
             "Battlecry: Give adjacent minions +2/+2. (Triple tribe)"));
+
+        // === ORIGINAL CARDS (5 user-created cards) ===
+        cards.Add(CreateCard("Spark of Inspiration", 1, 1, 2,
+            new[] { TribeType.Wands },
+            AbilityTrigger.Battlecry, Card.AbilityEffectType.BuffAdjacentAttack, 1,
+            "Battlecry: Give adjacent minions +1 Attack."));
+
+        cards.Add(CreateCard("Intuitive Novice", 1, 2, 2,
+            new[] { TribeType.Cups },
+            AbilityTrigger.None, Card.AbilityEffectType.None, 0,
+            "Predicts and reduces incoming damage.",
+            Card.EffectType.Aegis));
+
+        cards.Add(CreateCard("Impulsive Apprentice", 1, 2, 1,
+            new[] { TribeType.Wands },
+            AbilityTrigger.None, Card.AbilityEffectType.None, 0,
+            "Quick attack starter."));
+
+        cards.Add(CreateCard("Flame Dancer", 2, 3, 3,
+            new[] { TribeType.Wands },
+            AbilityTrigger.Battlecry, Card.AbilityEffectType.BuffAllFriendlyAttack, 1,
+            "Battlecry: Give all friendly minions +1 Attack."));
+
+        cards.Add(CreateCard("Blazing Knight", 3, 4, 3,
+            new[] { TribeType.Wands },
+            AbilityTrigger.OnAttack, Card.AbilityEffectType.OnAttackBuffSelf, 2,
+            "OnAttack: Gain +2 Attack."));
 
         Debug.Log($"[CardDatabase] Generated {cards.Count} cards across 6 tiers");
         return cards;
