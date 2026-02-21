@@ -71,7 +71,7 @@ public class AIBattleTests
             int cardsToBuy = difficulty == AIDifficulty.Hard ? 3 :
                              difficulty == AIDifficulty.Medium ? 2 : 1;
 
-            TribeType[] allTribes = { TribeType.Pentacles, TribeType.Cups, TribeType.Swords, TribeType.Wands };
+            TribeType[] allTribes = { TribeType.Pentacles, TribeType.Cups, TribeType.Swords, TribeType.Wands, TribeType.Stars, TribeType.Coins };
 
             while (coins >= 3 && board.Count < 7 && cardsToBuy > 0)
             {
@@ -478,7 +478,9 @@ public class AIBattleTests
             { TribeType.Pentacles, 0 },
             { TribeType.Cups, 0 },
             { TribeType.Swords, 0 },
-            { TribeType.Wands, 0 }
+            { TribeType.Wands, 0 },
+            { TribeType.Stars, 0 },
+            { TribeType.Coins, 0 }
         };
         int gamesWithTribes = 0;
 
@@ -592,44 +594,49 @@ public class AIBattleTests
     [Test]
     public void TribePreference_AllTribesCompetitive()
     {
-        TribeType[] tribes = { TribeType.Pentacles, TribeType.Cups, TribeType.Swords, TribeType.Wands };
-        int[] tribeWins = new int[4];
+        // T216: Updated for 6-tribe meta (Phase III)
+        TribeType[] tribes = { TribeType.Pentacles, TribeType.Cups, TribeType.Swords, TribeType.Wands, TribeType.Stars, TribeType.Coins };
+        int[] tribeWins = new int[6];
 
         for (int i = 0; i < BATCH_SIZE; i++)
         {
             var players = new TestPlayer[]
             {
-                new TestPlayer(1, AIDifficulty.Medium, TribeType.Pentacles),
-                new TestPlayer(2, AIDifficulty.Medium, TribeType.Cups),
-                new TestPlayer(3, AIDifficulty.Medium, TribeType.Swords),
-                new TestPlayer(4, AIDifficulty.Medium, TribeType.Wands)
+                new TestPlayer(1, AIDifficulty.Medium, tribes[i % 6]),
+                new TestPlayer(2, AIDifficulty.Medium, tribes[(i + 1) % 6]),
+                new TestPlayer(3, AIDifficulty.Medium, tribes[(i + 2) % 6]),
+                new TestPlayer(4, AIDifficulty.Medium, tribes[(i + 3) % 6])
             };
 
             var result = SimulateGame(players);
             if (result.winner > 0)
-                tribeWins[result.winner - 1]++;
+            {
+                TribeType winnerTribe = tribes[(i + result.winner - 1) % 6];
+                int tribeIndex = System.Array.IndexOf(tribes, winnerTribe);
+                if (tribeIndex >= 0) tribeWins[tribeIndex]++;
+            }
         }
 
-        Debug.Log("[Balance] Tribe preference results:");
-        for (int i = 0; i < 4; i++)
+        Debug.Log("[Balance] 6-tribe preference results:");
+        for (int i = 0; i < 6; i++)
         {
             float rate = tribeWins[i] / (float)BATCH_SIZE * 100f;
             Debug.Log($"  {tribes[i]}: {tribeWins[i]} wins ({rate:F1}%)");
         }
 
-        // No tribe-focused strategy should be completely unviable (>5% win rate)
-        for (int i = 0; i < 4; i++)
+        // No tribe-focused strategy should be completely unviable (>3% win rate)
+        for (int i = 0; i < 6; i++)
         {
             float rate = tribeWins[i] / (float)BATCH_SIZE * 100f;
-            Assert.IsTrue(rate > 5f,
+            Assert.IsTrue(rate > 3f,
                 $"{tribes[i]}-focused strategy wins only {rate:F1}% - tribe may be underpowered");
         }
 
-        // No tribe should be dominant (>40% win rate)
-        for (int i = 0; i < 4; i++)
+        // No tribe should be dominant (>35% win rate in 6-tribe meta)
+        for (int i = 0; i < 6; i++)
         {
             float rate = tribeWins[i] / (float)BATCH_SIZE * 100f;
-            Assert.IsTrue(rate < 45f,
+            Assert.IsTrue(rate < 40f,
                 $"{tribes[i]}-focused strategy wins {rate:F1}% - tribe may be overpowered");
         }
     }

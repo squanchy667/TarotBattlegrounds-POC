@@ -199,6 +199,7 @@ namespace TarotBattlegrounds.Combat.Replay
         public const float DURATION_AEGIS_POP = 0.3f;
         public const float DURATION_ECHO = 0.5f;
         public const float DURATION_SUMMON_TOKEN = 0.4f;
+        public const float DURATION_COMBAT_START = 0.8f;
         public const float DURATION_COMBAT_END = 0.2f;
         public const float DURATION_REBORN = 0.6f;
         public const float DURATION_VENOMOUS_KILL = 0.3f;
@@ -208,6 +209,7 @@ namespace TarotBattlegrounds.Combat.Replay
         {
             switch (type)
             {
+                case CombatActionType.CombatStart: return DURATION_COMBAT_START;
                 case CombatActionType.Attack: return DURATION_ATTACK;
                 case CombatActionType.TakeDamage: return DURATION_TAKE_DAMAGE;
                 case CombatActionType.Counterattack: return DURATION_COUNTERATTACK;

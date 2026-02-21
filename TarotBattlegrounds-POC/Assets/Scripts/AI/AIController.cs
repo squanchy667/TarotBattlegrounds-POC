@@ -206,6 +206,7 @@ public class AIController : MonoBehaviour
 
     /// <summary>
     /// Evaluate a card's value for purchasing.
+    /// T215: Updated for Phase II abilities and Phase III tribes.
     /// </summary>
     private float EvaluateCard(Card card)
     {
@@ -234,6 +235,20 @@ public class AIController : MonoBehaviour
                     else if (existingCount == 5) score += 4f; // Will hit tier 6
                     else score += 1f; // Some synergy value
                 }
+
+                // Cross-tribe combo awareness (Hard AI only)
+                if (difficulty == AIDifficulty.Hard)
+                {
+                    // Stars+Swords combo
+                    if ((tribe == TribeType.Stars && CountTribeOnBoard(TribeType.Swords) >= 2) ||
+                        (tribe == TribeType.Swords && CountTribeOnBoard(TribeType.Stars) >= 2))
+                        score += 1.5f;
+
+                    // Coins+Pentacles combo
+                    if ((tribe == TribeType.Coins && CountTribeOnBoard(TribeType.Pentacles) >= 2) ||
+                        (tribe == TribeType.Pentacles && CountTribeOnBoard(TribeType.Coins) >= 2))
+                        score += 1.5f;
+                }
             }
 
             // Multi-tribe cards are valuable
@@ -241,15 +256,121 @@ public class AIController : MonoBehaviour
                 score += 2f;
         }
 
-        // Ability bonus
-        if (card.abilityTrigger != AbilityTrigger.None)
-            score += 2f;
+        // Phase II ability evaluation (T215)
+        score += EvaluateAbility(card);
 
         // Effect bonus (legacy system)
         if (card.effectType != Card.EffectType.NoEffect)
             score += 1.5f;
 
         return score;
+    }
+
+    /// <summary>
+    /// Evaluate a card's ability value. Phase II abilities are scored by combat impact.
+    /// </summary>
+    private float EvaluateAbility(Card card)
+    {
+        if (card.abilityTrigger == AbilityTrigger.None && card.abilityEffect == Card.AbilityEffectType.None)
+            return 0f;
+
+        float bonus = 0f;
+
+        // High-value keyword abilities
+        switch (card.abilityEffect)
+        {
+            case Card.AbilityEffectType.Reborn:
+                bonus += 3f; // Effectively doubles the card
+                break;
+            case Card.AbilityEffectType.Windfury:
+                bonus += 2.5f + card.attack * 0.5f; // Scales with attack
+                break;
+            case Card.AbilityEffectType.Venomous:
+                bonus += 3f; // Instant kill is extremely strong
+                break;
+            case Card.AbilityEffectType.Taunt:
+                bonus += 1.5f;
+                break;
+            case Card.AbilityEffectType.GainArmor:
+                bonus += card.abilityValue * 1f;
+                break;
+
+            // Buff abilities
+            case Card.AbilityEffectType.BuffAllTribeOnPlay:
+            case Card.AbilityEffectType.BuffAllTribeOnDeath:
+                bonus += 2f + card.abilityValue * CountTribeOnBoard(card.tribes[0]) * 0.5f;
+                break;
+            case Card.AbilityEffectType.BuffAllFriendlyAttack:
+            case Card.AbilityEffectType.BuffAdjacentStats:
+            case Card.AbilityEffectType.BuffAdjacentAttack:
+            case Card.AbilityEffectType.BuffAdjacentHealth:
+                bonus += 2f + card.abilityValue * 0.5f;
+                break;
+            case Card.AbilityEffectType.BuffOtherFriendlyAttack:
+                bonus += 2f + card.abilityValue * (player.board.Count * 0.3f);
+                break;
+
+            // Economy abilities (more valuable early game)
+            case Card.AbilityEffectType.GainCoins:
+            case Card.AbilityEffectType.OnSellGainCoins:
+                bonus += 1.5f + card.abilityValue * 0.5f;
+                break;
+            case Card.AbilityEffectType.OnSellBuffAllRemaining:
+                bonus += 2f + card.abilityValue * player.board.Count * 0.3f;
+                break;
+
+            // Scaling abilities
+            case Card.AbilityEffectType.OnAllyDeathBuffSelf:
+            case Card.AbilityEffectType.OnAllyDeathBuffRandom:
+                bonus += 2.5f + card.abilityValue * 0.5f;
+                break;
+            case Card.AbilityEffectType.OnAllySummonedBuffSelf:
+            case Card.AbilityEffectType.OnAllySummonedBuffSummoned:
+                bonus += 2f;
+                break;
+            case Card.AbilityEffectType.OnAttackBuffSelf:
+            case Card.AbilityEffectType.StealBuffOnAttack:
+                bonus += 2f + card.abilityValue * 0.5f;
+                break;
+
+            // Deathrattle effects
+            case Card.AbilityEffectType.DeathrattleDamageAllEnemies:
+                bonus += 2f + card.abilityValue * 0.8f;
+                break;
+            case Card.AbilityEffectType.DeathrattleDamageRandomEnemy:
+                bonus += 1.5f + card.abilityValue * 0.5f;
+                break;
+            case Card.AbilityEffectType.DeathrattleBuffRandomFriendly:
+                bonus += 2f + card.abilityValue * 0.5f;
+                break;
+            case Card.AbilityEffectType.SummonTokenOnDeath:
+            case Card.AbilityEffectType.SummonTokenOnPlay:
+                bonus += 2f + card.abilityValue * 0.8f;
+                break;
+            case Card.AbilityEffectType.RandomTransformOnDeath:
+                bonus += 1.5f; // Unreliable but fun
+                break;
+
+            // Aura abilities
+            case Card.AbilityEffectType.AuraBuffTribematesAttack:
+            case Card.AbilityEffectType.AuraBuffAdjacentStats:
+            case Card.AbilityEffectType.AuraBuffAllFriendlyAttack:
+                bonus += 2.5f + card.abilityValue * 0.5f;
+                break;
+
+            // Combat triggers
+            case Card.AbilityEffectType.OnAttackBonusDamage:
+            case Card.AbilityEffectType.OnAttackCleave:
+                bonus += 2f + card.abilityValue * 0.5f;
+                break;
+
+            default:
+                if (card.abilityTrigger != AbilityTrigger.None)
+                    bonus += 1.5f; // Generic ability bonus
+                break;
+        }
+
+        return bonus;
     }
 
     private int CountTribeOnBoard(TribeType tribe)
@@ -323,7 +444,7 @@ public class AIController : MonoBehaviour
         }
 
         // Buff/support cards go in middle to maximize adjacency
-        if (card.tribes != null && (card.HasTribe(TribeType.Wands) || card.HasTribe(TribeType.Cups)))
+        if (card.tribes != null && (card.HasTribe(TribeType.Wands) || card.HasTribe(TribeType.Cups) || card.HasTribe(TribeType.Stars)))
         {
             return player.board.Count / 2;
         }

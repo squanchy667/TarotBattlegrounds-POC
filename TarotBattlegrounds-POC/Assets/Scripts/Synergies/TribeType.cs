@@ -8,5 +8,7 @@ public enum TribeType
     Pentacles,  // Earth/Economy theme - gold bonuses
     Cups,       // Water/Healing theme - restoration effects
     Swords,     // Air/Aggro theme - damage bonuses
-    Wands       // Fire/Buff theme - stat increases
+    Wands,      // Fire/Buff theme - stat increases
+    Stars,      // Celestial/Scaling theme - grow stronger each combat (T201)
+    Coins       // Fortune/Token theme - summon tokens, economy tricks (T202)
 }

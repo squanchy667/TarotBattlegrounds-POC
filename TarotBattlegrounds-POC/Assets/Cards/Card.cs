@@ -137,6 +137,12 @@ public class Card : ScriptableObject
         IAbility ability = CreateAbility();
         if (ability != null)
         {
+            // If card's trigger differs from ability's default, wrap with override
+            // e.g., Warlord Supreme: StartOfCombat trigger + BattlecryAbility buff
+            if (abilityTrigger != AbilityTrigger.None && abilityTrigger != ability.Trigger)
+            {
+                ability = new TriggerOverrideAbility(ability, abilityTrigger);
+            }
             AbilityManager.RegisterAbility(this, ability);
         }
 

@@ -40,6 +40,29 @@ public abstract class AbilityBase : IAbility
 }
 
 /// <summary>
+/// Decorator that overrides an ability's trigger type while preserving its effect.
+/// Used when a card's abilityTrigger differs from the ability class's default
+/// (e.g., Warlord Supreme: StartOfCombat trigger with BattlecryAbility buff effect).
+/// </summary>
+public class TriggerOverrideAbility : IAbility
+{
+    private readonly IAbility _inner;
+    private readonly AbilityTrigger _trigger;
+
+    public AbilityTrigger Trigger => _trigger;
+    public string Description => _inner.Description;
+
+    public TriggerOverrideAbility(IAbility inner, AbilityTrigger trigger)
+    {
+        _inner = inner;
+        _trigger = trigger;
+    }
+
+    public void Execute(AbilityContext context) => _inner.Execute(context);
+    public bool CanExecute(AbilityContext context) => _inner.CanExecute(context);
+}
+
+/// <summary>
 /// Common stat modification effects that abilities can use.
 /// </summary>
 public static class AbilityEffects

@@ -480,9 +480,28 @@ namespace TarotBattlegrounds.Combat.Animator
 
         private IEnumerator AnimateSummon(CombatReplayAction action, float duration)
         {
-            // Summon doesn't have full data yet — show generic VFX at target position
             if (SFXManager.Instance != null)
                 SFXManager.Instance.PlaySFX(SFXEvent.SummonToken);
+
+            // Create a placeholder visual so subsequent actions targeting this token are visible
+            var tokenSnap = new CombatCardSnapshot
+            {
+                cardName = action.abilityName ?? "Token",
+                attack = action.value > 0 ? action.value : 1,
+                health = action.value > 0 ? action.value : 1,
+                maxHealth = action.value > 0 ? action.value : 1,
+                boardPosition = action.targetCardIndex
+            };
+            int side = action.targetOwnerSide;
+            var list = side == 0 ? attackerCards : defenderCards;
+            var container = side == 0 ? attackerBoardContainer : defenderBoardContainer;
+            var visual = CreateCardVisual(container, tokenSnap, side, list.Count);
+            if (visual != null)
+            {
+                list.Add(visual);
+                if (VFXManager.Instance != null)
+                    VFXManager.Instance.PlayBuffVFX(visual.transform.position);
+            }
 
             yield return new WaitForSeconds(duration);
         }

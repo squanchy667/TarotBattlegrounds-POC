@@ -123,7 +123,21 @@ public static class CombatManager
             SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, aBoardCopy, null, aSnapshot);
         }
 
-        // T104: Apply Aura effects at combat start (after synergies)
+        // Fire StartOfCombat ability triggers (e.g., Warlord Supreme's buff)
+        foreach (var card in pBoardCopy)
+        {
+            if (card.health <= 0) continue;
+            var ctx = new AbilityContext { SourceCard = card, OwnerBoard = pBoardCopy, EnemyBoard = aBoardCopy };
+            AbilityManager.TriggerAbilities(AbilityTrigger.StartOfCombat, ctx);
+        }
+        foreach (var card in aBoardCopy)
+        {
+            if (card.health <= 0) continue;
+            var ctx = new AbilityContext { SourceCard = card, OwnerBoard = aBoardCopy, EnemyBoard = pBoardCopy };
+            AbilityManager.TriggerAbilities(AbilityTrigger.StartOfCombat, ctx);
+        }
+
+        // T104: Apply Aura effects at combat start (after synergies and StartOfCombat abilities)
         AuraManager.RefreshAuras(pBoardCopy, null);
         AuraManager.RefreshAuras(aBoardCopy, null);
 
