@@ -54,7 +54,53 @@ public class Card : ScriptableObject
         OnAttackBonusDamage,
         OnAttackCleave,
         // Passive
-        Taunt
+        Taunt,
+
+        // ====== Phase II Effects (T101-T104) ======
+
+        // OnAllyDeath effects
+        OnAllyDeathBuffSelf,            // This card gains +X/+X whenever an ally dies
+        OnAllyDeathBuffRandom,          // Give a random ally +X/+X whenever an ally dies
+
+        // OnAllySummoned effects
+        OnAllySummonedBuffSummoned,     // Give the summoned card +X/+X
+        OnAllySummonedBuffSelf,         // This card gains +X Attack per summon
+
+        // OnSell effects
+        OnSellGainCoins,                // Gain X extra coins on sell
+        OnSellBuffAllRemaining,         // Give all remaining allies +X/+X on sell
+
+        // Aura effects
+        AuraBuffTribematesAttack,       // Aura: +X Attack to all friendly tribe members
+        AuraBuffAdjacentStats,          // Aura: +X/+X to adjacent cards
+        AuraBuffAllFriendlyAttack,      // Aura: +X Attack to all other friendly cards
+
+        // ====== Phase II Effects (T105-T112) ======
+
+        // Passive keyword effects
+        Reborn,                         // Passive: Revive once with 1 HP after death
+        Windfury,                       // Passive: Attack twice per combat turn
+        Venomous,                       // Passive: Instantly kill any minion damaged by this
+
+        // Summon Token effects
+        SummonTokenOnDeath,             // Deathrattle: Summon a X/X token
+        SummonTokenOnPlay,              // Battlecry: Summon a X/X token
+
+        // OnAttack effects
+        StealBuffOnAttack,              // OnAttack: Steal +X/+X from target
+
+        // Passive effects
+        GainArmor,                      // Passive: Reduce incoming damage by X (min 1)
+
+        // Tribe buff effects
+        BuffAllTribeOnPlay,             // Battlecry: Give all same-tribe +X/+X
+        BuffAllTribeOnDeath,            // Deathrattle: Give all same-tribe +X/+X
+
+        // Transform effects
+        RandomTransformOnDeath,         // Deathrattle: Transform into a random card
+
+        // Additional Battlecry effects
+        BuffSelfHealth                  // Battlecry: Gain +X Health
     }
 
     [Header("Economy")]
@@ -65,6 +111,14 @@ public class Card : ScriptableObject
     [System.NonSerialized] public bool isGolden = false;
 
     [System.NonSerialized] public bool hasAegis;
+
+    // Phase II passive keyword flags (T105-T107, T110)
+    [System.NonSerialized] public bool hasReborn;
+    [System.NonSerialized] public bool hasWindfury;
+    [System.NonSerialized] public bool hasVenomous;
+    [System.NonSerialized] public int armor;
+    /// <summary>Temporary attack bonus from OnAttackBonusDamage, cleared after each strike.</summary>
+    [System.NonSerialized] public int tempBonusDamage;
 
     // Original stats for resetting when sold
     [System.NonSerialized] private int _baseAttack;
@@ -84,6 +138,23 @@ public class Card : ScriptableObject
         if (ability != null)
         {
             AbilityManager.RegisterAbility(this, ability);
+        }
+
+        // T105-T107, T110: Set passive keyword flags
+        switch (abilityEffect)
+        {
+            case AbilityEffectType.Reborn:
+                hasReborn = true;
+                break;
+            case AbilityEffectType.Windfury:
+                hasWindfury = true;
+                break;
+            case AbilityEffectType.Venomous:
+                hasVenomous = true;
+                break;
+            case AbilityEffectType.GainArmor:
+                armor = abilityValue;
+                break;
         }
     }
 
@@ -127,6 +198,68 @@ public class Card : ScriptableObject
             case AbilityEffectType.Taunt:
                 return new TauntAbility();
 
+            // OnAllyDeath effects (T101)
+            case AbilityEffectType.OnAllyDeathBuffSelf:
+                return new OnAllyDeathAbility(OnAllyDeathAbility.OnAllyDeathEffect.BuffSelfStats, abilityValue);
+            case AbilityEffectType.OnAllyDeathBuffRandom:
+                return new OnAllyDeathAbility(OnAllyDeathAbility.OnAllyDeathEffect.BuffRandomAllyStats, abilityValue);
+
+            // OnAllySummoned effects (T102)
+            case AbilityEffectType.OnAllySummonedBuffSummoned:
+                return new OnAllySummonedAbility(OnAllySummonedAbility.OnAllySummonedEffect.BuffSummonedStats, abilityValue);
+            case AbilityEffectType.OnAllySummonedBuffSelf:
+                return new OnAllySummonedAbility(OnAllySummonedAbility.OnAllySummonedEffect.BuffSelfAttack, abilityValue);
+
+            // OnSell effects (T103)
+            case AbilityEffectType.OnSellGainCoins:
+                return new OnSellAbility(OnSellAbility.OnSellEffect.GainCoins, abilityValue);
+            case AbilityEffectType.OnSellBuffAllRemaining:
+                return new OnSellAbility(OnSellAbility.OnSellEffect.BuffAllRemainingStats, abilityValue);
+
+            // Aura effects (T104)
+            case AbilityEffectType.AuraBuffTribematesAttack:
+                return new AuraAbility(AuraAbility.AuraEffect.BuffTribematesAttack, abilityValue);
+            case AbilityEffectType.AuraBuffAdjacentStats:
+                return new AuraAbility(AuraAbility.AuraEffect.BuffAdjacentStats, abilityValue);
+            case AbilityEffectType.AuraBuffAllFriendlyAttack:
+                return new AuraAbility(AuraAbility.AuraEffect.BuffAllFriendlyAttack, abilityValue);
+
+            // Passive keyword effects (T105-T107)
+            case AbilityEffectType.Reborn:
+                return new RebornAbility();
+            case AbilityEffectType.Windfury:
+                return new WindfuryAbility();
+            case AbilityEffectType.Venomous:
+                return new VenomousAbility();
+
+            // Summon Token effects (T108)
+            case AbilityEffectType.SummonTokenOnDeath:
+                return new SummonTokenAbility(SummonTokenAbility.SummonTrigger.OnDeath, abilityValue);
+            case AbilityEffectType.SummonTokenOnPlay:
+                return new SummonTokenAbility(SummonTokenAbility.SummonTrigger.OnPlay, abilityValue);
+
+            // StealBuff OnAttack (T109)
+            case AbilityEffectType.StealBuffOnAttack:
+                return new StealBuffAbility(abilityValue);
+
+            // GainArmor passive (T110)
+            case AbilityEffectType.GainArmor:
+                return new GainArmorAbility(abilityValue);
+
+            // BuffAllTribes (T111)
+            case AbilityEffectType.BuffAllTribeOnPlay:
+                return new BuffAllTribesAbility(AbilityTrigger.Battlecry, abilityValue);
+            case AbilityEffectType.BuffAllTribeOnDeath:
+                return new BuffAllTribesAbility(AbilityTrigger.Deathrattle, abilityValue);
+
+            // RandomTransform (T112)
+            case AbilityEffectType.RandomTransformOnDeath:
+                return new RandomTransformAbility();
+
+            // Additional Battlecry
+            case AbilityEffectType.BuffSelfHealth:
+                return new BattlecryAbility(BattlecryAbility.BattlecryEffect.BuffSelfHealth, abilityValue);
+
             default:
                 return null;
         }
@@ -157,6 +290,10 @@ public class Card : ScriptableObject
         clone.effectType = this.effectType;
         clone.effectParameter = this.effectParameter;
         clone.hasAegis = this.hasAegis;
+        clone.hasReborn = this.hasReborn;
+        clone.hasWindfury = this.hasWindfury;
+        clone.hasVenomous = this.hasVenomous;
+        clone.armor = this.armor;
         // BUG FIX: Do NOT copy isGolden! It should ONLY be set by CreateGoldenVersion()
         // clone.isGolden = this.isGolden; // REMOVED - was causing golden contamination
         clone.isGolden = false; // Always start as non-golden
@@ -291,6 +428,11 @@ public class Card : ScriptableObject
 
         // Also reset any combat-related state
         hasAegis = false;
+        hasReborn = false;
+        hasWindfury = false;
+        hasVenomous = false;
+        armor = 0;
+        tempBonusDamage = 0;
         isGolden = false; // Reset golden status when card returns to pool
         _hasStoredBaseStats = false;
 

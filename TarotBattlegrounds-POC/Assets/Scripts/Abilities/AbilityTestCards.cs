@@ -183,6 +183,28 @@ public static class AbilityTestCards
             Card.AbilityEffectType.OnAttackBonusDamage => AbilityTrigger.OnAttack,
             Card.AbilityEffectType.OnAttackCleave => AbilityTrigger.OnAttack,
             Card.AbilityEffectType.Taunt => AbilityTrigger.None, // Passive
+            // Phase II triggers
+            Card.AbilityEffectType.OnAllyDeathBuffSelf => AbilityTrigger.OnAllyDeath,
+            Card.AbilityEffectType.OnAllyDeathBuffRandom => AbilityTrigger.OnAllyDeath,
+            Card.AbilityEffectType.OnAllySummonedBuffSummoned => AbilityTrigger.OnAllySummoned,
+            Card.AbilityEffectType.OnAllySummonedBuffSelf => AbilityTrigger.OnAllySummoned,
+            Card.AbilityEffectType.OnSellGainCoins => AbilityTrigger.OnSell,
+            Card.AbilityEffectType.OnSellBuffAllRemaining => AbilityTrigger.OnSell,
+            Card.AbilityEffectType.AuraBuffTribematesAttack => AbilityTrigger.Aura,
+            Card.AbilityEffectType.AuraBuffAdjacentStats => AbilityTrigger.Aura,
+            Card.AbilityEffectType.AuraBuffAllFriendlyAttack => AbilityTrigger.Aura,
+            // Phase II T105-T112 triggers
+            Card.AbilityEffectType.Reborn => AbilityTrigger.None,
+            Card.AbilityEffectType.Windfury => AbilityTrigger.None,
+            Card.AbilityEffectType.Venomous => AbilityTrigger.None,
+            Card.AbilityEffectType.SummonTokenOnDeath => AbilityTrigger.Deathrattle,
+            Card.AbilityEffectType.SummonTokenOnPlay => AbilityTrigger.Battlecry,
+            Card.AbilityEffectType.StealBuffOnAttack => AbilityTrigger.OnAttack,
+            Card.AbilityEffectType.GainArmor => AbilityTrigger.None,
+            Card.AbilityEffectType.BuffAllTribeOnPlay => AbilityTrigger.Battlecry,
+            Card.AbilityEffectType.BuffAllTribeOnDeath => AbilityTrigger.Deathrattle,
+            Card.AbilityEffectType.RandomTransformOnDeath => AbilityTrigger.Deathrattle,
+            Card.AbilityEffectType.BuffSelfHealth => AbilityTrigger.Battlecry,
             _ => AbilityTrigger.None
         };
     }
@@ -204,6 +226,28 @@ public static class AbilityTestCards
             Card.AbilityEffectType.OnAttackBonusDamage => $"On Attack: Deal +{value} bonus damage",
             Card.AbilityEffectType.OnAttackCleave => "On Attack: Also damages adjacent enemies",
             Card.AbilityEffectType.Taunt => "Taunt",
+            // Phase II descriptions
+            Card.AbilityEffectType.OnAllyDeathBuffSelf => $"Whenever a friendly minion dies, gain +{value}/+{value}",
+            Card.AbilityEffectType.OnAllyDeathBuffRandom => $"Whenever a friendly minion dies, give a random friendly +{value}/+{value}",
+            Card.AbilityEffectType.OnAllySummonedBuffSummoned => $"Whenever a friendly minion is summoned, give it +{value}/+{value}",
+            Card.AbilityEffectType.OnAllySummonedBuffSelf => $"Whenever a friendly minion is summoned, gain +{value} Attack",
+            Card.AbilityEffectType.OnSellGainCoins => $"Sell: Gain {value} extra coin(s)",
+            Card.AbilityEffectType.OnSellBuffAllRemaining => $"Sell: Give all remaining allies +{value}/+{value}",
+            Card.AbilityEffectType.AuraBuffTribematesAttack => $"Aura: Other friendly tribe members have +{value} Attack",
+            Card.AbilityEffectType.AuraBuffAdjacentStats => $"Aura: Adjacent minions have +{value}/+{value}",
+            Card.AbilityEffectType.AuraBuffAllFriendlyAttack => $"Aura: All other friendly minions have +{value} Attack",
+            // Phase II T105-T112 descriptions
+            Card.AbilityEffectType.Reborn => "Reborn: Revives with 1 Health after first death",
+            Card.AbilityEffectType.Windfury => "Windfury: Attacks twice per turn",
+            Card.AbilityEffectType.Venomous => "Venomous: Destroy any minion damaged by this",
+            Card.AbilityEffectType.SummonTokenOnDeath => $"Deathrattle: Summon a {value}/{value} token",
+            Card.AbilityEffectType.SummonTokenOnPlay => $"Battlecry: Summon a {value}/{value} token",
+            Card.AbilityEffectType.StealBuffOnAttack => $"On Attack: Steal +{value}/+{value} from target",
+            Card.AbilityEffectType.GainArmor => $"Armor {value}: Reduces incoming damage by {value}",
+            Card.AbilityEffectType.BuffAllTribeOnPlay => $"Battlecry: Give all friendly same-tribe minions +{value}/+{value}",
+            Card.AbilityEffectType.BuffAllTribeOnDeath => $"Deathrattle: Give all friendly same-tribe minions +{value}/+{value}",
+            Card.AbilityEffectType.RandomTransformOnDeath => "Deathrattle: Transform into a random card",
+            Card.AbilityEffectType.BuffSelfHealth => $"Battlecry: Gain +{value} Health",
             _ => ""
         };
     }

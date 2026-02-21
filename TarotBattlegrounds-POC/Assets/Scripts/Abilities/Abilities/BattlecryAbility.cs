@@ -27,7 +27,8 @@ public class BattlecryAbility : AbilityBase
         DealDamageToRandom,         // Deal X damage to random enemy (for combat start)
         GainAegis,                  // This card gains Aegis
         DrawCard,                   // Draw X cards (placeholder for future)
-        GainCoins                   // Gain X coins
+        GainCoins,                  // Gain X coins
+        BuffSelfHealth              // This card gains +X Health
     }
 
     public BattlecryAbility(BattlecryEffect effect, int value)
@@ -52,6 +53,7 @@ public class BattlecryAbility : AbilityBase
             BattlecryEffect.GainAegis => "Battlecry: Gain Aegis",
             BattlecryEffect.DrawCard => $"Battlecry: Draw {_value} card(s)",
             BattlecryEffect.GainCoins => $"Battlecry: Gain {_value} coin(s)",
+            BattlecryEffect.BuffSelfHealth => $"Battlecry: Gain +{_value} Health",
             _ => "Battlecry: Unknown effect"
         };
     }
@@ -94,6 +96,9 @@ public class BattlecryAbility : AbilityBase
                     context.Owner.coins += _value;
                     Debug.Log($"[Battlecry] {context.SourceCard.cardName} grants {_value} coins");
                 }
+                break;
+            case BattlecryEffect.BuffSelfHealth:
+                AbilityEffects.BuffHealth(context.SourceCard, _value);
                 break;
         }
     }

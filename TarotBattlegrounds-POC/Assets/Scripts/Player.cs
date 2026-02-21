@@ -246,6 +246,18 @@ public class Player : MonoBehaviour
                 Debug.Log($"[Synergy] Sell bonus: +{synergyBonus} gold");
         }
 
+        // T103: Fire OnSell ability before unregistering
+        var sellContext = new AbilityContext
+        {
+            SourceCard = card,
+            Owner = this,
+            OwnerBoard = board
+        };
+        AbilityManager.TriggerAbilities(AbilityTrigger.OnSell, sellContext);
+
+        // T104: Remove auras for the sold card before it leaves board
+        AuraManager.RemoveAurasForCard(card, board, this);
+
         coins += value; // This triggers OnCoinsChanged via property setter
         AbilityManager.UnregisterCard(card); // Clean up abilities
 
@@ -260,6 +272,9 @@ public class Player : MonoBehaviour
             tavern.ReturnCardToPool(card);
         }
         board.RemoveAt(index);
+
+        // T104: Refresh remaining auras after board shrinks
+        AuraManager.RefreshAuras(board, this);
 
         // Fire events
         OnBoardChanged?.Invoke();
@@ -284,6 +299,16 @@ public class Player : MonoBehaviour
 
         Card card = hand[index];
         int value = Mathf.Max(0, 1 + card.sellValueModifier);
+
+        // T103: Fire OnSell ability before unregistering (works for hand sells too)
+        var sellContext = new AbilityContext
+        {
+            SourceCard = card,
+            Owner = this,
+            OwnerBoard = board
+        };
+        AbilityManager.TriggerAbilities(AbilityTrigger.OnSell, sellContext);
+
         coins += value; // This triggers OnCoinsChanged via property setter
         AbilityManager.UnregisterCard(card); // Clean up abilities
 
@@ -467,6 +492,12 @@ public class Player : MonoBehaviour
         var battlecryContext = AbilityManager.CreateBattlecryContext(card, this);
         AbilityManager.TriggerAbilities(AbilityTrigger.Battlecry, battlecryContext);
 
+        // T102: Fire OnAllySummoned for all other board cards
+        FireOnAllySummoned(card);
+
+        // T104: Refresh auras after board state changes
+        AuraManager.RefreshAuras(board, this);
+
         // Fire events
         OnHandChanged?.Invoke();
         OnBoardChanged?.Invoke();
@@ -537,6 +568,25 @@ public class Player : MonoBehaviour
         Debug.Log($"Player {playerId}: Recruit phase ended. Synergy effects triggered.");
     }
     
+    /// <summary>
+    /// Notify all other board cards that a friendly card was summoned.
+    /// </summary>
+    private void FireOnAllySummoned(Card summonedCard)
+    {
+        foreach (var card in board)
+        {
+            if (card == summonedCard || card.health <= 0) continue;
+            var context = new AbilityContext
+            {
+                SourceCard = card,
+                TargetCard = summonedCard,
+                Owner = this,
+                OwnerBoard = board
+            };
+            AbilityManager.TriggerAbilities(AbilityTrigger.OnAllySummoned, context);
+        }
+    }
+
     private void TriggerSummoning(Card card)
     {
         if (card.effectType != Card.EffectType.Summoning) return;

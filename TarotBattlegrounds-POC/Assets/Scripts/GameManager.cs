@@ -2,6 +2,8 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TarotBattlegrounds.Combat.Animator;
+using TarotBattlegrounds.Combat.Audio;
 #if PHOTON_UNITY_NETWORKING
 using Photon.Pun;
 #endif
@@ -305,6 +307,7 @@ public class GameManager : MonoBehaviour
         // Offline mode: normal initialization
         InitializePlayers();
         InitializeAI();
+        InitializeHeroPowers();
         StartCoroutine(GameLoop());
     }
 
@@ -457,6 +460,29 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
+    /// T115: Auto-assign hero powers for all players at game start.
+    /// AI players get random assignments. Human players would get a selection UI (Phase V).
+    /// </summary>
+    private void InitializeHeroPowers()
+    {
+        if (HeroPowerManager.Instance == null)
+        {
+            Debug.Log("[GameManager] No HeroPowerManager found, skipping hero power init");
+            return;
+        }
+
+        for (int i = 0; i < playerCount; i++)
+        {
+            if (playerHealths[i] <= 0) continue;
+            // For now, auto-assign random hero powers for all players
+            // Human player selection UI will be added in Phase V
+            HeroPowerManager.Instance.AutoAssignForAI(players[i].playerId);
+        }
+
+        Debug.Log($"[GameManager] Hero powers assigned for {playerCount} players");
+    }
+
+    /// <summary>
     /// Called by NetworkGameSetup after slot assignment is complete.
     /// Host starts the game loop; clients just wait for state syncs.
     /// </summary>
@@ -520,6 +546,13 @@ public class GameManager : MonoBehaviour
             {
                 if (p1 >= 0 && p2 >= 0 && p1 < playerCount && p2 < playerCount)
                 {
+                    // T115: Trigger combat-start passive hero powers before battle
+                    if (HeroPowerManager.Instance != null)
+                    {
+                        HeroPowerManager.Instance.TriggerCombatPassives(players[p1]);
+                        HeroPowerManager.Instance.TriggerCombatPassives(players[p2]);
+                    }
+
                     var board1 = players[p1].board;
                     var board2 = players[p2].board;
                     string p1Name = $"Player {p1 + 1}" + (GameConfig.IsHumanPlayer(p1) ? "" : " (AI)");
@@ -528,6 +561,16 @@ public class GameManager : MonoBehaviour
                     Debug.Log($"[Combat] {p1Name} vs {p2Name}");
                     Debug.Log($"  {p1Name} Board: " + string.Join(", ", board1.Select(c => c.cardName)));
                     Debug.Log($"  {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName)));
+
+                    // T316: Play animated combat replay if this is the local player's battle
+                    if (CombatAnimator.Instance != null && CombatManager.lastReplay != null
+                        && IsLocalPlayerBattle(p1, p2))
+                    {
+                        CombatAnimator.Instance.PlayReplay(CombatManager.lastReplay);
+                        // Wait for animation to complete before proceeding
+                        while (CombatAnimator.Instance.IsPlaying)
+                            yield return null;
+                    }
 
                     int winnerIndex;
                     if (winner == "Tie")
@@ -610,8 +653,29 @@ public class GameManager : MonoBehaviour
                 TriggerGameOver(-1);
                 yield break;
             }
-            yield return new WaitForSeconds(5f);
+            // Shorten post-combat delay if animated replay already ran
+            float postCombatDelay = CombatAnimator.Instance != null ? 1f : 5f;
+            yield return new WaitForSeconds(postCombatDelay);
         }
+    }
+
+    /// <summary>
+    /// T316: Check if a battle involves the local/human player for animated replay.
+    /// </summary>
+    private bool IsLocalPlayerBattle(int p1, int p2)
+    {
+        // In offline mode, check if either player is the human player
+        if (!IsOnlineMode)
+            return GameConfig.IsHumanPlayer(p1) || GameConfig.IsHumanPlayer(p2);
+
+#if PHOTON_UNITY_NETWORKING
+        if (NetworkGameBridge.Instance != null)
+        {
+            int localSlot = NetworkGameBridge.Instance.LocalPlayerSlot;
+            return p1 == localSlot || p2 == localSlot;
+        }
+#endif
+        return false;
     }
 
     /// <summary>
@@ -678,6 +742,10 @@ public class GameManager : MonoBehaviour
     {
         currentPhase = GamePhase.Recruit;
 
+        // T315: Play recruit music
+        if (MusicManager.Instance != null)
+            MusicManager.Instance.PlayRecruitMusic();
+
 #if PHOTON_UNITY_NETWORKING
         // Broadcast phase change to clients
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
@@ -710,6 +778,17 @@ public class GameManager : MonoBehaviour
                 player.RefreshShop(turnNumber);
             }
             Debug.Log($"Player {i + 1} Recruit Start: Coins = {player.coins}/{expectedCoins}, Upgrade Cost = {player.GetUpgradeCost()}, Current Tier = {player.currentTavernTier}, Hand Size = {player.hand.Count}, Board Size = {player.board.Count}");
+        }
+
+        // T113/T115: Reset hero powers for new turn and trigger recruit passives
+        if (HeroPowerManager.Instance != null)
+        {
+            HeroPowerManager.Instance.ResetAllForNewTurn();
+            for (int i = 0; i < playerCount; i++)
+            {
+                if (playerHealths[i] <= 0) continue;
+                HeroPowerManager.Instance.TriggerRecruitPassives(players[i]);
+            }
         }
 
         // Reset ready state for new recruit phase

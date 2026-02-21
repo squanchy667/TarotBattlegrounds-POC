@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using TarotBattlegrounds.Combat.Replay;
 
 /// <summary>
 /// Combat log entry for UI visualization
@@ -38,14 +39,24 @@ public static class CombatManager
     public static event Action<string, string> OnCombatStart; // (player1Name, player2Name)
     public static event Action<CombatLogEntry> OnCombatLogEntry;
     public static event Action<string, int> OnCombatEnd; // (winnerName, damage)
-    
+
+    /// <summary>
+    /// The replay recorded during the most recent SimulateBattle() call.
+    /// Null if recordReplay was false or no combat has run yet.
+    /// </summary>
+    public static CombatReplay lastReplay { get; private set; }
+
     /// <summary>
     /// Simulate a battle between two boards
     /// </summary>
-    public static (int damage, string winner) SimulateBattle(List<Card> pBoard, List<Card> aBoard, int pTavernTier, int aTavernTier, string pName, string aName)
+    public static (int damage, string winner) SimulateBattle(List<Card> pBoard, List<Card> aBoard, int pTavernTier, int aTavernTier, string pName, string aName, bool recordReplay = true)
     {
         Debug.Log($"CombatManager: Simulating battle with {pName}={pBoard.Count} (Tier {pTavernTier}), {aName}={aBoard.Count} (Tier {aTavernTier})");
-        
+
+        // Replay recording setup
+        CombatReplay replay = recordReplay ? CombatReplay.CreateEmpty() : null;
+        lastReplay = null;
+
         // Notify combat start
         OnCombatStart?.Invoke(pName, aName);
         
@@ -112,11 +123,26 @@ public static class CombatManager
             SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, aBoardCopy, null, aSnapshot);
         }
 
+        // T104: Apply Aura effects at combat start (after synergies)
+        AuraManager.RefreshAuras(pBoardCopy, null);
+        AuraManager.RefreshAuras(aBoardCopy, null);
+
         // Determine who attacks first
         bool pFirst = UnityEngine.Random.value > 0.5f;
         string firstPlayer = pFirst ? pName : aName;
         string secondPlayer = pFirst ? aName : pName;
-        
+
+        // T301: Build board snapshot now that attacker side is determined
+        if (replay != null)
+        {
+            var attackerClones = pFirst ? pBoardCopy : aBoardCopy;
+            var defenderClones = pFirst ? aBoardCopy : pBoardCopy;
+            replay.initialState = CombatReplayState.FromBoards(
+                attackerClones, defenderClones,
+                firstPlayer, secondPlayer, 0, 0);
+            replay.RecordCombatStart();
+        }
+
         LogEntry(new CombatLogEntry
         {
             Type = CombatLogEntry.LogType.TurnStart,
@@ -190,8 +216,17 @@ public static class CombatManager
                     
                     Debug.Log($"Run Attack - {attacker.cardName} ({attackerName}) targets {target.cardName} ({targetName}), damage {attacker.attack}");
 
-                    // Save original attack before OnAttack abilities (bonus damage temporarily boosts it)
-                    int originalAttack = attacker.attack;
+                    // Reset temporary bonus tracker before OnAttack abilities fire
+                    attacker.tempBonusDamage = 0;
+
+                    // T302: Record attack start
+                    if (replay != null)
+                    {
+                        int atkIdx = attackers.IndexOf(attacker);
+                        int tgtIdx = targetBoard.IndexOf(target);
+                        int atkSide = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
+                        replay.RecordAttack(atkIdx, atkSide, tgtIdx, 1 - atkSide);
+                    }
 
                     // Apply attack damage
                     if (target.hasAegis)
@@ -208,14 +243,39 @@ public static class CombatManager
                         });
                         Debug.Log($"Aegis: {target.cardName} ({targetName}) blocks attack");
                         target.hasAegis = false;
+
+                        // T302: Record aegis pop
+                        if (replay != null)
+                        {
+                            int tgtIdx = targetBoard.IndexOf(target);
+                            int tgtSide = isP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1);
+                            replay.RecordAegisPopped(tgtIdx, tgtSide);
+                        }
                     }
                     else
                     {
                         // Trigger OnAttack abilities only when attack connects (not blocked by Aegis)
                         TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target, attackers, targetBoard);
 
-                        target.health -= attacker.attack;
-                        
+                        // T110: Apply armor damage reduction
+                        int actualDamage = GainArmorAbility.ApplyArmor(target, attacker.attack);
+                        target.health -= actualDamage;
+
+                        // T107: Venomous instant kill
+                        if (VenomousAbility.HasVenomous(attacker) && target.health > 0)
+                        {
+                            Debug.Log($"[Venomous] {attacker.cardName} poisons {target.cardName} — instant kill!");
+                            target.health = 0;
+                        }
+
+                        // T302: Record damage taken
+                        if (replay != null)
+                        {
+                            int tgtIdx = targetBoard.IndexOf(target);
+                            int tgtSide = isP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1);
+                            replay.RecordTakeDamage(tgtIdx, tgtSide, actualDamage, target.health);
+                        }
+
                         LogEntry(new CombatLogEntry
                         {
                             Type = CombatLogEntry.LogType.Attack,
@@ -223,20 +283,38 @@ public static class CombatManager
                             DefenderName = target.cardName,
                             AttackerOwner = attackerName,
                             DefenderOwner = targetName,
-                            Damage = attacker.attack,
+                            Damage = actualDamage,
                             RemainingHealth = target.health,
-                            Message = $"{attacker.cardName} attacks {target.cardName} for {attacker.attack} damage!",
+                            Message = $"{attacker.cardName} attacks {target.cardName} for {actualDamage} damage!",
                             TurnNumber = turnCount
                         });
-                        
+
                         Debug.Log($"Post-attack: {target.cardName} ({targetName}) health now {target.health}");
                     }
-                    
+
                     // Apply counterattack damage
                     if (!attacker.hasAegis)
                     {
-                        attacker.health -= target.attack;
-                        
+                        // T110: Apply armor damage reduction to counterattack
+                        int counterDamage = GainArmorAbility.ApplyArmor(attacker, target.attack);
+                        attacker.health -= counterDamage;
+
+                        // T107: Venomous counterattack instant kill
+                        if (VenomousAbility.HasVenomous(target) && attacker.health > 0)
+                        {
+                            Debug.Log($"[Venomous] {target.cardName} poisons {attacker.cardName} on counterattack — instant kill!");
+                            attacker.health = 0;
+                        }
+
+                        // T302: Record counterattack
+                        if (replay != null)
+                        {
+                            int atkIdx = attackers.IndexOf(attacker);
+                            int atkSide = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
+                            int tgtIdx = targetBoard.IndexOf(target);
+                            replay.RecordCounterattack(tgtIdx, 1 - atkSide, atkIdx, atkSide, counterDamage, attacker.health);
+                        }
+
                         LogEntry(new CombatLogEntry
                         {
                             Type = CombatLogEntry.LogType.Counterattack,
@@ -244,12 +322,12 @@ public static class CombatManager
                             DefenderName = attacker.cardName,
                             AttackerOwner = targetName,
                             DefenderOwner = attackerName,
-                            Damage = target.attack,
+                            Damage = counterDamage,
                             RemainingHealth = attacker.health,
-                            Message = $"{target.cardName} counterattacks for {target.attack} damage!",
+                            Message = $"{target.cardName} counterattacks for {counterDamage} damage!",
                             TurnNumber = turnCount
                         });
-                        
+
                         Debug.Log($"Post-counterattack: {attacker.cardName} ({attackerName}) health now {attacker.health}");
                     }
                     else
@@ -268,12 +346,100 @@ public static class CombatManager
                         attacker.hasAegis = false;
                     }
 
-                    // Restore original attack after damage (bonus damage was temporary)
-                    attacker.attack = originalAttack;
+                    // Undo only temporary bonus damage (StealBuff's permanent steal is preserved)
+                    if (attacker.tempBonusDamage > 0)
+                    {
+                        attacker.attack -= attacker.tempBonusDamage;
+                        attacker.tempBonusDamage = 0;
+                    }
 
                     // Process all deaths from this attack using death queue
                     // Handles cleave victims, deterministic deathrattle order, and cascade deaths
-                    ProcessDeaths(attackers, targetBoard, attackerName, targetName, turnCount);
+                    ProcessDeaths(attackers, targetBoard, attackerName, targetName, turnCount, replay, pFirst, isP);
+
+                    // T106: Windfury — second attack if attacker survived
+                    if (WindfuryAbility.HasWindfury(attacker) && attacker.health > 0)
+                    {
+                        var aliveTargets2 = targetBoard.Where(c => c.health > 0).ToList();
+                        if (aliveTargets2.Count > 0)
+                        {
+                            var guardianTarget2 = aliveTargets2.FirstOrDefault(c =>
+                                c.effectType == Card.EffectType.Guardian ||
+                                c.abilityEffect == Card.AbilityEffectType.Taunt);
+                            Card target2 = guardianTarget2 ?? aliveTargets2.OrderBy(x => UnityEngine.Random.value).FirstOrDefault();
+
+                            if (target2 != null)
+                            {
+                                Debug.Log($"[Windfury] {attacker.cardName} attacks again!");
+                                attacker.tempBonusDamage = 0;
+
+                                if (replay != null)
+                                {
+                                    int atkIdx2 = attackers.IndexOf(attacker);
+                                    int tgtIdx2 = targetBoard.IndexOf(target2);
+                                    int atkSide2 = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
+                                    replay.RecordAttack(atkIdx2, atkSide2, tgtIdx2, 1 - atkSide2);
+                                }
+
+                                if (target2.hasAegis)
+                                {
+                                    target2.hasAegis = false;
+                                    Debug.Log($"[Windfury] {target2.cardName}'s Aegis blocks second attack");
+                                    if (replay != null)
+                                    {
+                                        int tgtIdx2 = targetBoard.IndexOf(target2);
+                                        int tgtSide2 = isP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1);
+                                        replay.RecordAegisPopped(tgtIdx2, tgtSide2);
+                                    }
+                                }
+                                else
+                                {
+                                    TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target2, attackers, targetBoard);
+                                    int wfDamage = GainArmorAbility.ApplyArmor(target2, attacker.attack);
+                                    target2.health -= wfDamage;
+                                    if (VenomousAbility.HasVenomous(attacker) && target2.health > 0)
+                                        target2.health = 0;
+
+                                    if (replay != null)
+                                    {
+                                        int tgtIdx2 = targetBoard.IndexOf(target2);
+                                        int tgtSide2 = isP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1);
+                                        replay.RecordTakeDamage(tgtIdx2, tgtSide2, wfDamage, target2.health);
+                                    }
+
+                                    Debug.Log($"[Windfury] {attacker.cardName} hits {target2.cardName} for {wfDamage} (health: {target2.health})");
+                                }
+
+                                // Counterattack for Windfury second strike
+                                if (!attacker.hasAegis)
+                                {
+                                    int wfCounter = GainArmorAbility.ApplyArmor(attacker, target2.attack);
+                                    attacker.health -= wfCounter;
+                                    if (VenomousAbility.HasVenomous(target2) && attacker.health > 0)
+                                        attacker.health = 0;
+
+                                    if (replay != null)
+                                    {
+                                        int atkIdx2 = attackers.IndexOf(attacker);
+                                        int atkSide2 = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
+                                        replay.RecordCounterattack(targetBoard.IndexOf(target2), 1 - atkSide2, atkIdx2, atkSide2, wfCounter, attacker.health);
+                                    }
+                                }
+                                else
+                                {
+                                    attacker.hasAegis = false;
+                                }
+
+                                // Undo only temporary bonus damage for windfury strike
+                                if (attacker.tempBonusDamage > 0)
+                                {
+                                    attacker.attack -= attacker.tempBonusDamage;
+                                    attacker.tempBonusDamage = 0;
+                                }
+                                ProcessDeaths(attackers, targetBoard, attackerName, targetName, turnCount, replay, pFirst, isP);
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -332,6 +498,29 @@ public static class CombatManager
         
         Debug.Log($"Outcome: {(winner == "Tie" ? "Both boards empty, Tie" : $"{winner} wins")}, Surviving tier sum = {survivingTier}, Damage = {finalDamage}");
         
+        // T302: Populate replay result
+        if (replay != null)
+        {
+            var survivingBoard = pAlive > 0 ? pBoardCopy : (aAlive > 0 ? aBoardCopy : new List<Card>());
+            var survivors = new List<CombatCardSnapshot>();
+            for (int i = 0; i < survivingBoard.Count; i++)
+            {
+                if (survivingBoard[i].health > 0)
+                    survivors.Add(CombatCardSnapshot.FromCard(survivingBoard[i], i));
+            }
+
+            replay.result = new CombatReplayResult
+            {
+                winnerSide = winner == "Tie" ? "Tie" : (winner == pName ? (pFirst ? "attacker" : "defender") : (pFirst ? "defender" : "attacker")),
+                winnerName = winner,
+                damageDealt = finalDamage,
+                survivingCards = survivors,
+                turnCount = turnCount
+            };
+            replay.RecordCombatEnd();
+            lastReplay = replay;
+        }
+
         CleanupCombatClones(allClones);
         OnCombatEnd?.Invoke(winner, finalDamage);
 
@@ -353,7 +542,8 @@ public static class CombatManager
     /// Order: attacker board first (left to right), then defender board (left to right).
     /// </summary>
     private static void ProcessDeaths(List<Card> attackerBoard, List<Card> defenderBoard,
-        string attackerName, string defenderName, int turnCount)
+        string attackerName, string defenderName, int turnCount,
+        CombatReplay replay = null, bool pFirst = true, bool isAttackerP = true)
     {
         const int MAX_CASCADE_ITERATIONS = 10;
         int cascadeCount = 0;
@@ -383,12 +573,17 @@ public static class CombatManager
 
             foreach (var (deadCard, ownerBoard, ownerName, enemyBoard) in deathQueue)
             {
+                // T105: Check for Reborn before processing death
+                bool willReborn = RebornAbility.HasReborn(deadCard);
+
                 LogEntry(new CombatLogEntry
                 {
                     Type = CombatLogEntry.LogType.CardDeath,
                     DefenderName = deadCard.cardName,
                     DefenderOwner = ownerName,
-                    Message = $"{deadCard.cardName} is destroyed!",
+                    Message = willReborn
+                        ? $"{deadCard.cardName} is destroyed but will be Reborn!"
+                        : $"{deadCard.cardName} is destroyed!",
                     TurnNumber = turnCount
                 });
 
@@ -397,8 +592,38 @@ public static class CombatManager
 
                 TriggerCombatAbility(AbilityTrigger.Deathrattle, deadCard, null, ownerBoard, enemyBoard);
 
-                ownerBoard.Remove(deadCard);
-                Debug.Log($"{deadCard.cardName} removed from {ownerName} board");
+                // T302: Record death before removing from board
+                if (replay != null)
+                {
+                    int deadIdx = ownerBoard.IndexOf(deadCard);
+                    bool isOnAttackerBoard = ownerBoard == attackerBoard;
+                    int deadSide = isOnAttackerBoard ? (isAttackerP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0))
+                                                     : (isAttackerP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1));
+                    if (deadIdx >= 0)
+                        replay.RecordDie(deadIdx, deadSide);
+                }
+
+                // T105: Reborn — revive with 1 HP at same position, lose Reborn keyword
+                if (willReborn)
+                {
+                    int rebornIdx = ownerBoard.IndexOf(deadCard);
+                    deadCard.health = 1;
+                    deadCard.hasReborn = false;
+                    deadCard.hasAegis = false; // Reborn strips Aegis
+                    Debug.Log($"[Reborn] {deadCard.cardName} revives with 1 HP at position {rebornIdx}");
+                    // Card stays in the board at its current position — don't remove it
+                }
+                else
+                {
+                    ownerBoard.Remove(deadCard);
+                    Debug.Log($"{deadCard.cardName} removed from {ownerName} board");
+                }
+
+                // T101: Notify all surviving allies that a friendly card has died
+                TriggerOnAllyDeathForBoard(deadCard, ownerBoard, enemyBoard);
+
+                // T104: Refresh auras after board changes
+                AuraManager.RefreshAuras(ownerBoard, null);
             }
 
             cascadeCount++;
@@ -406,6 +631,26 @@ public static class CombatManager
 
         if (cascadeCount >= MAX_CASCADE_ITERATIONS)
             Debug.LogWarning($"[Death Queue] Reached max cascade iterations ({MAX_CASCADE_ITERATIONS})");
+    }
+
+    /// <summary>
+    /// Fire OnAllyDeath trigger on all surviving friendly cards after a death.
+    /// </summary>
+    private static void TriggerOnAllyDeathForBoard(Card deadCard, List<Card> survivingBoard, List<Card> enemyBoard)
+    {
+        foreach (var ally in survivingBoard)
+        {
+            if (ally.health <= 0) continue;
+            var context = new AbilityContext
+            {
+                SourceCard = ally,
+                TargetCard = deadCard,
+                OwnerBoard = survivingBoard,
+                EnemyBoard = enemyBoard,
+                Owner = null
+            };
+            AbilityManager.TriggerAbilities(AbilityTrigger.OnAllyDeath, context);
+        }
     }
 
     private static void TriggerEcho(Card dyingCard, List<Card> board, string ownerName, int turn)
