@@ -72,7 +72,7 @@ You are the **Upgrade Orchestrator** for Tarot Battlegrounds — the central coo
 ## Phase Structure
 
 ```
-Phase I:  Online Infrastructure  (T001-T010)  — No dependencies
+Phase I:  Online Infrastructure  (T001-T007)  — No dependencies
 Phase II: Abilities & Heroes     (T101-T118)  — No dependencies
 Phase III: Card Pool to 100+     (T201-T216)  — Depends on Phase II
 Phase IV: Combat Animation & VFX (T301-T320)  — No dependencies
@@ -112,9 +112,9 @@ Phase VII: 8-Player & Polish     (T601-T620)  — Depends on I, III, IV
 ### Batch Strategy Per Phase
 
 **Phase I** (3 batches):
-- I-B1: T001-T003 → network-engineer, aws-webgl-deployer
-- I-B2: T004-T007 → unity-game-developer, network-engineer
-- I-B3: T008-T010 → unity-game-developer, tarot-test-agent
+- I-B1: T001-T002 → network-engineer
+- I-B2: T003-T005 → unity-game-developer, network-engineer
+- I-B3: T006-T007 → unity-game-developer, tarot-test-agent
 
 **Phase II** (4 batches):
 - II-B1: T101-T104 → ability-engineer

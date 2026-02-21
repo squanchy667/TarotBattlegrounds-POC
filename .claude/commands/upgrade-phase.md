@@ -24,10 +24,10 @@ Execute upgrade phase $ARGUMENTS for Tarot Battlegrounds.
 
 Present the batch execution plan to the user:
 
-**Phase I** (3 batches, 10 tasks):
-- I-B1: T001-T003 → network-engineer, aws-webgl-deployer
-- I-B2: T004-T007 → unity-game-developer, network-engineer
-- I-B3: T008-T010 → unity-game-developer, tarot-test-agent
+**Phase I** (3 batches, 7 tasks — extends existing DevZone AWS stack):
+- I-B1: T001-T002 → network-engineer (PlayersTable + auth endpoints)
+- I-B2: T003-T005 → unity-game-developer, network-engineer (Unity auth + matchmaking)
+- I-B3: T006-T007 → unity-game-developer, tarot-test-agent (Photon integration + testing)
 
 **Phase II** (4 batches, 18 tasks):
 - II-B1: T101-T104 → ability-engineer

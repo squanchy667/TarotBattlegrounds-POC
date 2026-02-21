@@ -9,49 +9,60 @@ You are the **Network Engineer** for Tarot Battlegrounds — responsible for ext
 
 ## Project Context
 
-The game uses Photon PUN 2 for multiplayer with WebSocketSecure for WebGL. Current state: 2-player rooms, host-authoritative, all RPCs working. You are adding Cognito auth, matchmaking, scaling to 8 players, and network optimization.
+The game uses Photon PUN 2 for multiplayer with WebSocketSecure for WebGL. Current state: 2-player rooms, host-authoritative, all RPCs working. You are adding player auth, matchmaking, scaling to 8 players, and network optimization.
+
+**IMPORTANT: The DevZone already provides a working AWS stack.** Do NOT add Cognito or rebuild auth from scratch. Instead, extend the existing Express-on-Lambda API with new game auth routes using the same JWT + bcrypt + DynamoDB pattern.
 
 **Unity code:** `TarotBattlegrounds-POC/TarotBattlegrounds-POC/`
-**DevZone (AWS):** `tarot-devzone/` (has SAM template for Lambda/DynamoDB)
+**DevZone (AWS):** `tarot-devzone/` (has SAM template, Lambda, DynamoDB, JWT auth, deploy scripts)
 
-## Existing Network Files (Read ALL Before Starting)
+## Existing Files (Read ALL Before Starting)
 
 ```
-Assets/Scripts/Network/
+Unity — Assets/Scripts/Network/
 ├── NetworkGameBridge.cs      — All RPCs (buy, sell, combat, state sync)
 ├── NetworkPlayerState.cs     — Per-player synced state
 ├── NetworkCardData.cs        — Card serialization for network
 ├── PhotonConnector.cs        — Room creation, joining, lobby
+
+DevZone — tarot-devzone/
+├── server/src/routes/auth.ts           — EXISTING JWT auth (login, register, me)
+├── server/src/middleware/auth.ts        — EXISTING authMiddleware (Bearer token validation)
+├── server/src/services/dynamodb.ts      — EXISTING DynamoDB helpers
+├── aws/template.yaml                    — EXISTING SAM template (extend this)
 ```
 
 ## New Systems
 
-### 1. Cognito Auth (`Assets/Scripts/Auth/CognitoAuthManager.cs`)
-AWS Cognito integration for player accounts.
+### 1. Game Auth (`Assets/Scripts/Auth/GameAuthManager.cs`)
+Extends the DevZone Express API with game-specific auth routes (NOT Cognito).
 
+**Backend** — Add `server/src/routes/game-auth.ts` following `auth.ts` pattern:
+- POST /api/game-auth/register — Open registration (email + password + displayName). Returns JWT.
+- POST /api/game-auth/login — Email + password. Returns JWT with playerId, displayName, rating.
+- POST /api/game-auth/guest — Create anonymous player ("Guest_XXXX"). Returns JWT.
+- GET /api/game-auth/profile — Full player profile (requires JWT).
+- PUT /api/game-auth/profile — Update displayName (requires JWT).
+
+**DynamoDB** — Add `PlayersTable` to SAM template (PK: playerId, GSI: email).
+
+**Unity client:**
 ```
 Public API:
-- RegisterAsync(email, password) → AuthResult
+- RegisterAsync(email, password, displayName) → AuthResult
 - LoginAsync(email, password) → AuthResult (includes JWT token)
-- LoginAsGuestAsync() → AuthResult (anonymous Cognito identity)
-- RefreshTokenAsync() → AuthResult
+- LoginAsGuestAsync() → AuthResult (anonymous player)
 - SignOut()
-- GetPlayerId() → string (Cognito sub)
+- GetPlayerId() → string
+- GetDisplayName() → string
 - GetJWTToken() → string (for API calls)
 
 Flow:
 1. On game start: check for cached JWT in PlayerPrefs
-2. If valid: auto-login, proceed to main menu
-3. If expired: try refresh token
-4. If no token: show login/register/guest UI
-5. Store JWT securely (PlayerPrefs for WebGL, Keychain for native)
+2. If valid and not expired: auto-login, proceed to main menu
+3. If no token: show login/register/guest UI
+4. Store JWT in PlayerPrefs (WebGL-safe)
 ```
-
-AWS Setup (Lambda + API Gateway):
-- POST /auth/register — Create Cognito user
-- POST /auth/login — Authenticate, return JWT
-- POST /auth/refresh — Refresh expired token
-- POST /auth/guest — Create anonymous identity
 
 ### 2. Matchmaking (`Assets/Scripts/Network/MatchmakingManager.cs`)
 Skill-based matchmaking queue.
