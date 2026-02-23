@@ -11,6 +11,12 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private Button multiplayerButton;
     [SerializeField] private Button quitButton;
 
+    [Header("T416: Additional Menu Buttons")]
+    [SerializeField] private Button collectionButton;
+    [SerializeField] private Button settingsButton;
+    [SerializeField] private TarotBattlegrounds.UI.CollectionUI collectionUI;
+    [SerializeField] private TarotBattlegrounds.UI.SettingsUI settingsUI;
+
     [Header("Solo Panel")]
     [SerializeField] private GameObject soloPanel;
     [SerializeField] private Button players4Button;
@@ -34,6 +40,8 @@ public class MainMenuManager : MonoBehaviour
         if (soloButton != null) soloButton.onClick.AddListener(OnSoloClicked);
         if (multiplayerButton != null) multiplayerButton.onClick.AddListener(OnMultiplayerClicked);
         if (quitButton != null) quitButton.onClick.AddListener(OnQuitClicked);
+        if (collectionButton != null) collectionButton.onClick.AddListener(OnCollectionClicked);
+        if (settingsButton != null) settingsButton.onClick.AddListener(OnSettingsClicked);
 
         // Solo panel buttons
         if (players4Button != null) players4Button.onClick.AddListener(() => SelectPlayerCount(0));
@@ -126,6 +134,16 @@ public class MainMenuManager : MonoBehaviour
         Debug.Log($"[MainMenu] AI difficulty set to: {GameConfig.DefaultAIDifficulty}");
     }
 
+    private void OnCollectionClicked()
+    {
+        if (collectionUI != null) collectionUI.Open();
+    }
+
+    private void OnSettingsClicked()
+    {
+        if (settingsUI != null) settingsUI.Open();
+    }
+
     private void OnQuitClicked()
     {
         Debug.Log("Quitting...");
@@ -141,6 +159,8 @@ public class MainMenuManager : MonoBehaviour
         if (soloButton != null) soloButton.onClick.RemoveListener(OnSoloClicked);
         if (multiplayerButton != null) multiplayerButton.onClick.RemoveListener(OnMultiplayerClicked);
         if (quitButton != null) quitButton.onClick.RemoveListener(OnQuitClicked);
+        if (collectionButton != null) collectionButton.onClick.RemoveAllListeners();
+        if (settingsButton != null) settingsButton.onClick.RemoveAllListeners();
         if (playButton != null) playButton.onClick.RemoveAllListeners();
         if (backButton != null) backButton.onClick.RemoveListener(OnBackClicked);
         if (players4Button != null) players4Button.onClick.RemoveAllListeners();

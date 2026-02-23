@@ -21,6 +21,10 @@ public class GameOverUI : MonoBehaviour, IThemeable
     [SerializeField] private TMP_Text placementText;
     [SerializeField] private TMP_Text standingsText;
 
+    [Header("T415: Post-Game Stats")]
+    [SerializeField] private TMP_Text statsText;
+    [SerializeField] private CanvasGroup panelCanvasGroup;
+
     [Header("Buttons")]
     [SerializeField] private Button playAgainButton;
     [SerializeField] private Button quitToMenuButton;
@@ -132,6 +136,16 @@ public class GameOverUI : MonoBehaviour, IThemeable
             }
         }
 
+        // T415: Post-game stats
+        PopulateStats(data, localIndex);
+
+        // T415: Fade-in animation
+        if (panelCanvasGroup != null)
+        {
+            panelCanvasGroup.alpha = 0f;
+            StartCoroutine(FadeInPanel());
+        }
+
         // Standings list
         if (standingsText != null)
         {
@@ -183,6 +197,70 @@ public class GameOverUI : MonoBehaviour, IThemeable
         return null;
     }
 #endif
+
+    /// <summary>
+    /// T415: Show post-game statistics for the local player.
+    /// </summary>
+    private void PopulateStats(GameOverData data, int localIndex)
+    {
+        if (statsText == null) return;
+
+        if (GameManager.Instance == null || localIndex < 0 || localIndex >= GameManager.Instance.players.Count)
+        {
+            statsText.text = "";
+            return;
+        }
+
+        var player = GameManager.Instance.players[localIndex];
+
+        // Count tribes on final board
+        var tribeCounts = new System.Collections.Generic.Dictionary<TribeType, int>();
+        foreach (var card in player.board)
+        {
+            if (card.tribes == null) continue;
+            foreach (var tribe in card.tribes)
+            {
+                if (tribe == TribeType.None) continue;
+                if (!tribeCounts.ContainsKey(tribe)) tribeCounts[tribe] = 0;
+                tribeCounts[tribe]++;
+            }
+        }
+
+        string tribeStr = "";
+        foreach (var kvp in tribeCounts)
+            tribeStr += $"  {kvp.Key}: {kvp.Value}\n";
+
+        // Compute total board stats
+        int totalAtk = 0, totalHp = 0;
+        foreach (var card in player.board)
+        {
+            totalAtk += card.attack;
+            totalHp += card.health;
+        }
+
+        statsText.text =
+            $"<b>Your Stats</b>\n" +
+            $"Final Board: {player.board.Count}/7 cards\n" +
+            $"Total Stats: {totalAtk} ATK / {totalHp} HP\n" +
+            $"Tavern Tier: {player.currentTavernTier}\n" +
+            $"\n<b>Tribe Distribution</b>\n" +
+            (string.IsNullOrEmpty(tribeStr) ? "  No tribes\n" : tribeStr) +
+            $"\nTurns: {data.totalTurns}";
+    }
+
+    private System.Collections.IEnumerator FadeInPanel()
+    {
+        float duration = 0.4f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            if (panelCanvasGroup != null)
+                panelCanvasGroup.alpha = Mathf.Clamp01(elapsed / duration);
+            yield return null;
+        }
+        if (panelCanvasGroup != null) panelCanvasGroup.alpha = 1f;
+    }
 
     private void OnPlayAgainClicked()
     {

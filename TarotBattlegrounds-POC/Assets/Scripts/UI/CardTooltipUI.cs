@@ -216,6 +216,11 @@ public class CardTooltipUI : MonoBehaviour
             case AbilityTrigger.OnDamaged: return "<color=#DC143C>ON DAMAGED</color>";
             case AbilityTrigger.StartOfCombat: return "<color=#4169E1>START OF COMBAT</color>";
             case AbilityTrigger.EndOfTurn: return "<color=#9370DB>END OF TURN</color>";
+            // T406: Phase II triggers
+            case AbilityTrigger.OnAllyDeath: return "<color=#696969>ON ALLY DEATH</color>";
+            case AbilityTrigger.OnAllySummoned: return "<color=#32CD32>ON ALLY SUMMONED</color>";
+            case AbilityTrigger.OnSell: return "<color=#DAA520>ON SELL</color>";
+            case AbilityTrigger.Aura: return "<color=#00CED1>AURA</color>";
             default: return trigger.ToString();
         }
     }
@@ -224,34 +229,45 @@ public class CardTooltipUI : MonoBehaviour
     {
         switch (effect)
         {
-            case Card.AbilityEffectType.BuffAdjacentAttack:
-                return $"Give adjacent minions +{value} Attack";
-            case Card.AbilityEffectType.BuffAdjacentHealth:
-                return $"Give adjacent minions +{value} Health";
-            case Card.AbilityEffectType.BuffAdjacentStats:
-                return $"Give adjacent minions +{value}/+{value}";
-            case Card.AbilityEffectType.BuffAllFriendlyAttack:
-                return $"Give all friendly minions +{value} Attack";
-            case Card.AbilityEffectType.GainAegis:
-                return "Gain Aegis (block one attack)";
-            case Card.AbilityEffectType.GainCoins:
-                return $"Gain {value} gold";
-            case Card.AbilityEffectType.DeathrattleBuffRandomFriendly:
-                return $"Give a random friendly minion +{value}/+{value}";
-            case Card.AbilityEffectType.DeathrattleDamageRandomEnemy:
-                return $"Deal {value} damage to a random enemy";
-            case Card.AbilityEffectType.DeathrattleDamageAllEnemies:
-                return $"Deal {value} damage to all enemies";
-            case Card.AbilityEffectType.OnAttackBuffSelf:
-                return $"Gain +{value} Attack permanently";
-            case Card.AbilityEffectType.OnAttackBonusDamage:
-                return $"Deal +{value} extra damage";
-            case Card.AbilityEffectType.OnAttackCleave:
-                return $"Deal {value} damage to adjacent enemies";
-            case Card.AbilityEffectType.Taunt:
-                return "Must be attacked first";
-            default:
-                return effect.ToString();
+            // Original effects
+            case Card.AbilityEffectType.BuffAdjacentAttack: return $"Give adjacent minions +{value} Attack";
+            case Card.AbilityEffectType.BuffAdjacentHealth: return $"Give adjacent minions +{value} Health";
+            case Card.AbilityEffectType.BuffAdjacentStats: return $"Give adjacent minions +{value}/+{value}";
+            case Card.AbilityEffectType.BuffAllFriendlyAttack: return $"Give all friendly minions +{value} Attack";
+            case Card.AbilityEffectType.BuffOtherFriendlyAttack: return $"Give all other friendlies +{value} Attack";
+            case Card.AbilityEffectType.GainAegis: return "Gain Aegis (block one attack)";
+            case Card.AbilityEffectType.GainCoins: return $"Gain {value} gold";
+            case Card.AbilityEffectType.DeathrattleBuffRandomFriendly: return $"Give a random friendly +{value}/+{value}";
+            case Card.AbilityEffectType.DeathrattleDamageRandomEnemy: return $"Deal {value} damage to a random enemy";
+            case Card.AbilityEffectType.DeathrattleDamageAllEnemies: return $"Deal {value} damage to all enemies";
+            case Card.AbilityEffectType.OnAttackBuffSelf: return $"Gain +{value} Attack permanently";
+            case Card.AbilityEffectType.OnAttackBonusDamage: return $"Deal +{value} extra damage";
+            case Card.AbilityEffectType.OnAttackCleave: return $"Deal {value} damage to adjacent enemies";
+            case Card.AbilityEffectType.Taunt: return "Must be attacked first";
+            // T406: Phase II keyword abilities
+            case Card.AbilityEffectType.Reborn: return "Returns with 1 Health after dying";
+            case Card.AbilityEffectType.Windfury: return "Attacks twice each combat";
+            case Card.AbilityEffectType.Venomous: return "Instantly destroys any minion it damages";
+            case Card.AbilityEffectType.GainArmor: return $"Absorbs {value} damage before Health";
+            // T406: Phase II trigger effects
+            case Card.AbilityEffectType.OnAllyDeathBuffSelf: return $"Gain +{value}/+{value} when an ally dies";
+            case Card.AbilityEffectType.OnAllyDeathBuffRandom: return $"Give a random ally +{value}/+{value} when an ally dies";
+            case Card.AbilityEffectType.OnAllySummonedBuffSelf: return $"Gain +{value}/+{value} when an ally is summoned";
+            case Card.AbilityEffectType.OnAllySummonedBuffSummoned: return $"Give summoned ally +{value}/+{value}";
+            case Card.AbilityEffectType.OnSellGainCoins: return $"Gain {value} extra gold when sold";
+            case Card.AbilityEffectType.OnSellBuffAllRemaining: return $"Give all remaining allies +{value}/+{value}";
+            case Card.AbilityEffectType.AuraBuffTribematesAttack: return $"Tribemates have +{value} Attack";
+            case Card.AbilityEffectType.AuraBuffAdjacentStats: return $"Adjacent allies have +{value}/+{value}";
+            case Card.AbilityEffectType.AuraBuffAllFriendlyAttack: return $"All other allies have +{value} Attack";
+            // T406: Phase II additional effects
+            case Card.AbilityEffectType.SummonTokenOnDeath: return $"Summon a {value}/{value} token on death";
+            case Card.AbilityEffectType.SummonTokenOnPlay: return $"Summon a {value}/{value} token when played";
+            case Card.AbilityEffectType.StealBuffOnAttack: return $"Steal +{value}/+{value} from target";
+            case Card.AbilityEffectType.BuffAllTribeOnPlay: return $"Give all tribemates +{value}/+{value}";
+            case Card.AbilityEffectType.BuffAllTribeOnDeath: return $"Give all tribemates +{value}/+{value} on death";
+            case Card.AbilityEffectType.RandomTransformOnDeath: return "Transform into a random card on death";
+            case Card.AbilityEffectType.BuffSelfHealth: return $"Gain +{value} Health";
+            default: return effect.ToString();
         }
     }
 
