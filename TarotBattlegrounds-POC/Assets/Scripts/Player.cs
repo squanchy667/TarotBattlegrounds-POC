@@ -300,6 +300,14 @@ public class Player : MonoBehaviour
         Card card = hand[index];
         int value = Mathf.Max(0, 1 + card.sellValueModifier);
 
+        // Apply synergy sell bonus (same as board sell path)
+        if (SynergyManager.Instance != null)
+        {
+            var snapshot = SynergyManager.Instance.CalculateSynergies(board);
+            int synergyBonus = SynergyManager.Instance.GetSellBonus(card, snapshot);
+            value += synergyBonus;
+        }
+
         // T103: Fire OnSell ability before unregistering (works for hand sells too)
         var sellContext = new AbilityContext
         {

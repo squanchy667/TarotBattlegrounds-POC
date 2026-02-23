@@ -286,6 +286,13 @@ public class GameManager : MonoBehaviour
         // Apply runtime config overrides if available
         ApplyRuntimeConfig();
 
+        // Apply 8-player scaling if EightPlayerManager is present
+        if (EightPlayerManager.Instance != null)
+        {
+            startingHealth = EightPlayerManager.Instance.GetStartingHealth(playerCount);
+            Debug.Log($"[GameManager] 8-player scaling: startingHealth={startingHealth} for {playerCount} players");
+        }
+
         // Spawn additional player objects if the scene doesn't have enough
         EnsurePlayerCount(playerCount);
 
@@ -536,7 +543,10 @@ public class GameManager : MonoBehaviour
             if (turnNumber > 2)
                 ClearOldOpponentHistory();
 
-            List<(int, int)> battles = GeneratePairwiseBattles(activePlayers);
+            // Delegate to EightPlayerManager for pairings when available (supports ghost opponents)
+            List<(int, int)> battles = EightPlayerManager.Instance != null
+                ? EightPlayerManager.Instance.GeneratePairings(activePlayers, turnNumber)
+                : GeneratePairwiseBattles(activePlayers);
 
             // Begin tracking this combat round
             if (MatchTracker.Instance != null)

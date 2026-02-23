@@ -117,6 +117,8 @@ public class Card : ScriptableObject
     [System.NonSerialized] public bool hasWindfury;
     [System.NonSerialized] public bool hasVenomous;
     [System.NonSerialized] public int armor;
+    /// <summary>Synergy-granted cleave: damages adjacent enemies on attack.</summary>
+    [System.NonSerialized] public bool hasCleave;
     /// <summary>Temporary attack bonus from OnAttackBonusDamage, cleared after each strike.</summary>
     [System.NonSerialized] public int tempBonusDamage;
 
@@ -299,6 +301,7 @@ public class Card : ScriptableObject
         clone.hasReborn = this.hasReborn;
         clone.hasWindfury = this.hasWindfury;
         clone.hasVenomous = this.hasVenomous;
+        clone.hasCleave = this.hasCleave;
         clone.armor = this.armor;
         // BUG FIX: Do NOT copy isGolden! It should ONLY be set by CreateGoldenVersion()
         // clone.isGolden = this.isGolden; // REMOVED - was causing golden contamination
@@ -437,6 +440,7 @@ public class Card : ScriptableObject
         hasReborn = false;
         hasWindfury = false;
         hasVenomous = false;
+        hasCleave = false;
         armor = 0;
         tempBonusDamage = 0;
         isGolden = false; // Reset golden status when card returns to pool

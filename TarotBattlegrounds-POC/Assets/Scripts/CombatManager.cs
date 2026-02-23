@@ -303,6 +303,26 @@ public static class CombatManager
                             TurnNumber = turnCount
                         });
 
+                        // Synergy-granted cleave: damage adjacent enemies
+                        if (attacker.hasCleave)
+                        {
+                            int targetIndex = targetBoard.IndexOf(target);
+                            if (targetIndex >= 0)
+                            {
+                                int cleaveDmg = attacker.attack;
+                                if (targetIndex > 0 && targetBoard[targetIndex - 1].health > 0)
+                                {
+                                    targetBoard[targetIndex - 1].health -= cleaveDmg;
+                                    Debug.Log($"[Cleave/Synergy] {attacker.cardName} cleaves {targetBoard[targetIndex - 1].cardName} for {cleaveDmg}");
+                                }
+                                if (targetIndex < targetBoard.Count - 1 && targetBoard[targetIndex + 1].health > 0)
+                                {
+                                    targetBoard[targetIndex + 1].health -= cleaveDmg;
+                                    Debug.Log($"[Cleave/Synergy] {attacker.cardName} cleaves {targetBoard[targetIndex + 1].cardName} for {cleaveDmg}");
+                                }
+                            }
+                        }
+
                         Debug.Log($"Post-attack: {target.cardName} ({targetName}) health now {target.health}");
                     }
 

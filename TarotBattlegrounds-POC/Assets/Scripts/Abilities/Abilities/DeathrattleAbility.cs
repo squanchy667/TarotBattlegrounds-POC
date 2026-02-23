@@ -78,8 +78,7 @@ public class DeathrattleAbility : AbilityBase
                 DealDamageToAll(context);
                 break;
             case DeathrattleEffect.SummonToken:
-                // Simplified: just log for now, full implementation would add card to board
-                Debug.Log($"[Deathrattle] {context.SourceCard?.cardName} would summon a {_value}/{_value} token");
+                SummonToken(context);
                 break;
             case DeathrattleEffect.GainCoins:
                 if (context.Owner != null)
@@ -136,5 +135,41 @@ public class DeathrattleAbility : AbilityBase
         {
             AbilityEffects.DealDamage(card, _value);
         }
+    }
+
+    private void SummonToken(AbilityContext context)
+    {
+        if (context.OwnerBoard == null) return;
+
+        // Count alive cards on board
+        int aliveCount = context.OwnerBoard.Count(c => c.health > 0);
+        if (aliveCount >= 7)
+        {
+            Debug.Log($"[Deathrattle] Board full, cannot summon token for {context.SourceCard?.cardName}");
+            return;
+        }
+
+        Card token = ScriptableObject.CreateInstance<Card>();
+        token.cardName = $"{context.SourceCard?.cardName ?? "Unknown"} Token";
+        token.tier = 1;
+        token.attack = _value;
+        token.health = _value;
+        token.tribe = context.SourceCard?.tribe ?? "";
+        if (context.SourceCard?.tribes != null && context.SourceCard.tribes.Length > 0)
+        {
+            token.tribes = new TribeType[context.SourceCard.tribes.Length];
+            System.Array.Copy(context.SourceCard.tribes, token.tribes, context.SourceCard.tribes.Length);
+        }
+        else
+        {
+            token.tribes = new TribeType[0];
+        }
+
+        // Insert at the position where the source card was (or end of board)
+        int idx = context.OwnerBoard.IndexOf(context.SourceCard);
+        int insertIndex = idx >= 0 ? idx : context.OwnerBoard.Count;
+        context.OwnerBoard.Insert(insertIndex, token);
+
+        Debug.Log($"[Deathrattle] {context.SourceCard?.cardName} summons a {_value}/{_value} token at position {insertIndex}");
     }
 }

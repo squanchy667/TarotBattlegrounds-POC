@@ -72,15 +72,16 @@ public class CombatTests
     }
     
     [Test]
-    public void Combat_DamageCapped_At5()
+    public void Combat_Damage_EqualsMinionsAndTier()
     {
-        // Create a large board to potentially generate high damage
+        // Fix 2: Damage should equal surviving minions + tavern tier (no cap)
         var board1 = CreateBoard(7, 1, 10, 3); // 7 tier-3 cards
         var board2 = new List<Card>();
-        
+
         var (damage, winner) = CombatManager.SimulateBattle(board1, board2, 3, 3, "P1", "P2");
-        
-        Assert.IsTrue(damage <= 5, $"Damage {damage} should be capped at 5");
+
+        // 7 surviving minions + tavern tier 3 = 10
+        Assert.AreEqual(10, damage, $"Damage should equal surviving minions (7) + tavern tier (3) = 10");
     }
     
     [Test]

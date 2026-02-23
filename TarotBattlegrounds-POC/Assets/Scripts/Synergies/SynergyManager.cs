@@ -148,8 +148,8 @@ public class SynergyManager : MonoBehaviour
             pent.tiers = new SynergyTier[]
             {
                 new SynergyTier { threshold = 2, trigger = SynergyTrigger.OnSell, effect = SynergyEffect.BonusGold, target = SynergyTarget.Self, value = 1, description = "(2) +1 gold on sell" },
-                new SynergyTier { threshold = 4, trigger = SynergyTrigger.Passive, effect = SynergyEffect.BuffHealth, target = SynergyTarget.AllTribeMembers, value = 1, description = "(4) Pentacles get +1 Health" },
-                new SynergyTier { threshold = 6, trigger = SynergyTrigger.OnSell, effect = SynergyEffect.BonusGold, target = SynergyTarget.Self, value = 2, description = "(6) +2 gold on sell" }
+                new SynergyTier { threshold = 4, trigger = SynergyTrigger.OnSell, effect = SynergyEffect.BonusGold, target = SynergyTarget.Self, value = 2, description = "(4) +2 gold on sell" },
+                new SynergyTier { threshold = 6, trigger = SynergyTrigger.Passive, effect = SynergyEffect.ReduceCost, target = SynergyTarget.AllTribeMembers, value = 1, description = "(6) Pentacles cards cost 1 less" }
             };
             _synergyByTribe[TribeType.Pentacles] = pent;
         }
@@ -640,7 +640,24 @@ public class SynergyManager : MonoBehaviour
                 Debug.Log($"[Synergy] {playerName}: {target.cardName} healed for {value} ({oldHp} -> {target.health})");
                 break;
 
-            // Additional effects can be implemented as needed
+            case SynergyEffect.BonusDamage:
+                target.attack += value;
+                Debug.Log($"[Synergy] {playerName}: {target.cardName} gains +{value} bonus damage ({oldAtk} -> {target.attack})");
+                break;
+
+            case SynergyEffect.Cleave:
+                // Grant cleave by adding a temporary OnAttack cleave ability
+                if (!target.hasCleave)
+                {
+                    target.hasCleave = true;
+                    Debug.Log($"[Synergy] {playerName}: {target.cardName} gains Cleave");
+                }
+                break;
+
+            case SynergyEffect.ReduceCost:
+                // Handled passively via GetCostReduction(); no runtime trigger needed
+                break;
+
             default:
                 Debug.Log($"[Synergy] {playerName}: Effect {effect} not yet implemented");
                 break;

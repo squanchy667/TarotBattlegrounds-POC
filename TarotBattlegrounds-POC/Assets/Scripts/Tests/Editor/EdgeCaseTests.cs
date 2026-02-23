@@ -146,8 +146,9 @@ public class EdgeCaseTests
     }
     
     [Test]
-    public void Combat_MaxDamage_CappedAt5()
+    public void Combat_MaxDamage_EqualsMinionsAndTier()
     {
+        // Fix 2: Damage = surviving minions + tavern tier (no hard cap)
         var cards = new List<Card>();
         for (int i = 0; i < 7; i++)
         {
@@ -157,11 +158,12 @@ public class EdgeCaseTests
             card.tier = 6;
             cards.Add(card);
         }
-        
+
         var (damage, _) = CombatManager.SimulateBattle(
             cards, new List<Card>(), 6, 6, "P1", "P2");
-        
-        Assert.LessOrEqual(damage, 5);
+
+        // 7 surviving minions + tavern tier 6 = 13
+        Assert.AreEqual(13, damage);
     }
     
     // ==================== HEALTH EDGE CASES ====================
