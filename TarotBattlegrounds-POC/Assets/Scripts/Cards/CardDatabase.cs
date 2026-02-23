@@ -156,8 +156,8 @@ public static class CardDatabase
         // === TIER 5: Power Spikes (5 cards) ===
         cards.Add(CreateCard("Dragon Hoarder", 5, 5, 6,
             new[] { TribeType.Pentacles },
-            AbilityTrigger.Battlecry, Card.AbilityEffectType.GainCoins, 3,
-            "Battlecry: Gain 3 gold."));
+            AbilityTrigger.Battlecry, Card.AbilityEffectType.BuffAllTribeOnPlay, 1,
+            "Battlecry: Give all Pentacles +1/+1."));
 
         cards.Add(CreateCard("Tsunami Lord", 5, 4, 8,
             new[] { TribeType.Cups },
@@ -183,8 +183,8 @@ public static class CardDatabase
         // === TIER 6: Finishers (5 cards) ===
         cards.Add(CreateCard("Golden Emperor", 6, 6, 8,
             new[] { TribeType.Pentacles },
-            AbilityTrigger.Battlecry, Card.AbilityEffectType.GainCoins, 4,
-            "Battlecry: Gain 4 gold."));
+            AbilityTrigger.Battlecry, Card.AbilityEffectType.BuffAllTribeOnPlay, 2,
+            "Battlecry: Give all Pentacles +2/+2."));
 
         cards.Add(CreateCard("Leviathan", 6, 5, 12,
             new[] { TribeType.Cups },
@@ -316,7 +316,7 @@ public static class CardDatabase
 
         // === PHASE III: COINS TRIBE (T204) - 10 cards, Tier 1-3 ===
         // Coins theme: Economy/Tokens — summon tokens, gain gold, sell bonuses
-        cards.Add(CreateCard("Lucky Penny", 1, 1, 1,
+        cards.Add(CreateCard("Lucky Penny", 1, 1, 2,
             new[] { TribeType.Coins },
             AbilityTrigger.OnSell, Card.AbilityEffectType.OnSellGainCoins, 1,
             "OnSell: Gain 1 extra coin."));
@@ -470,7 +470,7 @@ public static class CardDatabase
 
         // === PHASE III: CUPS EXPANSION (T206) - 15 cards, Tier 1-5 ===
         cards.Add(CreateCard("Dewdrop Fairy", 1, 1, 3,
-            new[] { TribeType.Cups },
+            new[] { TribeType.Wands },
             AbilityTrigger.Battlecry, Card.AbilityEffectType.BuffSelfHealth, 1,
             "Battlecry: Gain +1 Health."));
 
@@ -490,17 +490,17 @@ public static class CardDatabase
             "Battlecry: Give adjacent minions +2 Health."));
 
         cards.Add(CreateCard("Aegis Bearer", 2, 1, 4,
-            new[] { TribeType.Cups },
+            new[] { TribeType.Cups, TribeType.Pentacles },
             AbilityTrigger.Battlecry, Card.AbilityEffectType.GainAegis, 1,
-            "Battlecry: Gain Aegis. Sturdy defender."));
+            "Battlecry: Gain Aegis. (Dual tribe)"));
 
         cards.Add(CreateCard("Coral Bulwark", 3, 2, 6,
-            new[] { TribeType.Cups },
+            new[] { TribeType.Cups, TribeType.Pentacles },
             AbilityTrigger.None, Card.AbilityEffectType.GainArmor, 2,
-            "Armor 2. A living reef wall.",
+            "Armor 2. A living reef wall. (Dual tribe)",
             Card.EffectType.Guardian));
 
-        cards.Add(CreateCard("Healing Totem", 3, 1, 5,
+        cards.Add(CreateCard("Healing Totem", 3, 2, 5,
             new[] { TribeType.Cups },
             AbilityTrigger.Aura, Card.AbilityEffectType.AuraBuffAdjacentStats, 1,
             "Aura: Adjacent allies get +1/+1."));

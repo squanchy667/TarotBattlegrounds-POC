@@ -228,9 +228,9 @@ public static class SynergyTestData
                 threshold = 6,
                 trigger = SynergyTrigger.StartOfCombat,
                 effect = SynergyEffect.BuffAttack,
-                target = SynergyTarget.AllFriendly,
+                target = SynergyTarget.AllTribeMembers,
                 value = 2,
-                description = "(6) All friendly cards gain +2 attack at start of combat"
+                description = "(6) Wands get +2 Attack at combat start"
             }
         };
 
