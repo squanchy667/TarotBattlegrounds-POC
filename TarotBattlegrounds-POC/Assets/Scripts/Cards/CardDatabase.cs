@@ -267,7 +267,7 @@ public static class CardDatabase
             AbilityTrigger.Battlecry, Card.AbilityEffectType.BuffAllTribeOnPlay, 1,
             "Battlecry: Give all Stars +1/+1."));
 
-        cards.Add(CreateCard("Astral Warden", 3, 4, 5,
+        cards.Add(CreateCard("Astral Warden", 4, 4, 5,
             new[] { TribeType.Stars },
             AbilityTrigger.Aura, Card.AbilityEffectType.AuraBuffTribematesAttack, 1,
             "Aura: Stars have +1 Attack."));
@@ -372,7 +372,7 @@ public static class CardDatabase
             "OnSell: Give all remaining allies +2/+2."));
 
         // === PHASE III: SWORDS EXPANSION (T205) - 15 cards, Tier 1-5 ===
-        cards.Add(CreateCard("Razor Scout", 1, 2, 1,
+        cards.Add(CreateCard("Razor Scout", 3, 3, 2,
             new[] { TribeType.Swords },
             AbilityTrigger.None, Card.AbilityEffectType.Venomous, 0,
             "Venomous. Small but deadly."));
@@ -392,7 +392,7 @@ public static class CardDatabase
             AbilityTrigger.Battlecry, Card.AbilityEffectType.BuffAllTribeOnPlay, 1,
             "Battlecry: Give all Swords +1/+1."));
 
-        cards.Add(CreateCard("Charging Knight", 2, 3, 3,
+        cards.Add(CreateCard("Charging Knight", 2, 2, 2,
             new[] { TribeType.Swords },
             AbilityTrigger.None, Card.AbilityEffectType.Windfury, 0,
             "Windfury. Charges twice."));
@@ -402,7 +402,7 @@ public static class CardDatabase
             AbilityTrigger.OnAttack, Card.AbilityEffectType.OnAttackBonusDamage, 2,
             "OnAttack: Deal 2 extra damage."));
 
-        cards.Add(CreateCard("Venomous Assassin", 3, 2, 3,
+        cards.Add(CreateCard("Venomous Assassin", 4, 3, 4,
             new[] { TribeType.Swords },
             AbilityTrigger.None, Card.AbilityEffectType.Venomous, 0,
             "Venomous. Stealth strikes."));

@@ -12,7 +12,7 @@ public class WarChiefPower : HeroPowerBase
 
     public override void Activate(Player owner) { }
 
-    public override void OnCombatStart(Player owner)
+    public override void OnCombatStart(Player owner, Player opponent)
     {
         int buffed = 0;
         foreach (var card in owner.board)

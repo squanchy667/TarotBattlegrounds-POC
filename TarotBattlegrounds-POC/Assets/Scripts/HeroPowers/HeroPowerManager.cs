@@ -80,13 +80,13 @@ public class HeroPowerManager : MonoBehaviour
         }
     }
 
-    /// <summary>Trigger passive hero powers at combat start.</summary>
-    public void TriggerCombatPassives(Player player)
+    /// <summary>Trigger hero power combat-start effects (passive and armed active powers).</summary>
+    public void TriggerCombatPassives(Player player, Player opponent)
     {
         var power = GetHeroPower(player.playerId);
-        if (power != null && power.IsPassive)
+        if (power != null)
         {
-            power.OnCombatStart(player);
+            power.OnCombatStart(player, opponent);
         }
     }
 

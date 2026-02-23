@@ -35,8 +35,8 @@ public abstract class HeroPowerBase
         UsedThisTurn = false;
     }
 
-    /// <summary>Called at start of combat for passive powers.</summary>
-    public virtual void OnCombatStart(Player owner) { }
+    /// <summary>Called at start of combat. Override for combat-start effects.</summary>
+    public virtual void OnCombatStart(Player owner, Player opponent) { }
 
     /// <summary>Called at start of recruit phase for passive powers.</summary>
     public virtual void OnRecruitStart(Player owner) { }

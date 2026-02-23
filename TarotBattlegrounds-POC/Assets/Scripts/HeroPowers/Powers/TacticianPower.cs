@@ -12,7 +12,7 @@ public class TacticianPower : HeroPowerBase
 
     public override void Activate(Player owner) { }
 
-    public override void OnCombatStart(Player owner)
+    public override void OnCombatStart(Player owner, Player opponent)
     {
         var targets = owner.board.Where(c => c.health > 0).ToList();
         if (targets.Count == 0) return;

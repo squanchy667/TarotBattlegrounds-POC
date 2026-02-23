@@ -556,11 +556,11 @@ public class GameManager : MonoBehaviour
             {
                 if (p1 >= 0 && p2 >= 0 && p1 < playerCount && p2 < playerCount)
                 {
-                    // T115: Trigger combat-start passive hero powers before battle
+                    // T115: Trigger combat-start hero powers before battle
                     if (HeroPowerManager.Instance != null)
                     {
-                        HeroPowerManager.Instance.TriggerCombatPassives(players[p1]);
-                        HeroPowerManager.Instance.TriggerCombatPassives(players[p2]);
+                        HeroPowerManager.Instance.TriggerCombatPassives(players[p1], players[p2]);
+                        HeroPowerManager.Instance.TriggerCombatPassives(players[p2], players[p1]);
                     }
 
                     var board1 = players[p1].board;
