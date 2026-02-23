@@ -1,13 +1,14 @@
 using UnityEngine;
 
 /// <summary>
-/// Neutral hero power: Add a random Tier 1 card to your hand.
+/// Neutral hero power: Add a random card of your current tavern tier to your hand.
+/// Scales with the game — early on gives T1 cards, late game gives T5-T6 cards.
 /// </summary>
 public class RecruiterPower : HeroPowerBase
 {
     public override string PowerName => "Recruiter";
-    public override string Description => "Add a random Tier 1 card to your hand";
-    public override int CoinCost => 3;
+    public override string Description => "Add a random card of your tavern tier to your hand";
+    public override int CoinCost => 2;
 
     public override bool CanActivate(Player owner)
     {
@@ -23,23 +24,34 @@ public class RecruiterPower : HeroPowerBase
         }
 
         var pool = TavernManager.Instance.GetFullPool();
-        var tier1Cards = new System.Collections.Generic.List<Card>();
+        int targetTier = owner.currentTavernTier;
+        var tierCards = new System.Collections.Generic.List<Card>();
         foreach (var card in pool)
         {
-            if (card.tier <= 1)
-                tier1Cards.Add(card);
+            if (card.tier == targetTier)
+                tierCards.Add(card);
         }
 
-        if (tier1Cards.Count == 0)
+        // Fallback to any available card at or below current tier
+        if (tierCards.Count == 0)
         {
-            Debug.Log("[Recruiter] No Tier 1 cards in pool");
+            foreach (var card in pool)
+            {
+                if (card.tier <= targetTier)
+                    tierCards.Add(card);
+            }
+        }
+
+        if (tierCards.Count == 0)
+        {
+            Debug.Log($"[Recruiter] No tier {targetTier} cards in pool");
             return;
         }
 
-        Card picked = tier1Cards[Random.Range(0, tier1Cards.Count)];
+        Card picked = tierCards[Random.Range(0, tierCards.Count)];
         Card copy = picked.Clone();
         owner.hand.Add(copy);
-        pool.Remove(picked); // Remove from pool (card is reserved)
-        Debug.Log($"[Recruiter] Added {copy.cardName} to hand");
+        pool.Remove(picked);
+        Debug.Log($"[Recruiter] Added {copy.cardName} (Tier {copy.tier}) to hand");
     }
 }

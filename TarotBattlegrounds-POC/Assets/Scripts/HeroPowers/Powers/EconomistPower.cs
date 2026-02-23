@@ -1,19 +1,17 @@
 using UnityEngine;
 
 /// <summary>
-/// Neutral hero power: Gain 1 coin (effectively a free refresh).
+/// Neutral hero power: Gain 2 coins for 1 (net +1 gold per turn).
 /// </summary>
 public class EconomistPower : HeroPowerBase
 {
     public override string PowerName => "Economist";
-    public override string Description => "Gain 1 coin (use to offset refresh cost)";
+    public override string Description => "Gain 2 coins";
     public override int CoinCost => 1;
 
     public override void Activate(Player owner)
     {
-        // Net effect: spend 1 coin, gain 1 coin = free, but uses the hero power slot
-        // The real value is in the action economy — this costs 1 but you get 1 back
-        owner.coins += 1;
-        Debug.Log($"[Economist] Player {owner.playerId} gains 1 coin (coins: {owner.coins})");
+        owner.coins += 2;
+        Debug.Log($"[Economist] Player {owner.playerId} gains 2 coins (coins: {owner.coins})");
     }
 }

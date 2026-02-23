@@ -282,12 +282,18 @@ public static class CardDatabase
             AbilityTrigger.None, Card.AbilityEffectType.Windfury, 0,
             "Windfury. Attacks twice."));
 
-        cards.Add(CreateCard("Polaris, the North Star", 3, 3, 6,
+        cards.Add(CreateCard("Polaris, the North Star", 3, 2, 5,
             new[] { TribeType.Stars, TribeType.Cups },
             AbilityTrigger.Battlecry, Card.AbilityEffectType.GainAegis, 1,
             "Battlecry: Gain Aegis. (Dual tribe)"));
 
-        // === PHASE III: STARS HIGH-TIER (T214) - 3 cards, Tier 4-6 ===
+        // === PHASE III: STARS HIGH-TIER (T214) - 5 cards, Tier 4-6 ===
+        cards.Add(CreateCard("Stellar Guardian", 4, 4, 6,
+            new[] { TribeType.Stars },
+            AbilityTrigger.None, Card.AbilityEffectType.Taunt, 0,
+            "Guardian. A celestial protector.",
+            Card.EffectType.Guardian));
+
         cards.Add(CreateCard("Nebula Titan", 4, 5, 6,
             new[] { TribeType.Stars },
             AbilityTrigger.OnAllyDeath, Card.AbilityEffectType.OnAllyDeathBuffSelf, 2,
@@ -297,6 +303,11 @@ public static class CardDatabase
             new[] { TribeType.Stars },
             AbilityTrigger.Deathrattle, Card.AbilityEffectType.BuffAllTribeOnDeath, 2,
             "Deathrattle: Give all Stars +2/+2."));
+
+        cards.Add(CreateCard("Cosmic Shaper", 5, 5, 5,
+            new[] { TribeType.Stars },
+            AbilityTrigger.Battlecry, Card.AbilityEffectType.BuffAllTribeOnPlay, 2,
+            "Battlecry: Give all Stars +2/+2."));
 
         cards.Add(CreateCard("Cosmic Arbiter", 6, 7, 8,
             new[] { TribeType.Stars, TribeType.Swords },
@@ -355,11 +366,21 @@ public static class CardDatabase
             AbilityTrigger.Battlecry, Card.AbilityEffectType.GainCoins, 1,
             "Battlecry: Gain 1 coin. (Dual tribe)"));
 
-        // === PHASE III: COINS HIGH-TIER (T214) - 3 cards, Tier 4-6 ===
+        // === PHASE III: COINS HIGH-TIER (T214) - 5 cards, Tier 4-6 ===
+        cards.Add(CreateCard("Coin Mint", 4, 3, 5,
+            new[] { TribeType.Coins },
+            AbilityTrigger.OnAllySummoned, Card.AbilityEffectType.OnAllySummonedBuffSelf, 1,
+            "OnAllySummoned: Gain +1/+1. Token synergy engine."));
+
         cards.Add(CreateCard("Treasure Wyrm", 4, 4, 6,
             new[] { TribeType.Coins },
             AbilityTrigger.Deathrattle, Card.AbilityEffectType.SummonTokenOnDeath, 3,
             "Deathrattle: Summon a 3/3 Treasure Hoard."));
+
+        cards.Add(CreateCard("Platinum Dragon", 5, 5, 6,
+            new[] { TribeType.Coins },
+            AbilityTrigger.Deathrattle, Card.AbilityEffectType.SummonTokenOnDeath, 2,
+            "Deathrattle: Summon two 2/2 Coin Drakes."));
 
         cards.Add(CreateCard("Minting Press", 5, 3, 7,
             new[] { TribeType.Coins },
@@ -437,7 +458,7 @@ public static class CardDatabase
             AbilityTrigger.Deathrattle, Card.AbilityEffectType.RandomTransformOnDeath, 0,
             "Deathrattle: Transform into a random card."));
 
-        cards.Add(CreateCard("Blade Sovereign", 5, 8, 6,
+        cards.Add(CreateCard("Blade Sovereign", 5, 6, 5,
             new[] { TribeType.Swords },
             AbilityTrigger.OnAttack, Card.AbilityEffectType.StealBuffOnAttack, 2,
             "OnAttack: Steal +2/+2 from target."));
