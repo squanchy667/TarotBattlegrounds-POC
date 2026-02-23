@@ -93,7 +93,7 @@ Run `AWS/scripts/deploy-webgl.sh`:
 3. **Create CloudFront response headers policy**:
    ```
    Cross-Origin-Opener-Policy: same-origin
-   Cross-Origin-Embedder-Policy: require-corp
+   Cross-Origin-Embedder-Policy: credentialless
    ```
    Required for Unity SharedArrayBuffer (multi-threaded WASM).
 

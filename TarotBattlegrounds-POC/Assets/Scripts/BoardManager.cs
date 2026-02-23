@@ -20,7 +20,8 @@ public class BoardManager : MonoBehaviour, IDropHandler
         Player player = GameManager.Instance.players.Find(p => p.playerId == playerId);
         if (player == null || player.board.Count >= 7) return;
 
-        int handIndex = player.hand.FindIndex(c => c.cardName == card.cardName && c.tier == card.tier);
+        // H10 fix: Use reference equality so duplicate cards always play the correct instance
+        int handIndex = player.hand.IndexOf(card);
         if (handIndex >= 0)
         {
             player.PlayCard(handIndex, slotIndex);

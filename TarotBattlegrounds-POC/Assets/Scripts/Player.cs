@@ -125,9 +125,10 @@ public class Player : MonoBehaviour
     // Dictionary for base upgrade costs: key = target tier, value = base cost
     // Based on Hearthstone Battlegrounds standard costs
     // Can be overridden at runtime via ApplyRuntimeConfig()
+    // H2 fix: corrected escalating upgrade cost curve (was {4,11},{5,11},{6,11})
     private Dictionary<int, int> baseUpgradeCosts = new Dictionary<int, int>()
     {
-        {2, 5}, {3, 8}, {4, 11}, {5, 11}, {6, 11}
+        {2, 5}, {3, 8}, {4, 9}, {5, 10}, {6, 11}
     };
 
     /// <summary>

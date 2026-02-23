@@ -224,6 +224,20 @@ public class ThemeManager : MonoBehaviour
                 description = "The suit of Fire and creation. Empowers allies with stat buffs.",
                 themeColor = new Color(0.9f, 0.4f, 0.2f),
                 aliases = new string[] { "wand", "fire", "staff" }
+            },
+            new TribeThemeData
+            {
+                tribeName = "Stars",
+                description = "The suit of celestial power. Manipulates fate and summons tokens.",
+                themeColor = new Color(0.6f, 0.8f, 1.0f),
+                aliases = new string[] { "star", "celestial", "astral" }
+            },
+            new TribeThemeData
+            {
+                tribeName = "Coins",
+                description = "The suit of fortune and trade. Steals buffs and transforms cards.",
+                themeColor = new Color(0.95f, 0.85f, 0.3f),
+                aliases = new string[] { "coin", "fortune", "trade" }
             }
         };
 

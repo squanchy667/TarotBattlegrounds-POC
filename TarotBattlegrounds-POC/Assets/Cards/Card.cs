@@ -226,7 +226,9 @@ public class Card : ScriptableObject
 
             // Aura effects (T104)
             case AbilityEffectType.AuraBuffTribematesAttack:
-                return new AuraAbility(AuraAbility.AuraEffect.BuffTribematesAttack, abilityValue);
+                // C8 fix: Pass card's primary tribe so aura only buffs same-tribe minions
+                TribeType auraTribe = (tribes != null && tribes.Length > 0) ? tribes[0] : TribeType.None;
+                return new AuraAbility(AuraAbility.AuraEffect.BuffTribematesAttack, abilityValue, auraTribe);
             case AbilityEffectType.AuraBuffAdjacentStats:
                 return new AuraAbility(AuraAbility.AuraEffect.BuffAdjacentStats, abilityValue);
             case AbilityEffectType.AuraBuffAllFriendlyAttack:

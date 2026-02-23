@@ -143,7 +143,7 @@ else
                     },
                     {
                         "Header": "Cross-Origin-Embedder-Policy",
-                        "Value": "require-corp",
+                        "Value": "credentialless",
                         "Override": true
                     }
                 ]

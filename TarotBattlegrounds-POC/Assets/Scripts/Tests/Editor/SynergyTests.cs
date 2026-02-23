@@ -55,7 +55,8 @@ public class SynergyTests
 
     private SynergyTier GetActiveTier(SynergyManager.SynergySnapshot snapshot, TribeType tribe)
     {
-        return snapshot.activeTiers.TryGetValue(tribe, out SynergyTier tier) ? tier : null;
+        // C6 fix: activeTiers is now List<SynergyTier> per tribe — return highest for backward compat
+        return snapshot.GetHighestTier(tribe);
     }
 
     private bool IsComboActive(SynergyManager.SynergySnapshot snapshot, TribeType tribe1, TribeType tribe2)

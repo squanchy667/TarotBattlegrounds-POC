@@ -180,6 +180,8 @@ public static class CombatManager
         int currentSide = pFirst ? 0 : 1;
         int turnCount = 1;
         bool hasValidAttack = true;
+        // C5 fix: Track attack pointer per side for cycling (each minion attacks once before wrapping)
+        int[] attackPointer = new int[] { 0, 0 };
 
         Debug.Log($"Starting combat loop: currentSide={currentSide}, turnCount={turnCount}");
 
@@ -192,7 +194,27 @@ public static class CombatManager
             Debug.Log($"currentSide={currentSide}, attackerName={attackerName}, targetName={targetName}");
             Debug.Log($"attackers count: {attackers.Count(c => c.health > 0)} alive, targets count: {targetBoard.Count(c => c.health > 0)} alive");
 
-            var attacker = attackers.FirstOrDefault(c => c.health > 0);
+            // C5 fix: Cycle through attackers using pointer instead of always picking leftmost
+            Card attacker = null;
+            int aliveCount = attackers.Count(c => c.health > 0);
+            if (aliveCount > 0)
+            {
+                // Wrap pointer if it went past the end
+                if (attackPointer[currentSide] >= attackers.Count)
+                    attackPointer[currentSide] = 0;
+                // Find next alive attacker starting from pointer position
+                int startIdx = attackPointer[currentSide];
+                for (int i = 0; i < attackers.Count; i++)
+                {
+                    int idx = (startIdx + i) % attackers.Count;
+                    if (attackers[idx].health > 0)
+                    {
+                        attacker = attackers[idx];
+                        attackPointer[currentSide] = idx + 1; // advance for next turn
+                        break;
+                    }
+                }
+            }
 
             LogEntry(new CombatLogEntry
             {
@@ -206,17 +228,20 @@ public static class CombatManager
                 var aliveTargets = targetBoard.Where(c => c.health > 0).ToList();
                 
                 // Check for Guardian/Taunt (legacy effectType or new ability system)
-                var guardianTarget = aliveTargets.FirstOrDefault(c =>
+                // H3 fix: Pick randomly among all guardians, not just leftmost
+                var guardianTargets = aliveTargets.Where(c =>
                     c.effectType == Card.EffectType.Guardian ||
-                    c.abilityEffect == Card.AbilityEffectType.Taunt);
-                Card target = guardianTarget ?? aliveTargets.OrderBy(x => UnityEngine.Random.value).FirstOrDefault();
+                    c.abilityEffect == Card.AbilityEffectType.Taunt).ToList();
+                Card target = guardianTargets.Count > 0
+                    ? guardianTargets[UnityEngine.Random.Range(0, guardianTargets.Count)]
+                    : aliveTargets.OrderBy(x => UnityEngine.Random.value).FirstOrDefault();
                 
                 if (target != null)
                 {
                     hasValidAttack = true;
                     
                     // Log guardian taunt if applicable
-                    if (guardianTarget != null)
+                    if (guardianTargets.Count > 0)
                     {
                         LogEntry(new CombatLogEntry
                         {
@@ -304,7 +329,8 @@ public static class CombatManager
                         });
 
                         // Synergy-granted cleave: damage adjacent enemies
-                        if (attacker.hasCleave)
+                        // C7 fix: Skip if card already has OnAttackCleave ability (fired via TriggerCombatAbility above)
+                        if (attacker.hasCleave && attacker.abilityEffect != Card.AbilityEffectType.OnAttackCleave)
                         {
                             int targetIndex = targetBoard.IndexOf(target);
                             if (targetIndex >= 0)
@@ -389,7 +415,7 @@ public static class CombatManager
 
                     // Process all deaths from this attack using death queue
                     // Handles cleave victims, deterministic deathrattle order, and cascade deaths
-                    ProcessDeaths(attackers, targetBoard, attackerName, targetName, turnCount, replay, pFirst, isP);
+                    ProcessDeaths(attackers, targetBoard, attackerName, targetName, turnCount, replay, pFirst, isP, allClones);
 
                     // T106: Windfury — second attack if attacker survived
                     if (WindfuryAbility.HasWindfury(attacker) && attacker.health > 0)
@@ -397,10 +423,12 @@ public static class CombatManager
                         var aliveTargets2 = targetBoard.Where(c => c.health > 0).ToList();
                         if (aliveTargets2.Count > 0)
                         {
-                            var guardianTarget2 = aliveTargets2.FirstOrDefault(c =>
+                            var guardianTargets2 = aliveTargets2.Where(c =>
                                 c.effectType == Card.EffectType.Guardian ||
-                                c.abilityEffect == Card.AbilityEffectType.Taunt);
-                            Card target2 = guardianTarget2 ?? aliveTargets2.OrderBy(x => UnityEngine.Random.value).FirstOrDefault();
+                                c.abilityEffect == Card.AbilityEffectType.Taunt).ToList();
+                            Card target2 = guardianTargets2.Count > 0
+                                ? guardianTargets2[UnityEngine.Random.Range(0, guardianTargets2.Count)]
+                                : aliveTargets2.OrderBy(x => UnityEngine.Random.value).FirstOrDefault();
 
                             if (target2 != null)
                             {
@@ -470,7 +498,7 @@ public static class CombatManager
                                     attacker.attack -= attacker.tempBonusDamage;
                                     attacker.tempBonusDamage = 0;
                                 }
-                                ProcessDeaths(attackers, targetBoard, attackerName, targetName, turnCount, replay, pFirst, isP);
+                                ProcessDeaths(attackers, targetBoard, attackerName, targetName, turnCount, replay, pFirst, isP, allClones);
                             }
                         }
                     }
@@ -575,9 +603,11 @@ public static class CombatManager
     /// Ensures deterministic deathrattle order and handles cascade deaths.
     /// Order: attacker board first (left to right), then defender board (left to right).
     /// </summary>
+    // H1 fix: allClones passed in so tokens summoned by deathrattles are tracked for cleanup
     private static void ProcessDeaths(List<Card> attackerBoard, List<Card> defenderBoard,
         string attackerName, string defenderName, int turnCount,
-        CombatReplay replay = null, bool pFirst = true, bool isAttackerP = true)
+        CombatReplay replay = null, bool pFirst = true, bool isAttackerP = true,
+        List<Card> allClones = null)
     {
         const int MAX_CASCADE_ITERATIONS = 10;
         int cascadeCount = 0;
@@ -625,6 +655,28 @@ public static class CombatManager
                     TriggerEcho(deadCard, ownerBoard, ownerName, turnCount);
 
                 TriggerCombatAbility(AbilityTrigger.Deathrattle, deadCard, null, ownerBoard, enemyBoard);
+
+                // H1 fix: Register any tokens summoned by this deathrattle into allClones so
+                // CleanupCombatClones() will unregister their abilities after combat ends.
+                if (allClones != null)
+                {
+                    foreach (var card in attackerBoard)
+                    {
+                        if (!allClones.Contains(card))
+                        {
+                            allClones.Add(card);
+                            Debug.Log($"[H1] New token '{card.cardName}' added to allClones for cleanup.");
+                        }
+                    }
+                    foreach (var card in defenderBoard)
+                    {
+                        if (!allClones.Contains(card))
+                        {
+                            allClones.Add(card);
+                            Debug.Log($"[H1] New token '{card.cardName}' added to allClones for cleanup.");
+                        }
+                    }
+                }
 
                 // T302: Record death before removing from board
                 if (replay != null)

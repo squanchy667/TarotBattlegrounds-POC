@@ -330,9 +330,9 @@ public class RuntimeDataLoader : MonoBehaviour
         // Parse tribe data
         if (Theme.tribes != null)
         {
-            // Map tribe keys to TribeThemeData array (index 0=Pentacles, 1=Cups, 2=Swords, 3=Wands)
-            string[] tribeOrder = { "Pentacles", "Cups", "Swords", "Wands" };
-            config.tribes = new TribeThemeData[4];
+            // Map tribe keys to TribeThemeData array (index 0=Pentacles, 1=Cups, 2=Swords, 3=Wands, 4=Stars, 5=Coins)
+            string[] tribeOrder = { "Pentacles", "Cups", "Swords", "Wands", "Stars", "Coins" };
+            config.tribes = new TribeThemeData[6];
             for (int i = 0; i < tribeOrder.Length; i++)
             {
                 if (Theme.tribes.TryGetValue(tribeOrder[i], out RuntimeTribeThemeData tribeData))

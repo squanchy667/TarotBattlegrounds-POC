@@ -27,8 +27,19 @@ public class SynergyManager : MonoBehaviour
     public class SynergySnapshot
     {
         public Dictionary<TribeType, int> tribeCounts = new Dictionary<TribeType, int>();
-        public Dictionary<TribeType, SynergyTier> activeTiers = new Dictionary<TribeType, SynergyTier>();
+        // C6 fix: Store ALL active tiers per tribe (not just highest) so tiers stack
+        public Dictionary<TribeType, List<SynergyTier>> activeTiers = new Dictionary<TribeType, List<SynergyTier>>();
         public List<(TribeType, TribeType)> activeCombos = new List<(TribeType, TribeType)>();
+
+        /// <summary>
+        /// Get the highest active tier for a tribe (for backward compatibility with UI/display code).
+        /// </summary>
+        public SynergyTier GetHighestTier(TribeType tribe)
+        {
+            if (activeTiers.TryGetValue(tribe, out var tiers) && tiers.Count > 0)
+                return tiers[tiers.Count - 1];
+            return null;
+        }
     }
 
     public static SynergyManager Instance { get; private set; }
@@ -337,14 +348,14 @@ public class SynergyManager : MonoBehaviour
             }
         }
 
-        // Determine active tiers
+        // C6 fix: Determine ALL active tiers (not just highest) so tiers stack
         foreach (var kvp in snapshot.tribeCounts)
         {
             if (_synergyByTribe.TryGetValue(kvp.Key, out TribeSynergy synergy))
             {
-                SynergyTier activeTier = synergy.GetActiveTier(kvp.Value);
-                if (activeTier != null)
-                    snapshot.activeTiers[kvp.Key] = activeTier;
+                SynergyTier[] allTiers = synergy.GetAllActiveTiers(kvp.Value);
+                if (allTiers.Length > 0)
+                    snapshot.activeTiers[kvp.Key] = new List<SynergyTier>(allTiers);
             }
         }
 
@@ -552,11 +563,20 @@ public class SynergyManager : MonoBehaviour
             if (synergy1 != null && synergy1.comboTribe == combo.Item2)
             {
                 Debug.Log($"[SynergyManager] {playerName}: COMBO {combo.Item1}+{combo.Item2} - {synergy1.comboDescription}");
-                Debug.Log($"[SynergyManager] {playerName}: Applying combo ({synergy1.comboEffect} +{synergy1.comboValue}) to all {board.Count} cards");
-                // Combo effects typically apply to all friendly
-                foreach (var card in board)
+                // H9 fix: BonusGold is an owner-level effect; apply once instead of per-card
+                if (synergy1.comboEffect == SynergyEffect.BonusGold)
                 {
-                    ApplyEffect(synergy1.comboEffect, synergy1.comboValue, card, owner);
+                    Debug.Log($"[SynergyManager] {playerName}: Applying combo ({synergy1.comboEffect} +{synergy1.comboValue}) once to owner");
+                    if (board.Count > 0)
+                        ApplyEffect(synergy1.comboEffect, synergy1.comboValue, board[0], owner);
+                }
+                else
+                {
+                    Debug.Log($"[SynergyManager] {playerName}: Applying combo ({synergy1.comboEffect} +{synergy1.comboValue}) to all {board.Count} cards");
+                    foreach (var card in board)
+                    {
+                        ApplyEffect(synergy1.comboEffect, synergy1.comboValue, card, owner);
+                    }
                 }
             }
         }
@@ -715,14 +735,16 @@ public class SynergyManager : MonoBehaviour
     {
         string playerName = owner != null ? $"Player {owner.playerId}" : "Unknown";
 
+        // C6 fix: Iterate ALL active tiers per tribe (tiers stack)
         foreach (var kvp in snapshot.activeTiers)
         {
             TribeType tribe = kvp.Key;
-            SynergyTier tier = kvp.Value;
-
-            if (tier.trigger == trigger)
+            foreach (SynergyTier tier in kvp.Value)
             {
-                ApplySynergyEffect(tribe, tier, board, owner);
+                if (tier.trigger == trigger)
+                {
+                    ApplySynergyEffect(tribe, tier, board, owner);
+                }
             }
         }
 
@@ -740,10 +762,14 @@ public class SynergyManager : MonoBehaviour
         int bonus = 0;
         foreach (var tribe in card.GetTribes())
         {
-            if (snapshot.activeTiers.TryGetValue(tribe, out SynergyTier tier))
+            if (snapshot.activeTiers.TryGetValue(tribe, out List<SynergyTier> tiers))
             {
-                if (tier.trigger == SynergyTrigger.OnSell && tier.effect == SynergyEffect.BonusGold)
-                    bonus += tier.value;
+                // C6 fix: Check all active tiers, not just highest
+                foreach (var tier in tiers)
+                {
+                    if (tier.trigger == SynergyTrigger.OnSell && tier.effect == SynergyEffect.BonusGold)
+                        bonus += tier.value;
+                }
             }
         }
         return bonus;
@@ -757,10 +783,14 @@ public class SynergyManager : MonoBehaviour
         int reduction = 0;
         foreach (var tribe in card.GetTribes())
         {
-            if (snapshot.activeTiers.TryGetValue(tribe, out SynergyTier tier))
+            if (snapshot.activeTiers.TryGetValue(tribe, out List<SynergyTier> tiers))
             {
-                if (tier.effect == SynergyEffect.ReduceCost)
-                    reduction += tier.value;
+                // C6 fix: Check all active tiers for cost reduction
+                foreach (var tier in tiers)
+                {
+                    if (tier.effect == SynergyEffect.ReduceCost)
+                        reduction += tier.value;
+                }
             }
         }
         return reduction;
@@ -777,9 +807,19 @@ public class SynergyManager : MonoBehaviour
 
             if (synergy1 != null && synergy1.comboTribe == combo.Item2)
             {
-                foreach (var card in board)
+                // H9 fix: BonusGold is an owner-level effect; apply once instead of per-card
+                if (synergy1.comboEffect == SynergyEffect.BonusGold)
                 {
-                    ApplyEffect(synergy1.comboEffect, synergy1.comboValue, card, owner);
+                    Debug.Log($"[SynergyManager] {playerName}: Applying combo ({synergy1.comboEffect} +{synergy1.comboValue}) once to owner");
+                    if (board.Count > 0)
+                        ApplyEffect(synergy1.comboEffect, synergy1.comboValue, board[0], owner);
+                }
+                else
+                {
+                    foreach (var card in board)
+                    {
+                        ApplyEffect(synergy1.comboEffect, synergy1.comboValue, card, owner);
+                    }
                 }
             }
         }

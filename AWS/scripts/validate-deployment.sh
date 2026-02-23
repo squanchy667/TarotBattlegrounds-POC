@@ -50,10 +50,10 @@ else
     check "Cross-Origin-Opener-Policy: same-origin" "Header missing or wrong"
 fi
 
-if echo "$HEADERS" | grep -qi "cross-origin-embedder-policy.*require-corp"; then
-    check "Cross-Origin-Embedder-Policy: require-corp" "PASS"
+if echo "$HEADERS" | grep -qi "cross-origin-embedder-policy.*credentialless"; then
+    check "Cross-Origin-Embedder-Policy: credentialless" "PASS"
 else
-    check "Cross-Origin-Embedder-Policy: require-corp" "Header missing or wrong"
+    check "Cross-Origin-Embedder-Policy: credentialless" "Header missing or wrong"
 fi
 
 # --- Check 3: Unity loader in HTML ---

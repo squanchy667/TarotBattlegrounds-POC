@@ -15,8 +15,8 @@ public class ThemeConfig : ScriptableObject
     public string themeId = "AutoBattler";
 
     [Header("Tribe Configuration")]
-    [Tooltip("Configure all 4 tribes - order matches TribeType enum (index 1-4)")]
-    public TribeThemeData[] tribes = new TribeThemeData[4];
+    [Tooltip("Configure all 6 tribes - order matches TribeType enum (index 1-6)")]
+    public TribeThemeData[] tribes = new TribeThemeData[6];
 
     [Header("UI Text")]
     public string shopTitle = "Shop";
@@ -353,6 +353,20 @@ public class ThemeConfig : ScriptableObject
                 description = "The suit of Fire and creation. Empowers allies with stat buffs.",
                 themeColor = new Color(0.9f, 0.4f, 0.2f),    // Orange/Fire
                 aliases = new string[] { "wand", "fire", "staff" }
+            },
+            new TribeThemeData
+            {
+                tribeName = "Stars",
+                description = "The suit of celestial power. Manipulates fate and summons tokens.",
+                themeColor = new Color(0.6f, 0.8f, 1.0f),    // Light blue/starlight
+                aliases = new string[] { "star", "celestial", "astral" }
+            },
+            new TribeThemeData
+            {
+                tribeName = "Coins",
+                description = "The suit of fortune and trade. Steals buffs and transforms cards.",
+                themeColor = new Color(0.95f, 0.85f, 0.3f),  // Bright gold/coin
+                aliases = new string[] { "coin", "fortune", "trade" }
             }
         };
 
@@ -444,6 +458,20 @@ public class ThemeConfig : ScriptableObject
                 description = "Fourth tribe type",
                 themeColor = new Color(1f, 0.5f, 0f),
                 aliases = new string[] { "d", "tribed" }
+            },
+            new TribeThemeData
+            {
+                tribeName = "Tribe E",
+                description = "Fifth tribe type",
+                themeColor = new Color(0.6f, 0.8f, 1.0f),
+                aliases = new string[] { "e", "tribee" }
+            },
+            new TribeThemeData
+            {
+                tribeName = "Tribe F",
+                description = "Sixth tribe type",
+                themeColor = new Color(0.95f, 0.85f, 0.3f),
+                aliases = new string[] { "f", "tribef" }
             }
         };
 
