@@ -185,6 +185,12 @@ public class MatchmakingManager : MonoBehaviour
     private void SetState(QueueState newState)
     {
         State = newState;
+        // M10 fix: Clean up stale matchId when returning to idle or error
+        if (newState == QueueState.Idle || newState == QueueState.Error)
+        {
+            MatchId = null;
+            PlayerPrefs.DeleteKey("Matchmaking_MatchId");
+        }
         OnStateChanged?.Invoke(newState);
     }
 

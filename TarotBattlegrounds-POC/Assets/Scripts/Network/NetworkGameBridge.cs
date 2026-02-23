@@ -658,6 +658,17 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
         }
     }
 
+    /// <summary>
+    /// Called when any player leaves the room. Runs on all clients, but only the
+    /// master client acts on it (converts slot to AI). Non-master clients receive
+    /// notification via RPC_NotifyPlayerDisconnected.
+    /// </summary>
+    public override void OnPlayerLeftRoom(Photon.Realtime.Player otherPlayer)
+    {
+        // Delegate to the shared handler which guards on IsMasterClient internally.
+        HandlePlayerDisconnect(otherPlayer);
+    }
+
     private void HandlePlayerDisconnect(Photon.Realtime.Player player)
     {
         if (!PhotonNetwork.IsMasterClient) return;
@@ -670,22 +681,30 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
             SlotToActor[slot] = -1;
             ActorToSlot.Remove(player.ActorNumber);
 
-            // Add AI controller on host
+            // Notify all other clients so they can show the disconnect banner
+            photonView.RPC(nameof(RPC_NotifyPlayerDisconnected), RpcTarget.Others, slot, player.NickName);
+
+            // Eliminate the disconnected player if the game is in progress
             if (GameManager.Instance != null && slot < GameManager.Instance.players.Count)
             {
-                Player gamePlayer = GameManager.Instance.players[slot];
-                AIController ai = gamePlayer.GetComponent<AIController>();
-                if (ai == null)
+                if (GameManager.Instance.CurrentPhase == GameManager.GamePhase.Combat)
                 {
-                    ai = gamePlayer.gameObject.AddComponent<AIController>();
-                    ai.Initialize(gamePlayer);
-                    ai.difficulty = GameConfig.DefaultAIDifficulty;
+                    // Mid-combat: eliminate immediately (treats them as defeated)
+                    GameManager.Instance.EliminateDisconnectedPlayer(slot);
+                    BroadcastAllPlayerStates();
                 }
-                GameManager.Instance.RegisterAIController(slot, ai);
-
-                // If we're in recruit phase, auto-ready this slot
-                if (GameManager.Instance.CurrentPhase == GameManager.GamePhase.Recruit)
+                else
                 {
+                    // Recruit phase: attach AI and auto-ready the slot
+                    Player gamePlayer = GameManager.Instance.players[slot];
+                    AIController ai = gamePlayer.GetComponent<AIController>();
+                    if (ai == null)
+                    {
+                        ai = gamePlayer.gameObject.AddComponent<AIController>();
+                        ai.Initialize(gamePlayer);
+                        ai.difficulty = GameConfig.DefaultAIDifficulty;
+                    }
+                    GameManager.Instance.RegisterAIController(slot, ai);
                     ai.ExecuteTurn();
                     GameManager.Instance.PlayerReadyForCombat(slot);
                 }
@@ -696,19 +715,122 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
     }
 
     // ================================================================
-    // HOST DISCONNECT DETECTION (for clients)
+    // HOST MIGRATION (H4 fix)
     // ================================================================
 
+    /// <summary>
+    /// Photon automatically promotes the next player in the room to master client
+    /// when the original master disconnects. This callback fires on ALL remaining
+    /// clients, including the one that just became master.
+    ///
+    /// Strategy (no full migration required):
+    ///   - New master:    call AssumeHostDuties() to start running the game loop.
+    ///   - Other clients: do nothing extra — they continue receiving RPC broadcasts
+    ///                    from the new master once it assumes host duties.
+    ///
+    /// We deliberately do NOT kick everyone to the Lobby. The game continues.
+    /// </summary>
     public override void OnMasterClientSwitched(Photon.Realtime.Player newMasterClient)
     {
-        // If the original host left, show disconnect dialog
-        Debug.LogWarning("[NetworkGameBridge] Host disconnected! Returning to lobby.");
+        Debug.LogWarning($"[NetworkGameBridge] Master client switched to '{newMasterClient.NickName}' " +
+                         $"(Actor {newMasterClient.ActorNumber}). " +
+                         $"Local is new master: {PhotonNetwork.IsMasterClient}");
 
-        // Show a message and return to lobby
-        if (PhotonNetwork.InRoom)
-            PhotonNetwork.LeaveRoom();
+        if (PhotonNetwork.IsMasterClient)
+        {
+            // Photon fires OnPlayerLeftRoom for the old master before this callback on
+            // clients, but the ordering is not guaranteed across all PUN versions. We
+            // scan for stale actor slots defensively — it is idempotent because
+            // HandlePlayerDisconnect removes the actor from ActorToSlot on first call.
 
-        UnityEngine.SceneManagement.SceneManager.LoadScene("Lobby");
+            // Find and clean up any actor slots whose owner is no longer in the room
+            var currentActors = new System.Collections.Generic.HashSet<int>();
+            foreach (var p in PhotonNetwork.PlayerList)
+                currentActors.Add(p.ActorNumber);
+
+            var staleActors = new System.Collections.Generic.List<int>();
+            foreach (var actorNum in ActorToSlot.Keys)
+            {
+                if (!currentActors.Contains(actorNum))
+                    staleActors.Add(actorNum);
+            }
+
+            foreach (int actorNum in staleActors)
+            {
+                // Synthesise a minimal player stub sufficient for HandlePlayerDisconnect
+                // We only need the actor number; create a fake lookup via slot.
+                int slot = ActorToSlot[actorNum];
+                Debug.LogWarning($"[NetworkGameBridge] Host migration cleanup: actor {actorNum} (slot {slot}) gone.");
+
+                SlotToActor[slot] = -1;
+                ActorToSlot.Remove(actorNum);
+
+                photonView.RPC(nameof(RPC_NotifyPlayerDisconnected), RpcTarget.Others, slot, "Disconnected Player");
+
+                if (GameManager.Instance != null && slot < GameManager.Instance.players.Count)
+                {
+                    if (GameManager.Instance.CurrentPhase == GameManager.GamePhase.Combat)
+                    {
+                        GameManager.Instance.EliminateDisconnectedPlayer(slot);
+                    }
+                    else
+                    {
+                        Player gamePlayer = GameManager.Instance.players[slot];
+                        AIController ai = gamePlayer.GetComponent<AIController>();
+                        if (ai == null)
+                        {
+                            ai = gamePlayer.gameObject.AddComponent<AIController>();
+                            ai.Initialize(gamePlayer);
+                            ai.difficulty = GameConfig.DefaultAIDifficulty;
+                        }
+                        GameManager.Instance.RegisterAIController(slot, ai);
+                        ai.ExecuteTurn();
+                        GameManager.Instance.PlayerReadyForCombat(slot);
+                    }
+                    OnPlayerDisconnected?.Invoke(slot);
+                }
+            }
+
+            // Now start running the game loop as the new host
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.AssumeHostDuties();
+            }
+        }
+    }
+
+    // ================================================================
+    // FULL STATE SYNC (used by new host after migration)
+    // ================================================================
+
+    /// <summary>
+    /// Push a full snapshot of all player states to all clients.
+    /// Called by the new master immediately after assuming host duties.
+    /// </summary>
+    public void BroadcastFullStateSnapshot()
+    {
+        if (!PhotonNetwork.IsMasterClient) return;
+        if (GameManager.Instance == null) return;
+
+        Debug.Log("[NetworkGameBridge] Broadcasting full state snapshot after host migration.");
+
+        // Re-broadcast current phase so clients re-anchor their phase state
+        string phaseStr = GameManager.Instance.CurrentPhase == GameManager.GamePhase.Combat ? "Combat" : "Recruit";
+        photonView.RPC(nameof(RPC_PhaseChanged), RpcTarget.Others, phaseStr, GameManager.Instance.TurnNumber, 0f);
+
+        // Re-broadcast all player states
+        BroadcastAllPlayerStates();
+    }
+
+    // ================================================================
+    // CLIENT-SIDE DISCONNECT NOTIFICATION RPC
+    // ================================================================
+
+    [PunRPC]
+    private void RPC_NotifyPlayerDisconnected(int slot, string nickName)
+    {
+        Debug.LogWarning($"[NetworkGameBridge] Player '{nickName}' (slot {slot}) disconnected from the game.");
+        OnPlayerDisconnected?.Invoke(slot);
     }
 
     // ================================================================

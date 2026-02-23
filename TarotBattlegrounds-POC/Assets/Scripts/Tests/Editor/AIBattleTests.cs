@@ -237,10 +237,11 @@ public class AIBattleTests
         if (board1.Count == 0 && board2.Count == 0)
             return (0, 0);
 
+        // Fix M4: damage cap removed from production CombatManager; mirror uncapped formula here
         if (board1.Count > 0)
-            return (1, Mathf.Min(5, board1.Sum(c => c.tier) + p1.tavernTier));
+            return (1, Mathf.Max(1, board1.Sum(c => c.tier) + p1.tavernTier));
 
-        return (2, Mathf.Min(5, board2.Sum(c => c.tier) + p2.tavernTier));
+        return (2, Mathf.Max(1, board2.Sum(c => c.tier) + p2.tavernTier));
     }
 
     // =====================================================
@@ -646,14 +647,16 @@ public class AIBattleTests
     // =====================================================
 
     [Test]
-    public void Combat_DamageNeverExceeds5()
+    public void Combat_DamageAlwaysAtLeastOne()
     {
+        // Fix M4: damage cap (was hardcoded 5) removed from production CombatManager.
+        // Assert the only remaining constraint: damage is always >= 1 when there is a winner.
         for (int i = 0; i < BATCH_SIZE; i++)
         {
             var p1 = new TestPlayer(1, AIDifficulty.Hard);
             var p2 = new TestPlayer(2, AIDifficulty.Easy);
 
-            // Give p1 a huge board
+            // Give p1 a huge board so it always wins
             for (int j = 0; j < 7; j++)
             {
                 var card = ScriptableObject.CreateInstance<Card>();
@@ -664,8 +667,9 @@ public class AIBattleTests
                 p1.board.Add(card);
             }
 
-            var (_, damage) = SimulateCombat(p1, p2);
-            Assert.IsTrue(damage <= 5, $"Damage {damage} exceeds cap of 5");
+            var (winner, damage) = SimulateCombat(p1, p2);
+            if (winner != 0) // 0 is a tie, damage is 0 on ties
+                Assert.IsTrue(damage >= 1, $"Damage {damage} should be at least 1");
         }
     }
 

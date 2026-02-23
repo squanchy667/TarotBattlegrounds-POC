@@ -88,6 +88,13 @@ public class PhotonConnector : MonoBehaviourPunCallbacks
         // T006: Allow room rejoin for reconnection
         PhotonNetwork.PhotonServerSettings.AppSettings.PlayerTtl = (int)(RECONNECT_TIMEOUT * 1000);
 
+        // M7 fix: Clear fixed region so Photon auto-selects best region for player
+        if (!string.IsNullOrEmpty(PhotonNetwork.PhotonServerSettings.AppSettings.FixedRegion))
+        {
+            Debug.Log($"[PhotonConnector] Clearing fixed region '{PhotonNetwork.PhotonServerSettings.AppSettings.FixedRegion}' — will auto-select best region");
+            PhotonNetwork.PhotonServerSettings.AppSettings.FixedRegion = "";
+        }
+
         Debug.Log($"[PhotonConnector] Connecting as '{playerName}'...");
         PhotonNetwork.ConnectUsingSettings();
     }

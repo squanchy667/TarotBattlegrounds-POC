@@ -29,6 +29,14 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public static event System.Action<GameOverData> OnGameOver;
 
+    // H12 fix: Event fired when a human player needs to pick a hero power.
+    // Subscribers (e.g. GameUIManager) show a selection UI and invoke the callback.
+    // If no subscriber calls the callback before the fallback timer, the first choice is auto-assigned.
+    public static event System.Action<List<HeroPowerBase>, System.Action<HeroPowerBase>> OnHeroPowerSelectionNeeded;
+
+    // H12 fix: Stores the callback so UI can invoke it after player picks.
+    private System.Action<HeroPowerBase> _heroPowerSelectionCallback;
+
     [Header("Player Settings (Auto-configured from GameConfig)")]
     [Tooltip("Number of active players (read from GameConfig)")]
     public int playerCount = 2;
@@ -54,6 +62,10 @@ public class GameManager : MonoBehaviour
 
     // Matchmaking history to avoid consecutive same opponents
     private Dictionary<int, HashSet<int>> recentOpponents = new Dictionary<int, HashSet<int>>();
+
+    // H4 fix: Guards against starting the host game loop twice (e.g. both
+    // OnNetworkSetupComplete and AssumeHostDuties fire on the same frame).
+    private bool _hostGameLoopRunning = false;
 
     public GamePhase CurrentPhase => currentPhase;
     public int TurnNumber => turnNumber;
@@ -484,8 +496,10 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// T115: Auto-assign hero powers for all players at game start.
-    /// AI players get random assignments. Human players would get a selection UI (Phase V).
+    /// T115 / H12 fix: Assign hero powers at game start.
+    /// AI players get a random auto-assignment.
+    /// Human players fire OnHeroPowerSelectionNeeded so UI can present 3 choices;
+    /// the first choice is auto-assigned as a fallback if no UI subscriber responds.
     /// </summary>
     private void InitializeHeroPowers()
     {
@@ -498,12 +512,41 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < playerCount; i++)
         {
             if (playerHealths[i] <= 0) continue;
-            // For now, auto-assign random hero powers for all players
-            // Human player selection UI will be added in Phase V
-            HeroPowerManager.Instance.AutoAssignForAI(players[i].playerId);
+
+            // H12 fix: human players get a selection UI; AI players get random auto-assignment
+            if (GameConfig.IsHumanPlayer(i))
+            {
+                int playerId = players[i].playerId;
+                List<HeroPowerBase> choices = HeroPowerManager.Instance.GetRandomChoices(3);
+
+                // Build the callback that assigns whichever power the player picks
+                _heroPowerSelectionCallback = (chosen) =>
+                {
+                    HeroPowerManager.Instance.AssignHeroPower(playerId, chosen);
+                    Debug.Log($"[GameManager] Human player {i + 1} selected hero power: {chosen.PowerName}");
+                };
+
+                if (OnHeroPowerSelectionNeeded != null)
+                {
+                    // Notify any wired UI; the UI is responsible for invoking the callback
+                    Debug.Log($"[GameManager] Presenting hero power selection UI for player {i + 1}");
+                    OnHeroPowerSelectionNeeded.Invoke(choices, _heroPowerSelectionCallback);
+                }
+                else
+                {
+                    // No UI wired yet — auto-assign the first choice so the game still works
+                    Debug.Log($"[GameManager] No hero power UI subscriber; auto-assigning first choice for player {i + 1}");
+                    if (choices.Count > 0)
+                        _heroPowerSelectionCallback.Invoke(choices[0]);
+                }
+            }
+            else
+            {
+                HeroPowerManager.Instance.AutoAssignForAI(players[i].playerId);
+            }
         }
 
-        Debug.Log($"[GameManager] Hero powers assigned for {playerCount} players");
+        Debug.Log($"[GameManager] Hero powers initialised for {playerCount} players");
     }
 
     /// <summary>
@@ -518,6 +561,9 @@ public class GameManager : MonoBehaviour
         {
             // Initialize AI for non-human slots on host
             InitializeAI();
+            // H4 fix: record that the host game loop is now running so AssumeHostDuties
+            // does not start a second coroutine if it is called after a host migration.
+            _hostGameLoopRunning = true;
             StartCoroutine(GameLoop());
         }
         // Clients don't run the game loop — they receive state via RPCs
@@ -530,6 +576,139 @@ public class GameManager : MonoBehaviour
     {
         aiControllers[slot] = ai;
         Debug.Log($"[GameManager] Registered AI controller for slot {slot}");
+    }
+
+    // ================================================================
+    // H4: HOST DISCONNECT RECOVERY
+    // ================================================================
+
+    /// <summary>
+    /// H4 fix: Mark a disconnected player as eliminated and keep the game running.
+    /// Safe to call from NetworkGameBridge during either phase.
+    ///
+    /// - Sets health to 0 so the game loop skips this player in future iterations.
+    /// - Adds to eliminationOrder so standings are correct.
+    /// - Auto-readies the slot so the recruit phase is not blocked waiting for the leaver.
+    /// </summary>
+    public void EliminateDisconnectedPlayer(int playerIndex)
+    {
+        if (playerIndex < 0 || playerIndex >= playerCount) return;
+        if (playerHealths == null || playerIndex >= playerHealths.Count) return;
+        if (playerHealths[playerIndex] <= 0) return; // Already eliminated
+
+        Debug.LogWarning($"[GameManager] EliminateDisconnectedPlayer: slot {playerIndex} eliminated due to disconnect.");
+
+        playerHealths[playerIndex] = 0;
+        if (players != null && playerIndex < players.Count)
+            players[playerIndex].Health = 0;
+
+        if (!eliminationOrder.Contains(playerIndex))
+            eliminationOrder.Add(playerIndex);
+
+        // Auto-ready the slot so the recruit phase timer is not blocked
+        playersReadyForCombat.Add(playerIndex);
+
+        Debug.Log($"[GameManager] Slot {playerIndex} eliminated (disconnected). " +
+                  $"Remaining alive: {GetAlivePlayerCount()}");
+    }
+
+    /// <summary>
+    /// H4 fix: Called when this client becomes the new Photon master client (host migration).
+    ///
+    /// If the game loop is not already running on this client (it was a non-host client
+    /// before the switch) this starts the game loop. The current player states were already
+    /// seeded via RPCs from the previous host, so we reconstruct health from live Player
+    /// objects and start the next recruit phase.
+    ///
+    /// If the game loop IS already running (this was the host before and migration happened
+    /// for another reason) we just push a full state broadcast to re-anchor clients.
+    /// </summary>
+    public void AssumeHostDuties()
+    {
+        Debug.LogWarning("[GameManager] AssumeHostDuties: this client is now the game host.");
+
+        if (!IsOnlineMode)
+        {
+            Debug.LogWarning("[GameManager] AssumeHostDuties called in offline mode — ignoring.");
+            return;
+        }
+
+#if PHOTON_UNITY_NETWORKING
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            Debug.LogWarning("[GameManager] AssumeHostDuties: not master client — ignoring.");
+            return;
+        }
+#endif
+
+        // Rebuild playerHealths from live Player objects in case we are out of sync.
+        if (playerHealths == null)
+            playerHealths = new List<int>(new int[playerCount]);
+
+        for (int i = 0; i < playerCount && i < players.Count; i++)
+            playerHealths[i] = players[i].Health;
+
+        // Ensure recentOpponents map is initialized (may be null if this was a client).
+        if (recentOpponents == null)
+        {
+            recentOpponents = new Dictionary<int, HashSet<int>>();
+            for (int i = 0; i < playerCount; i++)
+                recentOpponents[i] = new HashSet<int>();
+        }
+
+        // Attach AI controllers to all slots without a live Photon actor.
+        for (int i = 0; i < playerCount && i < players.Count; i++)
+        {
+            bool hasLiveActor = NetworkGameBridge.Instance != null
+                                && NetworkGameBridge.Instance.IsNetworkPlayerSlot(i);
+
+            if (!hasLiveActor && !aiControllers.ContainsKey(i))
+            {
+                AIController ai = players[i].GetComponent<AIController>();
+                if (ai == null)
+                {
+                    ai = players[i].gameObject.AddComponent<AIController>();
+                    ai.Initialize(players[i]);
+                    ai.difficulty = GameConfig.DefaultAIDifficulty;
+                }
+                aiControllers[i] = ai;
+                Debug.Log($"[GameManager] AssumeHostDuties: registered AI for slot {i}");
+            }
+        }
+
+        // Re-initialise hero powers for any slot that does not yet have one.
+        // GetHeroPower uses playerId (= slotIndex + 1), not slotIndex.
+        if (HeroPowerManager.Instance != null)
+        {
+            for (int i = 0; i < playerCount && i < players.Count; i++)
+            {
+                if (playerHealths[i] <= 0) continue;
+                int playerId = players[i].playerId;
+                if (HeroPowerManager.Instance.GetHeroPower(playerId) == null)
+                    HeroPowerManager.Instance.AutoAssignForAI(playerId);
+            }
+        }
+
+        if (!_hostGameLoopRunning)
+        {
+            _hostGameLoopRunning = true;
+            Debug.Log("[GameManager] AssumeHostDuties: starting game loop as new host.");
+
+            // Push a full state snapshot so all clients re-anchor before the first RPC
+            // of the new game loop arrives.
+            if (NetworkGameBridge.Instance != null)
+                NetworkGameBridge.Instance.BroadcastFullStateSnapshot();
+
+            StartCoroutine(GameLoop());
+        }
+        else
+        {
+            // Game loop is already ticking on this client. Just push a snapshot so
+            // clients that may have missed events during the transition catch up.
+            Debug.Log("[GameManager] AssumeHostDuties: game loop already running — pushing full state snapshot.");
+            if (NetworkGameBridge.Instance != null)
+                NetworkGameBridge.Instance.BroadcastFullStateSnapshot();
+        }
     }
 
     IEnumerator GameLoop()
