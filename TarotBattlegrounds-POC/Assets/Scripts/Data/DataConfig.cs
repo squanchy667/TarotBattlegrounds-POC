@@ -17,6 +17,10 @@ public class DataConfig : ScriptableObject
     [Tooltip("Timeout in seconds for each data fetch request")]
     public float requestTimeout = 10f;
 
+    [Header("API")]
+    [Tooltip("Base URL for the DevZone API (API Gateway endpoint, must end with /api/)")]
+    public string apiBaseUrl = "";
+
     [Header("Fallback")]
     [Tooltip("If true, use built-in CardDatabase data when runtime loading fails")]
     public bool fallbackToBuiltIn = true;
