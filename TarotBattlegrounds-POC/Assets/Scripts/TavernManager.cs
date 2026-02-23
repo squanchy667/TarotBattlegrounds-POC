@@ -171,15 +171,22 @@ public class TavernManager : MonoBehaviour
     private List<Card> GenerateFullPool()
     {
         List<Card> fullPool = new List<Card>();
+        // H11 fix: Scale pool size for 8-player games
+        float poolMultiplier = 1.0f;
+        if (EightPlayerManager.Instance != null && GameManager.Instance != null)
+        {
+            poolMultiplier = EightPlayerManager.Instance.GetShopPoolMultiplier(GameManager.Instance.playerCount);
+        }
         foreach (Card uniqueCard in masterCards)
         {
-            int copies = tierCopies.ContainsKey(uniqueCard.tier) ? tierCopies[uniqueCard.tier] : 1;
+            int baseCopies = tierCopies.ContainsKey(uniqueCard.tier) ? tierCopies[uniqueCard.tier] : 1;
+            int copies = Mathf.Max(1, Mathf.RoundToInt(baseCopies * poolMultiplier));
             for (int i = 0; i < copies; i++)
             {
                 fullPool.Add(uniqueCard);
             }
         }
-        Debug.Log($"Generated full pool size: {fullPool.Count}");
+        Debug.Log($"Generated full pool size: {fullPool.Count} (multiplier: {poolMultiplier:F1}x)");
         return fullPool;
     }
 

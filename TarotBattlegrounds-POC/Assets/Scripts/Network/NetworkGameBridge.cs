@@ -745,7 +745,10 @@ public class NetworkGameBridge : MonoBehaviourPunCallbacks
             hand = NetworkCardData.FromCardList(player.hand),
             board = NetworkCardData.FromCardList(player.board),
             shopCards = shopData,
-            upgradeCost = player.GetUpgradeCost() // M5: Include upgrade cost
+            upgradeCost = player.GetUpgradeCost(), // M5: Include upgrade cost
+            // H5 fix: Include hero power info for client sync
+            heroPowerId = HeroPowerManager.Instance?.GetHeroPower(playerIndex)?.PowerName ?? "",
+            heroPowerUsedThisTurn = HeroPowerManager.Instance?.GetHeroPower(playerIndex)?.UsedThisTurn ?? false
         };
     }
 

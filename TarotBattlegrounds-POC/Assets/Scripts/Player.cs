@@ -131,8 +131,12 @@ public class Player : MonoBehaviour
         {2, 5}, {3, 8}, {4, 9}, {5, 10}, {6, 11}
     };
 
+    // M1/M2 fix: Economy config values (overridable from RuntimeGameConfig)
+    private int _startingGold = 3;
+    private int _maxGold = 10;
+
     /// <summary>
-    /// Apply runtime config overrides for upgrade costs.
+    /// Apply runtime config overrides for upgrade costs and economy.
     /// Called after RuntimeDataLoader completes.
     /// </summary>
     public void ApplyRuntimeConfig(RuntimeGameConfig config)
@@ -151,6 +155,15 @@ public class Player : MonoBehaviour
                 currentUpgradeCost = baseUpgradeCosts[currentTavernTier + 1];
             Debug.Log($"[Player {playerId}] Applied runtime upgrade costs");
         }
+
+        // M1/M2 fix: Apply economy config values
+        if (config.startingGold > 0)
+            _startingGold = config.startingGold;
+        if (config.maxGold > 0)
+            _maxGold = config.maxGold;
+        // goldPerTurn maps to startingGold (base gold at turn 1, scales up)
+        if (config.goldPerTurn > 0)
+            _startingGold = config.goldPerTurn;
     }
     
     // Dictionary to track turns since each tier was reached
@@ -719,7 +732,7 @@ public class Player : MonoBehaviour
             tavern.availableCards[playerId] = new List<Card>();
 
         int oldCoins = coins;
-        coins = Mathf.Min(3 + (gameTurn - 1), 10); // M8: Use property setter
+        coins = Mathf.Min(_startingGold + (gameTurn - 1), _maxGold); // M1/M2 fix: Use config values
 
         if (tierTurnCounter.ContainsKey(currentTavernTier))
             tierTurnCounter[currentTavernTier]++;

@@ -181,6 +181,23 @@ public class GameManager : MonoBehaviour
             NetworkGameBridge.Instance.BroadcastGameOver(data);
 #endif
 
+        // H8 fix: Submit match result to ranked system
+        if (RankedManager.Instance != null && standings.Count > 0)
+        {
+            string matchId = System.Guid.NewGuid().ToString();
+            var placements = new List<RankedManager.PlacementData>();
+            for (int i = 0; i < standings.Count; i++)
+            {
+                placements.Add(new RankedManager.PlacementData
+                {
+                    playerId = players[standings[i]].playerId.ToString(),
+                    placement = i + 1,
+                    playerCount = standings.Count
+                });
+            }
+            RankedManager.Instance.SubmitMatchResult(matchId, placements);
+        }
+
         OnGameOver?.Invoke(data);
     }
 
