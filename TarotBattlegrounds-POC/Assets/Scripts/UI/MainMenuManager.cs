@@ -17,6 +17,12 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private TarotBattlegrounds.UI.CollectionUI collectionUI;
     [SerializeField] private TarotBattlegrounds.UI.SettingsUI settingsUI;
 
+    [Header("T003/T005: Auth & Matchmaking")]
+    [SerializeField] private TarotBattlegrounds.UI.AuthUI authUI;
+    [SerializeField] private TarotBattlegrounds.UI.MatchmakingUI matchmakingUI;
+    [SerializeField] private Button rankedButton;
+    [SerializeField] private TMP_Text playerInfoText;
+
     [Header("Solo Panel")]
     [SerializeField] private GameObject soloPanel;
     [SerializeField] private Button players4Button;
@@ -42,6 +48,14 @@ public class MainMenuManager : MonoBehaviour
         if (quitButton != null) quitButton.onClick.AddListener(OnQuitClicked);
         if (collectionButton != null) collectionButton.onClick.AddListener(OnCollectionClicked);
         if (settingsButton != null) settingsButton.onClick.AddListener(OnSettingsClicked);
+        if (rankedButton != null) rankedButton.onClick.AddListener(OnRankedClicked);
+
+        // Auth UI callback
+        if (authUI != null)
+            authUI.OnAuthenticated += OnPlayerAuthenticated;
+
+        // Update player info display
+        UpdatePlayerInfo();
 
         // Solo panel buttons
         if (players4Button != null) players4Button.onClick.AddListener(() => SelectPlayerCount(0));
@@ -101,10 +115,64 @@ public class MainMenuManager : MonoBehaviour
 
     private void OnMultiplayerClicked()
     {
+        // Require auth before entering multiplayer
+        if (GameAuthManager.Instance == null || !GameAuthManager.Instance.IsAuthenticated)
+        {
+            pendingMultiplayerAction = PendingAction.Lobby;
+            if (authUI != null) authUI.Open();
+            return;
+        }
+
         GameConfig.CurrentGameMode = GameConfig.GameMode.Multiplayer;
         GameConfig.Save();
         Debug.Log("[MainMenu] Loading Lobby for multiplayer...");
         SceneManager.LoadScene("Lobby");
+    }
+
+    private void OnRankedClicked()
+    {
+        // Require auth before ranked matchmaking
+        if (GameAuthManager.Instance == null || !GameAuthManager.Instance.IsAuthenticated)
+        {
+            pendingMultiplayerAction = PendingAction.Ranked;
+            if (authUI != null) authUI.Open();
+            return;
+        }
+
+        if (matchmakingUI != null) matchmakingUI.Open();
+    }
+
+    private enum PendingAction { None, Lobby, Ranked }
+    private PendingAction pendingMultiplayerAction = PendingAction.None;
+
+    private void OnPlayerAuthenticated()
+    {
+        UpdatePlayerInfo();
+        var action = pendingMultiplayerAction;
+        pendingMultiplayerAction = PendingAction.None;
+
+        switch (action)
+        {
+            case PendingAction.Lobby:
+                OnMultiplayerClicked();
+                break;
+            case PendingAction.Ranked:
+                OnRankedClicked();
+                break;
+        }
+    }
+
+    private void UpdatePlayerInfo()
+    {
+        if (playerInfoText == null) return;
+        if (GameAuthManager.Instance != null && GameAuthManager.Instance.IsAuthenticated)
+        {
+            playerInfoText.text = $"{GameAuthManager.Instance.DisplayName} (Rating: {GameAuthManager.Instance.Rating})";
+        }
+        else
+        {
+            playerInfoText.text = "";
+        }
     }
 
     private void OnPlayClicked()
@@ -161,11 +229,13 @@ public class MainMenuManager : MonoBehaviour
         if (quitButton != null) quitButton.onClick.RemoveListener(OnQuitClicked);
         if (collectionButton != null) collectionButton.onClick.RemoveAllListeners();
         if (settingsButton != null) settingsButton.onClick.RemoveAllListeners();
+        if (rankedButton != null) rankedButton.onClick.RemoveAllListeners();
         if (playButton != null) playButton.onClick.RemoveAllListeners();
         if (backButton != null) backButton.onClick.RemoveListener(OnBackClicked);
         if (players4Button != null) players4Button.onClick.RemoveAllListeners();
         if (players6Button != null) players6Button.onClick.RemoveAllListeners();
         if (players8Button != null) players8Button.onClick.RemoveAllListeners();
         if (difficultyDropdown != null) difficultyDropdown.onValueChanged.RemoveListener(OnDifficultyChanged);
+        if (authUI != null) authUI.OnAuthenticated -= OnPlayerAuthenticated;
     }
 }

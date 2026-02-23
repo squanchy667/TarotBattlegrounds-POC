@@ -37,6 +37,10 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] private Button leaveRoomButton;
     [SerializeField] private TMP_Text roomStatusText;
 
+    [Header("T006: Reconnection")]
+    [SerializeField] private GameObject reconnectingOverlay;
+    [SerializeField] private TMP_Text reconnectingText;
+
     private List<GameObject> roomListEntries = new List<GameObject>();
 
     private void Start()
@@ -76,6 +80,9 @@ public class LobbyUI : MonoBehaviour
         // Subscribe to events
         SubscribeEvents();
 
+        // T006: Hide reconnection overlay
+        if (reconnectingOverlay != null) reconnectingOverlay.SetActive(false);
+
         // Connect if not already connected
         if (!PhotonNetwork.IsConnected)
         {
@@ -90,7 +97,18 @@ public class LobbyUI : MonoBehaviour
         {
             SetActivePanel(PanelState.RoomBrowser);
         }
+
+        // T005: Check if we arrived via matchmaking
+        string matchId = PlayerPrefs.GetString("Matchmaking_MatchId", "");
+        if (!string.IsNullOrEmpty(matchId))
+        {
+            PlayerPrefs.DeleteKey("Matchmaking_MatchId");
+            PlayerPrefs.Save();
+            pendingMatchId = matchId;
+        }
     }
+
+    private string pendingMatchId;
 
     private void EnsurePhotonConnector()
     {
@@ -164,6 +182,16 @@ public class LobbyUI : MonoBehaviour
 
     private void OnConnectedToMaster()
     {
+        // T005: Auto-join matchmaking room if we have a pending match
+        if (!string.IsNullOrEmpty(pendingMatchId))
+        {
+            string matchRoomName = $"match_{pendingMatchId}";
+            Debug.Log($"[LobbyUI] Auto-joining matchmaking room: {matchRoomName}");
+            RoomManager.Instance.JoinOrCreateRoom(matchRoomName, 4);
+            pendingMatchId = null;
+            return;
+        }
+
         SetActivePanel(PanelState.RoomBrowser);
     }
 
@@ -185,6 +213,14 @@ public class LobbyUI : MonoBehaviour
 
     private void OnDisconnected(DisconnectCause cause)
     {
+        // T006: Show reconnection overlay if connector is handling reconnection
+        if (PhotonConnector.Instance != null && PhotonConnector.Instance.IsReconnecting)
+        {
+            if (reconnectingOverlay != null) reconnectingOverlay.SetActive(true);
+            if (reconnectingText != null) reconnectingText.text = "Reconnecting...";
+            return;
+        }
+
         SetActivePanel(PanelState.Connecting);
         if (connectionStatusText != null) connectionStatusText.text = $"Disconnected: {cause}\nReconnecting...";
 
@@ -275,7 +311,10 @@ public class LobbyUI : MonoBehaviour
             {
                 string host = player.IsMasterClient ? " (Host)" : "";
                 string local = player.IsLocal ? " (You)" : "";
-                playerList += $"{index}. {player.NickName}{host}{local}\n";
+                // T006: Show display name and rating from custom properties
+                string displayName = PhotonConnector.GetPlayerDisplayName(player);
+                int rating = PhotonConnector.GetPlayerRating(player);
+                playerList += $"{index}. {displayName} [{rating}]{host}{local}\n";
                 index++;
             }
 

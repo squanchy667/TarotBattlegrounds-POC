@@ -82,6 +82,41 @@ public class RoomManager : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
+    /// T005: Join an existing room or create it if it doesn't exist.
+    /// Used for matchmaking-assigned rooms.
+    /// </summary>
+    public void JoinOrCreateRoom(string roomName, byte maxPlayers)
+    {
+        if (!PhotonNetwork.IsConnectedAndReady || PhotonNetwork.InRoom)
+        {
+            Debug.LogWarning($"[RoomManager] Cannot join/create room '{roomName}': not ready.");
+            return;
+        }
+
+        maxPlayers = (byte)Mathf.Clamp(maxPlayers, 2, 8);
+        RoomOptions options = new RoomOptions
+        {
+            MaxPlayers = maxPlayers,
+            IsVisible = false, // matchmaking rooms are not listed
+            IsOpen = true,
+            PlayerTtl = 60000, // T006: 60s reconnection window
+            CustomRoomProperties = new Hashtable
+            {
+                { PROP_GAME_STARTED, false },
+                { PROP_HOST_NAME, PhotonNetwork.NickName },
+                { PROP_PLAYER_COUNT, (int)maxPlayers }
+            },
+            CustomRoomPropertiesForLobby = new string[]
+            {
+                PROP_GAME_STARTED, PROP_HOST_NAME, PROP_PLAYER_COUNT
+            }
+        };
+
+        Debug.Log($"[RoomManager] Joining or creating matchmaking room '{roomName}'...");
+        PhotonNetwork.JoinOrCreateRoom(roomName, options, TypedLobby.Default);
+    }
+
+    /// <summary>
     /// Join a random available room.
     /// </summary>
     public void JoinRandomRoom()
