@@ -17,6 +17,8 @@ public struct NetworkCardData
     public bool hasAegis;
     public bool hasCleave;    // H6 fix: sync cleave flag for combat replay
     public bool hasReborn;    // H6 fix: sync reborn flag
+    public bool hasWindfury;
+    public bool hasVenomous;
     public int buyCostModifier;
     public int sellValueModifier;
 
@@ -35,6 +37,8 @@ public struct NetworkCardData
             hasAegis = card.hasAegis,
             hasCleave = card.hasCleave,
             hasReborn = card.hasReborn,
+            hasWindfury = card.hasWindfury,
+            hasVenomous = card.hasVenomous,
             buyCostModifier = card.buyCostModifier,
             sellValueModifier = card.sellValueModifier
         };
@@ -59,6 +63,8 @@ public struct NetworkCardData
         card.hasAegis = hasAegis;
         card.hasCleave = hasCleave;
         card.hasReborn = hasReborn;
+        card.hasWindfury = hasWindfury;
+        card.hasVenomous = hasVenomous;
         card.buyCostModifier = buyCostModifier;
         card.sellValueModifier = sellValueModifier;
         return card;

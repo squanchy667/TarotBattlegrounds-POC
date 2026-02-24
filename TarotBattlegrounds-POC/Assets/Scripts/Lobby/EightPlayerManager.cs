@@ -70,7 +70,12 @@ public class EightPlayerManager : MonoBehaviour
             (available[i], available[j]) = (available[j], available[i]);
         }
 
-        // Initialize pairing history
+        // Initialize pairing history and prune eliminated players
+        var activeSet = new HashSet<int>(activePlayers);
+        var staleKeys = pairingHistory.Keys.Where(k => !activeSet.Contains(k)).ToList();
+        foreach (var key in staleKeys)
+            pairingHistory.Remove(key);
+
         foreach (var p in activePlayers)
         {
             if (!pairingHistory.ContainsKey(p))

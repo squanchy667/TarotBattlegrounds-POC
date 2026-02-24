@@ -608,8 +608,9 @@ public class SynergyManager : MonoBehaviour
                 return adjacent;
 
             case SynergyTarget.Random:
-                if (board.Count == 0) return new List<Card>();
-                return new List<Card> { board[Random.Range(0, board.Count)] };
+                var tribeCards = board.Where(c => c.HasTribe(tribe)).ToList();
+                if (tribeCards.Count == 0) return new List<Card>();
+                return new List<Card> { tribeCards[Random.Range(0, tribeCards.Count)] };
 
             default:
                 return new List<Card>();
@@ -846,7 +847,7 @@ public class SynergyManager : MonoBehaviour
         int reduction = GetCostReduction(card, snapshot);
         if (reduction > 0)
         {
-            return Mathf.Max(1, baseCost - reduction);
+            return Mathf.Max(0, baseCost - reduction);
         }
 
         return baseCost;

@@ -792,6 +792,13 @@ public class GameManager : MonoBehaviour
                             yield return null;
                     }
 
+                    // Use 8-player scaled damage when applicable
+                    if (EightPlayerManager.Instance != null && activePlayers.Count > 4 && winner != "Tie")
+                    {
+                        int boardStrength = damage; // surviving count + tavern tier from CombatManager
+                        damage = EightPlayerManager.Instance.CalculateCombatDamage(turnNumber, boardStrength, activePlayers.Count);
+                    }
+
                     int winnerIndex;
                     if (winner == "Tie")
                     {
