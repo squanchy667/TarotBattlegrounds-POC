@@ -18,6 +18,7 @@ public class HandUI : MonoBehaviour, IThemeable
 
     [Header("Panel Visuals")]
     [SerializeField] private Image panelBackground;
+    [SerializeField] private StyledPanel styledPanel;
 
     [Header("Empty Slot Display")]
     [SerializeField] private GameObject emptySlotPrefab;
@@ -58,8 +59,8 @@ public class HandUI : MonoBehaviour, IThemeable
         if (handTitleText != null)
             handTitleText.text = theme.handTitle;
 
-        // Apply colors
-        if (panelBackground != null)
+        // Apply colors — let StyledPanel handle background if present
+        if (styledPanel == null && panelBackground != null)
             panelBackground.color = theme.secondaryColor;
 
         if (handCountText != null)
@@ -156,6 +157,24 @@ public class HandUI : MonoBehaviour, IThemeable
     public int GetSelectedCardIndex()
     {
         return selectedCardIndex;
+    }
+
+    /// <summary>
+    /// UX15: Get the RectTransform of the selected card for animation purposes.
+    /// </summary>
+    public RectTransform GetSelectedCardRect()
+    {
+        if (selectedCardIndex < 0 || selectedCardIndex >= currentHandCards.Count) return null;
+        GameObject cardObj = currentHandCards[selectedCardIndex];
+        return cardObj != null ? cardObj.GetComponent<RectTransform>() : null;
+    }
+
+    /// <summary>
+    /// UX15: Get the RectTransform of the hand slot container for targeting animations.
+    /// </summary>
+    public RectTransform GetContainerRect()
+    {
+        return handSlotsContainer != null ? handSlotsContainer.GetComponent<RectTransform>() : null;
     }
     
     public void ClearSelection()

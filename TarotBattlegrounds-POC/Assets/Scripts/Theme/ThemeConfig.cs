@@ -49,29 +49,29 @@ public class ThemeConfig : ScriptableObject
 
     [Header("Color Palette")]
     [Tooltip("Primary UI color (buttons, highlights)")]
-    public Color primaryColor = new Color(0.6f, 0.4f, 0.8f); // Purple
+    public Color primaryColor = new Color(0.55f, 0.3f, 0.75f); // Deep mystical purple
     [Tooltip("Secondary UI color (backgrounds, panels)")]
-    public Color secondaryColor = new Color(0.2f, 0.2f, 0.3f); // Dark blue-gray
+    public Color secondaryColor = new Color(0.12f, 0.08f, 0.18f); // Rich dark purple
     [Tooltip("Accent color (important elements, warnings)")]
-    public Color accentColor = new Color(1f, 0.8f, 0.2f); // Gold
+    public Color accentColor = new Color(1.0f, 0.78f, 0.15f); // Rich gold
     [Tooltip("Text color on dark backgrounds")]
     public Color textColorLight = Color.white;
     [Tooltip("Text color on light backgrounds")]
     public Color textColorDark = new Color(0.1f, 0.1f, 0.1f);
     [Tooltip("Positive feedback color (health, buffs)")]
-    public Color positiveColor = new Color(0.3f, 0.8f, 0.3f); // Green
+    public Color positiveColor = new Color(0.2f, 0.85f, 0.4f); // Bright emerald
     [Tooltip("Negative feedback color (damage, debuffs)")]
-    public Color negativeColor = new Color(0.9f, 0.3f, 0.3f); // Red
+    public Color negativeColor = new Color(0.95f, 0.25f, 0.25f); // Crisp red
 
     [Header("Background")]
     [Tooltip("Game background sprite (fullscreen)")]
     public Sprite gameBackground;
     [Tooltip("Fallback background color if no sprite is set")]
-    public Color gameBackgroundColor = new Color(0.1f, 0.08f, 0.15f);
+    public Color gameBackgroundColor = new Color(0.05f, 0.03f, 0.10f);
 
     [Header("Card Visuals")]
     [Tooltip("Background tint color for golden (tripled) cards")]
-    public Color goldenCardColor = new Color(1f, 0.85f, 0.2f, 1f);
+    public Color goldenCardColor = new Color(1.0f, 0.82f, 0.12f, 1.0f);
 
     [Tooltip("Card frame sprite for tier 1-2 cards")]
     public Sprite cardFrameCommon;
@@ -82,7 +82,7 @@ public class ThemeConfig : ScriptableObject
     [Tooltip("Card back sprite")]
     public Sprite cardBack;
     [Tooltip("Default card background color")]
-    public Color cardBackgroundColor = new Color(0.15f, 0.15f, 0.2f);
+    public Color cardBackgroundColor = new Color(0.10f, 0.07f, 0.16f);
 
     [Header("UI Panels")]
     [Tooltip("Panel background sprite")]
@@ -311,18 +311,18 @@ public class ThemeConfig : ScriptableObject
         config.quitToMenuText = "Quit to Menu";
 
         // Tarot background
-        config.gameBackgroundColor = new Color(0.08f, 0.06f, 0.12f);
+        config.gameBackgroundColor = new Color(0.05f, 0.03f, 0.10f);
 
         // Tarot color palette (mystical purple/gold theme)
-        config.primaryColor = new Color(0.6f, 0.4f, 0.8f);      // Purple
-        config.secondaryColor = new Color(0.15f, 0.12f, 0.2f);  // Dark purple
-        config.accentColor = new Color(1f, 0.8f, 0.2f);         // Gold
+        config.primaryColor = new Color(0.55f, 0.3f, 0.75f);      // Deep mystical purple
+        config.secondaryColor = new Color(0.12f, 0.08f, 0.18f);   // Rich dark purple
+        config.accentColor = new Color(1.0f, 0.78f, 0.15f);       // Rich gold
         config.textColorLight = Color.white;
         config.textColorDark = new Color(0.1f, 0.1f, 0.15f);
-        config.positiveColor = new Color(0.3f, 0.8f, 0.3f);     // Green
-        config.negativeColor = new Color(0.9f, 0.3f, 0.3f);     // Red
-        config.cardBackgroundColor = new Color(0.12f, 0.1f, 0.18f);
-        config.goldenCardColor = new Color(1f, 0.85f, 0.2f, 1f);
+        config.positiveColor = new Color(0.2f, 0.85f, 0.4f);      // Bright emerald
+        config.negativeColor = new Color(0.95f, 0.25f, 0.25f);    // Crisp red
+        config.cardBackgroundColor = new Color(0.10f, 0.07f, 0.16f);
+        config.goldenCardColor = new Color(1.0f, 0.82f, 0.12f, 1.0f);
 
         config.tribes = new TribeThemeData[]
         {
@@ -330,42 +330,42 @@ public class ThemeConfig : ScriptableObject
             {
                 tribeName = "Pentacles",
                 description = "The suit of Earth and material wealth. Grants economic advantages.",
-                themeColor = new Color(0.85f, 0.65f, 0.2f),  // Gold
+                themeColor = new Color(0.82f, 0.68f, 0.15f),  // Antique gold
                 aliases = new string[] { "pentacle", "earth", "coins" }
             },
             new TribeThemeData
             {
                 tribeName = "Cups",
                 description = "The suit of Water and emotions. Restores health and grants protection.",
-                themeColor = new Color(0.3f, 0.5f, 0.9f),    // Blue
+                themeColor = new Color(0.25f, 0.45f, 0.95f),  // Deep sapphire
                 aliases = new string[] { "cup", "water", "chalice" }
             },
             new TribeThemeData
             {
                 tribeName = "Swords",
                 description = "The suit of Air and conflict. Deals devastating damage.",
-                themeColor = new Color(0.75f, 0.75f, 0.85f), // Silver
+                themeColor = new Color(0.78f, 0.78f, 0.90f),  // Bright silver
                 aliases = new string[] { "sword", "air", "blade" }
             },
             new TribeThemeData
             {
                 tribeName = "Wands",
                 description = "The suit of Fire and creation. Empowers allies with stat buffs.",
-                themeColor = new Color(0.9f, 0.4f, 0.2f),    // Orange/Fire
+                themeColor = new Color(0.92f, 0.45f, 0.12f),  // Burning amber
                 aliases = new string[] { "wand", "fire", "staff" }
             },
             new TribeThemeData
             {
                 tribeName = "Stars",
                 description = "The suit of celestial power. Manipulates fate and summons tokens.",
-                themeColor = new Color(0.6f, 0.8f, 1.0f),    // Light blue/starlight
+                themeColor = new Color(0.55f, 0.75f, 1.0f),   // Celestial blue
                 aliases = new string[] { "star", "celestial", "astral" }
             },
             new TribeThemeData
             {
                 tribeName = "Coins",
                 description = "The suit of fortune and trade. Steals buffs and transforms cards.",
-                themeColor = new Color(0.95f, 0.85f, 0.3f),  // Bright gold/coin
+                themeColor = new Color(0.90f, 0.80f, 0.20f),  // Rich coin gold
                 aliases = new string[] { "coin", "fortune", "trade" }
             }
         };

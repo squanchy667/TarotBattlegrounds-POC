@@ -30,6 +30,9 @@ namespace TarotBattlegrounds.UI
         [SerializeField] private float pulseMinScale = 0.95f;
         [SerializeField] private float pulseMaxScale = 1.05f;
 
+        [Header("Circular Timer (UX10)")]
+        [SerializeField] private CircularTimer circularTimer;
+
         private float totalTime;
         private float currentTime;
         private bool isUrgent;
@@ -83,6 +86,12 @@ namespace TarotBattlegrounds.UI
                 timerFill.color = remainingTime <= urgentThreshold ? urgentColor :
                                   remainingTime <= warningThreshold ? warningColor : normalColor;
             }
+
+            // UX10: Update circular timer if available
+            if (circularTimer != null)
+            {
+                circularTimer.SetTime(remainingTime, totalTime);
+            }
         }
 
         private IEnumerator PulseTimer()
@@ -104,6 +113,10 @@ namespace TarotBattlegrounds.UI
             isUrgent = false;
             if (timerText != null) timerText.text = "";
             if (timerFill != null) timerFill.fillAmount = 0f;
+
+            // UX10: Hide circular timer
+            if (circularTimer != null)
+                circularTimer.Hide();
         }
     }
 }

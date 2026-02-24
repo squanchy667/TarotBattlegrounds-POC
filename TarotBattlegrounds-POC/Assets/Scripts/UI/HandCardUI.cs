@@ -19,12 +19,21 @@ public class HandCardUI : MonoBehaviour
     [SerializeField] private Button cardButton;
 
     [Header("Colors")]
-    [SerializeField] private Color normalColor = new Color(0.3f, 0.3f, 0.5f, 1f);
-    [SerializeField] private Color selectedColor = new Color(0.2f, 0.5f, 0.7f, 1f);
+    [SerializeField] private Color normalColor = new Color(0.10f, 0.07f, 0.16f, 1f);
+    [SerializeField] private Color selectedColor = new Color(0.55f, 0.3f, 0.75f, 1f);
 
     private Card card;
     private int index;
     private Action<int> onClickCallback;
+
+    // UX08: Card interaction feedback component (hover, selection glow, frozen shimmer)
+    private CardInteractionFeedback interactionFeedback;
+
+    private void Awake()
+    {
+        // UX08: Cache CardInteractionFeedback for hover/selection effects
+        interactionFeedback = GetComponent<CardInteractionFeedback>();
+    }
 
     public void Setup(Card cardData, int cardIndex, Action<int> onClick)
     {
@@ -52,6 +61,13 @@ public class HandCardUI : MonoBehaviour
 
     public void SetSelected(bool selected)
     {
+        // UX08: Delegate to CardInteractionFeedback if present
+        if (interactionFeedback != null)
+        {
+            interactionFeedback.SetSelected(selected);
+        }
+
+        // Backward compat: still update border and background
         if (selectionBorder != null)
             selectionBorder.gameObject.SetActive(selected);
 

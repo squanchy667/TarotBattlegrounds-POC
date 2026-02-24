@@ -5,11 +5,14 @@ using TMPro;
 #if PHOTON_UNITY_NETWORKING
 using Photon.Pun;
 #endif
+using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
 /// Game Over overlay panel. Subscribes to GameManager.OnGameOver to display
 /// standings, placement, and Play Again / Quit buttons.
+/// UX18: Enhanced with placement badge (medal colors), standings list,
+/// animated panel entry (scale + fade), and styled buttons.
 /// </summary>
 public class GameOverUI : MonoBehaviour, IThemeable
 {
@@ -30,6 +33,25 @@ public class GameOverUI : MonoBehaviour, IThemeable
     [SerializeField] private Button quitToMenuButton;
     [SerializeField] private TMP_Text playAgainButtonText;
     [SerializeField] private TMP_Text quitToMenuButtonText;
+
+    [Header("UX18: Placement Badge")]
+    [SerializeField] private Image placementBadge;
+    [SerializeField] private TMP_Text placementNumber;
+    [SerializeField] private Color goldMedal = new Color(1f, 0.82f, 0.12f);
+    [SerializeField] private Color silverMedal = new Color(0.78f, 0.78f, 0.85f);
+    [SerializeField] private Color bronzeMedal = new Color(0.8f, 0.5f, 0.2f);
+    [SerializeField] private Color defaultMedal = new Color(0.5f, 0.5f, 0.5f);
+
+    [Header("UX18: Dark Overlay")]
+    [SerializeField] private Image darkOverlay;
+
+    [Header("UX18: Animation")]
+    [SerializeField] private RectTransform panelRect;
+    [SerializeField] private float animDuration = 0.4f;
+
+    [Header("UX18: Standings Row Container")]
+    [SerializeField] private Transform standingsRowContainer;
+    [SerializeField] private Color standingsHighlightColor = new Color(1f, 0.82f, 0.12f, 0.15f);
 
     private ThemeConfig currentTheme;
 
@@ -92,6 +114,13 @@ public class GameOverUI : MonoBehaviour, IThemeable
 
         gameOverPanel.SetActive(true);
 
+        // UX18: Show dark overlay behind the panel
+        if (darkOverlay != null)
+        {
+            darkOverlay.gameObject.SetActive(true);
+            darkOverlay.raycastTarget = false;
+        }
+
         // Title
         string title = currentTheme != null ? currentTheme.gameOverTitle : "Game Over";
         if (titleText != null)
@@ -136,15 +165,14 @@ public class GameOverUI : MonoBehaviour, IThemeable
             }
         }
 
+        // UX18: Placement badge with medal color
+        UpdatePlacementBadge(localPlacement);
+
         // T415: Post-game stats
         PopulateStats(data, localIndex);
 
-        // T415: Fade-in animation
-        if (panelCanvasGroup != null)
-        {
-            panelCanvasGroup.alpha = 0f;
-            StartCoroutine(FadeInPanel());
-        }
+        // UX18: Animated entry (scale + fade) — replaces original fade-in
+        StartCoroutine(AnimatedPanelEntry());
 
         // Standings list
         if (standingsText != null)
@@ -179,7 +207,9 @@ public class GameOverUI : MonoBehaviour, IThemeable
                     label = isHuman ? "(You)" : "(AI)";
                 }
 
-                standings += $"#{i + 1}  Player {playerIndex + 1} {label}\n";
+                // UX18: Color-coded rank numbers in standings
+                string rankColor = GetMedalHexColor(i + 1);
+                standings += $"<color={rankColor}>#{i + 1}</color>  Player {playerIndex + 1} {label}\n";
             }
             standingsText.text = standings;
         }
@@ -248,7 +278,7 @@ public class GameOverUI : MonoBehaviour, IThemeable
             $"\nTurns: {data.totalTurns}";
     }
 
-    private System.Collections.IEnumerator FadeInPanel()
+    private IEnumerator FadeInPanel()
     {
         float duration = 0.4f;
         float elapsed = 0f;
@@ -260,6 +290,131 @@ public class GameOverUI : MonoBehaviour, IThemeable
             yield return null;
         }
         if (panelCanvasGroup != null) panelCanvasGroup.alpha = 1f;
+    }
+
+    /// <summary>
+    /// UX18: Animated panel entry — scales from 0.8x to 1.0x with simultaneous alpha fade 0 to 1.
+    /// Uses SmoothStep for an ease-in-out feel. Falls back to the basic FadeInPanel if panelRect is not assigned.
+    /// </summary>
+    private IEnumerator AnimatedPanelEntry()
+    {
+        // Set initial state
+        if (panelCanvasGroup != null)
+            panelCanvasGroup.alpha = 0f;
+
+        if (panelRect != null)
+            panelRect.localScale = Vector3.one * 0.8f;
+
+        // If neither panelRect nor panelCanvasGroup are available, nothing to animate
+        if (panelRect == null && panelCanvasGroup == null)
+            yield break;
+
+        // If only panelCanvasGroup is available (no panelRect), fall back to basic fade
+        if (panelRect == null)
+        {
+            yield return FadeInPanel();
+            yield break;
+        }
+
+        float elapsed = 0f;
+        while (elapsed < animDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / animDuration);
+
+            // SmoothStep for easing
+            float smooth = t * t * (3f - 2f * t);
+
+            // Scale: 0.8 -> 1.0
+            float scale = Mathf.Lerp(0.8f, 1f, smooth);
+            panelRect.localScale = Vector3.one * scale;
+
+            // Alpha: 0 -> 1
+            if (panelCanvasGroup != null)
+                panelCanvasGroup.alpha = smooth;
+
+            yield return null;
+        }
+
+        // Ensure final state
+        panelRect.localScale = Vector3.one;
+        if (panelCanvasGroup != null)
+            panelCanvasGroup.alpha = 1f;
+    }
+
+    /// <summary>
+    /// UX18: Update the placement badge image and number text based on player placement.
+    /// 1st = gold, 2nd = silver, 3rd = bronze, 4th+ = gray.
+    /// </summary>
+    private void UpdatePlacementBadge(int placement)
+    {
+        // Set badge color
+        if (placementBadge != null)
+        {
+            Color badgeColor = GetMedalColor(placement);
+            placementBadge.color = badgeColor;
+            placementBadge.raycastTarget = false;
+        }
+
+        // Set placement number with ordinal suffix
+        if (placementNumber != null)
+        {
+            if (placement > 0)
+            {
+                placementNumber.text = GetOrdinalString(placement);
+                placementNumber.color = Color.white;
+            }
+            else
+            {
+                placementNumber.text = "-";
+                placementNumber.color = Color.white;
+            }
+        }
+    }
+
+    /// <summary>
+    /// UX18: Get the medal color for a given placement (1-based).
+    /// </summary>
+    private Color GetMedalColor(int placement)
+    {
+        switch (placement)
+        {
+            case 1: return goldMedal;
+            case 2: return silverMedal;
+            case 3: return bronzeMedal;
+            default: return defaultMedal;
+        }
+    }
+
+    /// <summary>
+    /// UX18: Get a hex color string for TMP rich text based on placement.
+    /// </summary>
+    private string GetMedalHexColor(int placement)
+    {
+        Color c = GetMedalColor(placement);
+        return $"#{ColorUtility.ToHtmlStringRGB(c)}";
+    }
+
+    /// <summary>
+    /// UX18: Convert placement number to ordinal string (1st, 2nd, 3rd, 4th...).
+    /// </summary>
+    private static string GetOrdinalString(int number)
+    {
+        if (number <= 0) return number.ToString();
+
+        int remainder = number % 100;
+
+        // Handle special cases for 11th, 12th, 13th
+        if (remainder >= 11 && remainder <= 13)
+            return $"{number}th";
+
+        switch (number % 10)
+        {
+            case 1: return $"{number}st";
+            case 2: return $"{number}nd";
+            case 3: return $"{number}rd";
+            default: return $"{number}th";
+        }
     }
 
     private void OnPlayAgainClicked()

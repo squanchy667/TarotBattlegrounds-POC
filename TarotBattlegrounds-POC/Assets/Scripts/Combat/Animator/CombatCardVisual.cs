@@ -103,9 +103,16 @@ namespace TarotBattlegrounds.Combat.Animator
         /// </summary>
         public void FlashDamage(int newHealth)
         {
+            // UX14: Calculate damage amount before updating health
+            int damageAmount = currentHealth - newHealth;
+
             currentHealth = newHealth;
             if (healthText != null) healthText.text = currentHealth.ToString();
             StartCoroutine(FlashColor(damagedFlashColor, 0.25f));
+
+            // UX14: Show floating damage number
+            if (damageAmount > 0 && FloatingNumberManager.Instance != null)
+                FloatingNumberManager.Instance.ShowDamage(GetWorldPosition(), damageAmount);
         }
 
         /// <summary>
@@ -118,6 +125,22 @@ namespace TarotBattlegrounds.Combat.Animator
             if (attackText != null) attackText.text = currentAttack.ToString();
             if (healthText != null) healthText.text = currentHealth.ToString();
             StartCoroutine(FlashColor(buffFlashColor, 0.25f));
+
+            // UX14: Show floating buff number
+            if (FloatingNumberManager.Instance != null)
+            {
+                string buffText;
+                if (attackDelta > 0 && healthDelta > 0)
+                    buffText = $"+{attackDelta}/+{healthDelta}";
+                else if (attackDelta > 0)
+                    buffText = $"+{attackDelta} ATK";
+                else if (healthDelta > 0)
+                    buffText = $"+{healthDelta} HP";
+                else
+                    return; // No meaningful buff to display
+
+                FloatingNumberManager.Instance.ShowBuff(GetWorldPosition(), buffText);
+            }
         }
 
         /// <summary>
@@ -127,6 +150,10 @@ namespace TarotBattlegrounds.Combat.Animator
         {
             if (aegisIcon != null) aegisIcon.SetActive(false);
             StartCoroutine(FlashColor(aegisFlashColor, 0.3f));
+
+            // UX14: Show floating aegis pop text
+            if (FloatingNumberManager.Instance != null)
+                FloatingNumberManager.Instance.ShowAegisPop(GetWorldPosition());
         }
 
         // ====== T306: ATTACK ANIMATION ======
@@ -282,6 +309,16 @@ namespace TarotBattlegrounds.Combat.Animator
 
             canvasGroup.alpha = 1f;
             transform.localScale = Vector3.one;
+        }
+
+        // ====== UX14: FLOATING NUMBERS ======
+
+        /// <summary>
+        /// UX14: Get the world position of this card for floating number placement.
+        /// </summary>
+        public Vector3 GetWorldPosition()
+        {
+            return transform.position;
         }
 
         // ====== HELPERS ======

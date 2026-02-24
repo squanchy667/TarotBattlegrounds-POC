@@ -37,6 +37,9 @@ namespace TarotBattlegrounds.Combat.Animator
         [SerializeField] private Button speedButton;
         [SerializeField] private TMP_Text speedButtonText;
 
+        [Header("Arena Visual (UX16)")]
+        [SerializeField] private CombatArenaVisual arenaVisual;
+
         [Header("Card Visual Prefab")]
         [SerializeField] private GameObject cardVisualPrefab;
 
@@ -150,6 +153,7 @@ namespace TarotBattlegrounds.Combat.Animator
 
             // Cleanup
             isPlaying = false;
+            arenaVisual?.HideArena(); // UX16: Hide arena visuals
             SetPanelVisible(false);
             CleanupCards();
 
@@ -181,6 +185,11 @@ namespace TarotBattlegrounds.Combat.Animator
                 attackerNameText.text = state.attackerName ?? "Attacker";
             if (defenderNameText != null)
                 defenderNameText.text = state.defenderName ?? "Defender";
+
+            // UX16: Show arena visuals
+            arenaVisual?.ShowArena(
+                state.attackerName ?? "Attacker",
+                state.defenderName ?? "Defender");
 
             // Create attacker cards
             if (state.attackerBoard != null)
@@ -320,6 +329,11 @@ namespace TarotBattlegrounds.Combat.Animator
                         attacker.transform.position,
                         target.transform.position);
 
+                // UX16: Attack trail line
+                arenaVisual?.ShowAttackTrail(
+                    attacker.transform.position,
+                    target.transform.position);
+
                 // T306: Lunge animation
                 yield return attacker.PlayAttackAnimation(
                     target.transform.position, duration);
@@ -379,6 +393,10 @@ namespace TarotBattlegrounds.Combat.Animator
                 // T311: Death VFX
                 if (VFXManager.Instance != null)
                     VFXManager.Instance.PlayDeathVFX(target.transform.position);
+
+                // UX14: Show floating death text
+                if (FloatingNumberManager.Instance != null)
+                    FloatingNumberManager.Instance.ShowDeath(target.GetWorldPosition());
 
                 // T307: Death animation
                 yield return target.PlayDeathAnimation(duration);

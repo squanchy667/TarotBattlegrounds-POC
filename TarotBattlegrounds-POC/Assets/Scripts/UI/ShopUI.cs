@@ -19,6 +19,7 @@ public class ShopUI : MonoBehaviour, IThemeable
 
     [Header("Panel Visuals")]
     [SerializeField] private Image panelBackground;
+    [SerializeField] private StyledPanel styledPanel;
 
     [Header("Empty Slot Display")]
     [SerializeField] private GameObject emptySlotPrefab;
@@ -114,8 +115,8 @@ public class ShopUI : MonoBehaviour, IThemeable
         if (shopTitleText != null)
             shopTitleText.text = theme.shopTitle;
 
-        // Apply colors
-        if (panelBackground != null)
+        // Apply colors — let StyledPanel handle background if present
+        if (styledPanel == null && panelBackground != null)
             panelBackground.color = theme.secondaryColor;
 
         if (shopTierText != null)
@@ -254,6 +255,16 @@ public class ShopUI : MonoBehaviour, IThemeable
     public int GetSelectedCardIndex()
     {
         return selectedCardIndex;
+    }
+
+    /// <summary>
+    /// UX15: Get the RectTransform of the selected card for animation purposes.
+    /// </summary>
+    public RectTransform GetSelectedCardRect()
+    {
+        if (selectedCardIndex < 0 || selectedCardIndex >= currentShopCards.Count) return null;
+        GameObject cardObj = currentShopCards[selectedCardIndex];
+        return cardObj != null ? cardObj.GetComponent<RectTransform>() : null;
     }
     
     public void ClearSelection()

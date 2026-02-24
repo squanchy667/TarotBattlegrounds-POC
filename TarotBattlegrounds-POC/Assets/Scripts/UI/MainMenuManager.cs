@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 
 public class MainMenuManager : MonoBehaviour
 {
@@ -31,6 +32,19 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private TMP_Dropdown difficultyDropdown;
     [SerializeField] private Button playButton;
     [SerializeField] private Button backButton;
+
+    [Header("UX17: Title")]
+    [SerializeField] private TMP_Text titleText;
+    [SerializeField] private TMP_Text subtitleText;
+    [SerializeField] private Image logoImage;
+
+    [Header("UX17: Visual")]
+    [SerializeField] private Image menuBackground;
+    [SerializeField] private CanvasGroup contentGroup;
+
+    [Header("UX17: Fade-In Settings")]
+    [SerializeField] private float fadeInDuration = 0.5f;
+    [SerializeField] private float titleSlideDistance = 30f;
 
     private static readonly int[] PlayerOptions = { 4, 6, 8 };
     private int selectedPlayerCount = 4;
@@ -78,6 +92,59 @@ public class MainMenuManager : MonoBehaviour
 
         // Default selection
         SelectPlayerCount(0);
+
+        // UX17: Fade-in animation
+        StartCoroutine(FadeInContent());
+    }
+
+    /// <summary>
+    /// UX17: Fade the content group from alpha 0 to 1 and slide the title down into position.
+    /// </summary>
+    private IEnumerator FadeInContent()
+    {
+        // Set initial state
+        if (contentGroup != null)
+            contentGroup.alpha = 0f;
+
+        RectTransform titleRect = null;
+        Vector2 titleOriginalPos = Vector2.zero;
+        if (titleText != null)
+        {
+            titleRect = titleText.GetComponent<RectTransform>();
+            if (titleRect != null)
+            {
+                titleOriginalPos = titleRect.anchoredPosition;
+                titleRect.anchoredPosition = titleOriginalPos + Vector2.up * titleSlideDistance;
+            }
+        }
+
+        float elapsed = 0f;
+        while (elapsed < fadeInDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / fadeInDuration);
+            float smoothT = Mathf.SmoothStep(0f, 1f, t);
+
+            // Fade content group
+            if (contentGroup != null)
+                contentGroup.alpha = smoothT;
+
+            // Slide title down into position
+            if (titleRect != null)
+                titleRect.anchoredPosition = Vector2.Lerp(
+                    titleOriginalPos + Vector2.up * titleSlideDistance,
+                    titleOriginalPos,
+                    smoothT
+                );
+
+            yield return null;
+        }
+
+        // Ensure final state
+        if (contentGroup != null)
+            contentGroup.alpha = 1f;
+        if (titleRect != null)
+            titleRect.anchoredPosition = titleOriginalPos;
     }
 
     private void ShowMainPanel()

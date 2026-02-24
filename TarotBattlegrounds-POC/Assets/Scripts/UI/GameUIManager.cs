@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Main game UI manager with theming support.
@@ -47,18 +48,35 @@ public class GameUIManager : MonoBehaviour, IThemeable
     [Header("Combat UI")]
     [SerializeField] private CombatLogUI combatLogUI;
 
+    [Header("Resource Bar (UX09)")]
+    [SerializeField] private ResourceBar resourceBar;
+
     [Header("Match Info")]
     [SerializeField] private MatchInfoUI matchInfoUI;
 
+    [Header("Circular Timer (UX10)")]
+    [SerializeField] private CircularTimer circularTimer;
+
+    [Header("Phase Banner (UX11)")]
+    [SerializeField] private PhaseBanner phaseBanner;
+
+    [Header("Synergy Display (UX12)")]
+    [SerializeField] private SynergyDisplayPanel synergyDisplay;
+
     [Header("Panel Backgrounds (optional)")]
     [SerializeField] private Image mainPanelBackground;
+    [SerializeField] private StyledPanel mainStyledPanel;
 
     [Header("Game Background")]
     [SerializeField] private Image gameBackgroundImage;
+    [SerializeField] private BackgroundController backgroundController;
 
     private int activePlayerIndex = 0;
     private Player currentPlayer;
     private ThemeConfig currentTheme;
+    private float circularTimerTotal = 35f; // UX10: Tracked total time for circular timer
+    private GameManager.GamePhase lastBannerPhase = (GameManager.GamePhase)(-1); // UX11: Track phase for banner triggers
+    private int lastBannerTurn = -1; // UX11: Track turn for badge updates
 
     private void Awake()
     {
@@ -109,8 +127,14 @@ public class GameUIManager : MonoBehaviour, IThemeable
         // Apply colors to UI elements
         ApplyThemeColors(theme);
 
-        // Apply background
-        if (gameBackgroundImage != null)
+        // Apply background: delegate to BackgroundController if available, otherwise fallback
+        if (backgroundController != null)
+        {
+            // BackgroundController handles its own theming via IThemeable subscription
+            // but we also forward here for safety in case of initialization order
+            backgroundController.ApplyTheme(theme);
+        }
+        else if (gameBackgroundImage != null)
         {
             if (theme.gameBackground != null)
             {
@@ -124,9 +148,24 @@ public class GameUIManager : MonoBehaviour, IThemeable
             }
         }
 
+        // Apply theme to all TarotButton children
+        ApplyThemeToTarotButtons(theme);
+
         // Re-update display to use themed labels
         UpdatePlayerDisplay();
         UpdatePhaseDisplay();
+    }
+
+    /// <summary>
+    /// Propagate theme to all TarotButton components found in children.
+    /// </summary>
+    private void ApplyThemeToTarotButtons(ThemeConfig theme)
+    {
+        TarotButton[] tarotButtons = GetComponentsInChildren<TarotButton>(true);
+        foreach (TarotButton tb in tarotButtons)
+        {
+            tb.ApplyTheme(theme);
+        }
     }
 
     private void ApplyThemeColors(ThemeConfig theme)
@@ -141,8 +180,8 @@ public class GameUIManager : MonoBehaviour, IThemeable
         ApplyButtonColor(endTurnButton, buttonColor);
         ApplyButtonColor(freezeShopButton, buttonColor);
 
-        // Apply panel background
-        if (mainPanelBackground != null)
+        // Apply panel background — let StyledPanel handle it if present
+        if (mainStyledPanel == null && mainPanelBackground != null)
             mainPanelBackground.color = theme.secondaryColor;
 
         // Apply text colors
@@ -163,6 +202,9 @@ public class GameUIManager : MonoBehaviour, IThemeable
     {
         if (button == null) return;
 
+        // Skip color block changes if TarotButton handles visuals
+        if (button.GetComponent<TarotButton>() != null) return;
+
         var colors = button.colors;
         colors.normalColor = color;
         colors.highlightedColor = color * 1.1f;
@@ -170,10 +212,30 @@ public class GameUIManager : MonoBehaviour, IThemeable
         colors.selectedColor = color;
         button.colors = colors;
     }
+
+    /// <summary>
+    /// Set button interactable state, using TarotButton.SetInteractable() if available
+    /// for styled disabled visuals, otherwise falling back to standard Button.interactable.
+    /// </summary>
+    private void SetButtonInteractable(Button button, bool interactable)
+    {
+        if (button == null) return;
+
+        TarotButton tarotButton = button.GetComponent<TarotButton>();
+        if (tarotButton != null)
+        {
+            tarotButton.SetInteractable(interactable);
+        }
+        else
+        {
+            button.interactable = interactable;
+        }
+    }
     
     private void Start()
     {
         SetupButtons();
+        AttachButtonMicroFeedback();
 
 #if PHOTON_UNITY_NETWORKING
         // In online mode, lock to the local player's slot and hide switch button
@@ -217,6 +279,22 @@ public class GameUIManager : MonoBehaviour, IThemeable
         upgradeButton?.onClick.AddListener(() => ExecuteAction("Upgrade"));
         endTurnButton?.onClick.AddListener(OnEndTurnClicked);
         freezeShopButton?.onClick.AddListener(OnFreezeShopClicked);
+    }
+
+    /// <summary>
+    /// UX13: Auto-attach ButtonMicroFeedback to all child Button components
+    /// that don't already have one, providing hover/press/ripple/shake micro-animations.
+    /// </summary>
+    private void AttachButtonMicroFeedback()
+    {
+        Button[] allButtons = GetComponentsInChildren<Button>(true);
+        foreach (Button btn in allButtons)
+        {
+            if (btn.GetComponent<ButtonMicroFeedback>() == null)
+            {
+                btn.gameObject.AddComponent<ButtonMicroFeedback>();
+            }
+        }
     }
     
     /// <summary>
@@ -264,6 +342,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
     {
         boardUI?.RefreshBoardDisplay();
         UpdateButtonStates();
+        RefreshSynergyDisplay();
     }
     
     private void OnPlayerCoinsChanged()
@@ -337,33 +416,61 @@ public class GameUIManager : MonoBehaviour, IThemeable
         UpdatePhaseDisplay();
         UpdatePlayerDisplay();
         UpdateButtonStates();
-        
+
         // Refresh all panels
         shopUI?.RefreshShopDisplay();
         handUI?.RefreshHandDisplay();
         boardUI?.RefreshBoardDisplay();
+        RefreshSynergyDisplay();
     }
     
     private void UpdatePhaseDisplay()
     {
         if (GameManager.Instance == null) return;
 
+        GameManager.GamePhase currentPhase = GameManager.Instance.CurrentPhase;
+        int currentTurn = GameManager.Instance.TurnNumber;
+
         if (phaseText != null)
         {
             // Use themed phase names if available
             if (currentTheme != null)
             {
-                phaseText.text = GameManager.Instance.CurrentPhase == GameManager.GamePhase.Combat
+                phaseText.text = currentPhase == GameManager.GamePhase.Combat
                     ? currentTheme.combatPhaseTitle
                     : currentTheme.recruitPhaseTitle;
             }
             else
             {
-                phaseText.text = GameManager.Instance.CurrentPhase.ToString();
+                phaseText.text = currentPhase.ToString();
             }
         }
         if (turnText != null)
-            turnText.text = $"Turn {GameManager.Instance.TurnNumber}";
+            turnText.text = $"Turn {currentTurn}";
+
+        // UX11: Show phase banner on phase change
+        if (phaseBanner != null && currentPhase != lastBannerPhase)
+        {
+            bool isCombat = currentPhase == GameManager.GamePhase.Combat;
+            string bannerLabel;
+            if (currentTheme != null)
+            {
+                bannerLabel = isCombat ? currentTheme.combatPhaseTitle : currentTheme.recruitPhaseTitle;
+            }
+            else
+            {
+                bannerLabel = isCombat ? "COMBAT!" : "RECRUIT PHASE";
+            }
+            phaseBanner.ShowPhaseBanner(bannerLabel, isCombat);
+            lastBannerPhase = currentPhase;
+        }
+
+        // UX11: Update turn badge on turn change
+        if (phaseBanner != null && currentTurn != lastBannerTurn)
+        {
+            phaseBanner.UpdateTurn(currentTurn);
+            lastBannerTurn = currentTurn;
+        }
     }
     
     private void UpdatePlayerDisplay()
@@ -371,13 +478,23 @@ public class GameUIManager : MonoBehaviour, IThemeable
         var player = GetActivePlayer();
         if (player == null) return;
 
+        if (playerNameText != null)
+            playerNameText.text = $"Player {player.playerId}";
+
+        // UX09: Route resource display through ResourceBar if available
+        if (resourceBar != null)
+        {
+            resourceBar.UpdateCoins(player.coins, Player.MAX_COINS);
+            resourceBar.UpdateHealth(player.Health);
+            resourceBar.UpdateTier(player.currentTavernTier, player.GetUpgradeCost());
+        }
+
+        // Backward compat: still update legacy text fields when ResourceBar is not wired
         // Get themed labels or use defaults
         string coinsLabel = currentTheme != null ? currentTheme.coinsLabel : "Coins";
         string tierLabel = currentTheme != null ? currentTheme.tierLabel : "Tier";
         string healthLabel = currentTheme != null ? currentTheme.healthLabel : "Health";
 
-        if (playerNameText != null)
-            playerNameText.text = $"Player {player.playerId}";
         if (coinsText != null)
             coinsText.text = $"{coinsLabel}: {player.coins}";
         if (tierText != null)
@@ -433,7 +550,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
                         buyCost = Mathf.Max(1, buyCost - reduction);
                 }
             }
-            buyButton.interactable = isRecruitPhase && shopIndex >= 0 && player.coins >= buyCost && player.hand.Count < 10;
+            SetButtonInteractable(buyButton, isRecruitPhase && shopIndex >= 0 && player.coins >= buyCost && player.hand.Count < 10);
         }
         
         // Sell button: enabled if recruit phase and board OR hand card selected
@@ -441,28 +558,28 @@ public class GameUIManager : MonoBehaviour, IThemeable
         {
             int boardIndex = boardUI != null ? boardUI.GetSelectedCardIndex() : -1;
             int handIndex = handUI != null ? handUI.GetSelectedCardIndex() : -1;
-            sellButton.interactable = isRecruitPhase && (boardIndex >= 0 || handIndex >= 0);
+            SetButtonInteractable(sellButton, isRecruitPhase && (boardIndex >= 0 || handIndex >= 0));
         }
         
         // Play button: enabled if recruit phase, hand card selected, and board not full
         if (playCardButton != null)
         {
             int handIndex = handUI != null ? handUI.GetSelectedCardIndex() : -1;
-            playCardButton.interactable = isRecruitPhase && handIndex >= 0 && player.board.Count < 7;
+            SetButtonInteractable(playCardButton, isRecruitPhase && handIndex >= 0 && player.board.Count < 7);
         }
         
         // Refresh button: enabled if recruit phase and have 1+ coins
         if (refreshButton != null)
         {
-            refreshButton.interactable = isRecruitPhase && player.coins >= 1;
+            SetButtonInteractable(refreshButton, isRecruitPhase && player.coins >= 1);
         }
         
         // Upgrade button: enabled if recruit phase, have enough coins, and not max tier
         if (upgradeButton != null)
         {
-            upgradeButton.interactable = isRecruitPhase &&
+            SetButtonInteractable(upgradeButton, isRecruitPhase &&
                                          player.coins >= player.GetUpgradeCost() &&
-                                         player.currentTavernTier < 6;
+                                         player.currentTavernTier < 6);
         }
 
         // End Turn button: enabled during recruit phase if this player hasn't already readied
@@ -470,7 +587,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
         {
             bool alreadyReady = GameManager.Instance != null &&
                                 GameManager.Instance.IsPlayerReady(activePlayerIndex);
-            endTurnButton.interactable = isRecruitPhase && !alreadyReady;
+            SetButtonInteractable(endTurnButton, isRecruitPhase && !alreadyReady);
 
             // Update button text to reflect state
             if (endTurnButtonText != null)
@@ -493,7 +610,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
         // Freeze Shop button: enabled during recruit phase
         if (freezeShopButton != null)
         {
-            freezeShopButton.interactable = isRecruitPhase;
+            SetButtonInteractable(freezeShopButton, isRecruitPhase);
         }
     }
     
@@ -503,6 +620,16 @@ public class GameUIManager : MonoBehaviour, IThemeable
         {
             int display = time <= 0f ? 0 : Mathf.CeilToInt(time);
             timerText.text = $"{display}s";
+        }
+
+        // UX10: Track the max time seen as the total (first call each phase has the full value)
+        if (time > circularTimerTotal)
+            circularTimerTotal = time;
+
+        // UX10: Update circular timer
+        if (circularTimer != null)
+        {
+            circularTimer.SetTime(time, circularTimerTotal);
         }
     }
     
@@ -531,7 +658,31 @@ public class GameUIManager : MonoBehaviour, IThemeable
                     int selectedIndex = shopUI.GetSelectedCardIndex();
                     if (selectedIndex >= 0)
                     {
-                        player.BuyCard(selectedIndex);
+                        // UX15: Animate card buy (shop → hand) if UIAnimator is available
+                        RectTransform shopCardRect = shopUI.GetSelectedCardRect();
+                        RectTransform handTarget = handUI != null ? handUI.GetContainerRect() : null;
+
+                        if (UIAnimator.Instance != null && shopCardRect != null && handTarget != null)
+                        {
+                            // Reparent card to canvas overlay so it survives shop refresh
+                            RectTransform animCard = ReparentForAnimation(shopCardRect);
+                            if (animCard != null)
+                            {
+                                player.BuyCard(selectedIndex);
+                                UIAnimator.Instance.AnimateCardBuy(animCard, handTarget, () =>
+                                {
+                                    if (animCard != null) Destroy(animCard.gameObject);
+                                });
+                            }
+                            else
+                            {
+                                player.BuyCard(selectedIndex);
+                            }
+                        }
+                        else
+                        {
+                            player.BuyCard(selectedIndex);
+                        }
                     }
                     else
                     {
@@ -546,11 +697,55 @@ public class GameUIManager : MonoBehaviour, IThemeable
 
                 if (boardSellIndex >= 0)
                 {
-                    player.SellCard(boardSellIndex);
+                    // UX15: Animate card sell from board
+                    RectTransform boardCardRect = boardUI != null ? boardUI.GetSelectedCardRect() : null;
+                    if (UIAnimator.Instance != null && boardCardRect != null)
+                    {
+                        RectTransform animCard = ReparentForAnimation(boardCardRect);
+                        if (animCard != null)
+                        {
+                            int capturedIndex = boardSellIndex;
+                            UIAnimator.Instance.AnimateCardSell(animCard, () =>
+                            {
+                                player.SellCard(capturedIndex);
+                                if (animCard != null) Destroy(animCard.gameObject);
+                            });
+                        }
+                        else
+                        {
+                            player.SellCard(boardSellIndex);
+                        }
+                    }
+                    else
+                    {
+                        player.SellCard(boardSellIndex);
+                    }
                 }
                 else if (handSellIndex >= 0)
                 {
-                    player.SellCardFromHand(handSellIndex);
+                    // UX15: Animate card sell from hand
+                    RectTransform handCardRect = handUI != null ? handUI.GetSelectedCardRect() : null;
+                    if (UIAnimator.Instance != null && handCardRect != null)
+                    {
+                        RectTransform animCard = ReparentForAnimation(handCardRect);
+                        if (animCard != null)
+                        {
+                            int capturedIndex = handSellIndex;
+                            UIAnimator.Instance.AnimateCardSell(animCard, () =>
+                            {
+                                player.SellCardFromHand(capturedIndex);
+                                if (animCard != null) Destroy(animCard.gameObject);
+                            });
+                        }
+                        else
+                        {
+                            player.SellCardFromHand(handSellIndex);
+                        }
+                    }
+                    else
+                    {
+                        player.SellCardFromHand(handSellIndex);
+                    }
                 }
                 else
                 {
@@ -564,7 +759,32 @@ public class GameUIManager : MonoBehaviour, IThemeable
                     int selectedIndex = handUI.GetSelectedCardIndex();
                     if (selectedIndex >= 0)
                     {
-                        player.PlayCard(selectedIndex, player.board.Count);
+                        // UX15: Animate card play (hand → board)
+                        RectTransform handCardRect = handUI.GetSelectedCardRect();
+                        RectTransform boardTarget = boardUI != null ? boardUI.GetContainerRect() : null;
+
+                        if (UIAnimator.Instance != null && handCardRect != null && boardTarget != null)
+                        {
+                            RectTransform animCard = ReparentForAnimation(handCardRect);
+                            if (animCard != null)
+                            {
+                                int capturedIndex = selectedIndex;
+                                int boardCount = player.board.Count;
+                                UIAnimator.Instance.AnimateCardPlay(animCard, boardTarget, () =>
+                                {
+                                    player.PlayCard(capturedIndex, boardCount);
+                                    if (animCard != null) Destroy(animCard.gameObject);
+                                });
+                            }
+                            else
+                            {
+                                player.PlayCard(selectedIndex, player.board.Count);
+                            }
+                        }
+                        else
+                        {
+                            player.PlayCard(selectedIndex, player.board.Count);
+                        }
                     }
                     else
                     {
@@ -703,8 +923,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
         }
 
         // Disable button and show waiting state
-        if (endTurnButton != null)
-            endTurnButton.interactable = false;
+        SetButtonInteractable(endTurnButton, false);
         if (endTurnButtonText != null)
             endTurnButtonText.text = "Waiting...";
     }
@@ -752,9 +971,13 @@ public class GameUIManager : MonoBehaviour, IThemeable
     {
         if (GameManager.Instance == null) return;
         if (playerIndex < 0 || playerIndex >= GameManager.Instance.players.Count) return;
-        
+
         activePlayerIndex = playerIndex;
-        
+
+        // UX09: Reset resource bar cached values so switching players doesn't trigger flash animations
+        if (resourceBar != null)
+            resourceBar.ResetCachedValues();
+
         Debug.Log($"Switched to Player {activePlayerIndex + 1}");
         
         SubscribeToCurrentPlayer();
@@ -777,7 +1000,33 @@ public class GameUIManager : MonoBehaviour, IThemeable
     }
     
     public int GetActivePlayerIndex() => activePlayerIndex;
-    
+
+    /// <summary>
+    /// UX15: Reparent a card RectTransform to the root canvas so it survives panel refreshes during animation.
+    /// Returns the reparented RectTransform, or null if no canvas is found.
+    /// </summary>
+    private RectTransform ReparentForAnimation(RectTransform cardRect)
+    {
+        if (cardRect == null) return null;
+
+        Canvas rootCanvas = cardRect.GetComponentInParent<Canvas>();
+        if (rootCanvas == null) rootCanvas = FindObjectOfType<Canvas>();
+        if (rootCanvas == null) return null;
+
+        // Preserve world position when reparenting
+        cardRect.SetParent(rootCanvas.transform, true);
+
+        // Ensure it renders on top
+        cardRect.SetAsLastSibling();
+
+        // Disable raycasting on the animated card so it doesn't block UI
+        CanvasGroup group = cardRect.GetComponent<CanvasGroup>();
+        if (group == null) group = cardRect.gameObject.AddComponent<CanvasGroup>();
+        group.blocksRaycasts = false;
+
+        return cardRect;
+    }
+
     private void OnDestroy()
     {
         // Unsubscribe from player events
@@ -832,10 +1081,22 @@ public class GameUIManager : MonoBehaviour, IThemeable
             matchInfoUI.AutoShowAfterCombat();
     }
 
+    /// <summary>
+    /// Refresh the synergy display panel with current player's board state.
+    /// </summary>
+    private void RefreshSynergyDisplay()
+    {
+        if (synergyDisplay == null) return;
+        var player = GetActivePlayer();
+        if (player != null)
+            synergyDisplay.UpdateSynergies(player);
+    }
+
     // Accessor methods for child UI components
     public ShopUI GetShopUI() => shopUI;
     public HandUI GetHandUI() => handUI;
     public BoardUI GetBoardUI() => boardUI;
     public CombatLogUI GetCombatLogUI() => combatLogUI;
     public MatchInfoUI GetMatchInfoUI() => matchInfoUI;
+    public SynergyDisplayPanel GetSynergyDisplay() => synergyDisplay;
 }
