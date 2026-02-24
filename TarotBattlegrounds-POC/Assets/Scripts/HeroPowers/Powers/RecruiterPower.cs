@@ -51,7 +51,7 @@ public class RecruiterPower : HeroPowerBase
         Card picked = tierCards[Random.Range(0, tierCards.Count)];
         Card copy = picked.Clone();
         owner.hand.Add(copy);
-        pool.Remove(picked);
+        TavernManager.Instance.RemoveCardFromPool(picked);
         Debug.Log($"[Recruiter] Added {copy.cardName} (Tier {copy.tier}) to hand");
     }
 }

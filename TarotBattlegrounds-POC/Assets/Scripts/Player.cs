@@ -331,6 +331,9 @@ public class Player : MonoBehaviour
         };
         AbilityManager.TriggerAbilities(AbilityTrigger.OnSell, sellContext);
 
+        // T104: Remove auras if this card had any applied (e.g., was on board then returned to hand)
+        AuraManager.RemoveAurasForCard(card, board, this);
+
         coins += value; // This triggers OnCoinsChanged via property setter
         AbilityManager.UnregisterCard(card); // Clean up abilities
 

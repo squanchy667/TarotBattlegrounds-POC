@@ -805,20 +805,27 @@ public class SynergyManager : MonoBehaviour
             TribeSynergy synergy1 = GetTribeSynergy(combo.Item1);
             TribeSynergy synergy2 = GetTribeSynergy(combo.Item2);
 
+            // Check both sides — the combo-defining synergy may be on either tribe
+            TribeSynergy comboSynergy = null;
             if (synergy1 != null && synergy1.comboTribe == combo.Item2)
+                comboSynergy = synergy1;
+            else if (synergy2 != null && synergy2.comboTribe == combo.Item1)
+                comboSynergy = synergy2;
+
+            if (comboSynergy != null)
             {
                 // H9 fix: BonusGold is an owner-level effect; apply once instead of per-card
-                if (synergy1.comboEffect == SynergyEffect.BonusGold)
+                if (comboSynergy.comboEffect == SynergyEffect.BonusGold)
                 {
-                    Debug.Log($"[SynergyManager] {playerName}: Applying combo ({synergy1.comboEffect} +{synergy1.comboValue}) once to owner");
+                    Debug.Log($"[SynergyManager] {playerName}: Applying combo ({comboSynergy.comboEffect} +{comboSynergy.comboValue}) once to owner");
                     if (board.Count > 0)
-                        ApplyEffect(synergy1.comboEffect, synergy1.comboValue, board[0], owner);
+                        ApplyEffect(comboSynergy.comboEffect, comboSynergy.comboValue, board[0], owner);
                 }
                 else
                 {
                     foreach (var card in board)
                     {
-                        ApplyEffect(synergy1.comboEffect, synergy1.comboValue, card, owner);
+                        ApplyEffect(comboSynergy.comboEffect, comboSynergy.comboValue, card, owner);
                     }
                 }
             }

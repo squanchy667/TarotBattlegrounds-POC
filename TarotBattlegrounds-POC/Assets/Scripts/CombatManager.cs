@@ -706,7 +706,9 @@ public static class CombatManager
                 }
 
                 // T101: Notify all surviving allies that a friendly card has died
-                TriggerOnAllyDeathForBoard(deadCard, ownerBoard, enemyBoard);
+                // Skip if card was Reborn — it didn't truly die, so OnAllyDeath should not fire
+                if (!willReborn)
+                    TriggerOnAllyDeathForBoard(deadCard, ownerBoard, enemyBoard);
 
                 // T104: Refresh auras after board changes
                 AuraManager.RefreshAuras(ownerBoard, null);

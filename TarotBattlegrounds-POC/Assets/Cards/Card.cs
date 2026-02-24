@@ -337,8 +337,11 @@ public class Card : ScriptableObject
     {
         Card golden = baseCard.Clone();
         golden.isGolden = true;
-        golden.attack = baseCard.attack * 2;
-        golden.health = baseCard.health * 2;
+        // Use base (pre-buff) stats when available to avoid doubling aura/synergy buffs
+        int baseAtk = baseCard._hasStoredBaseStats ? baseCard._baseAttack : baseCard.attack;
+        int baseHp = baseCard._hasStoredBaseStats ? baseCard._baseHealth : baseCard.health;
+        golden.attack = baseAtk * 2;
+        golden.health = baseHp * 2;
         // Golden cards only double stats, not ability values
         // abilityValue is already correctly copied from Clone()
 

@@ -19,6 +19,13 @@ public class ArcaneBoltPower : HeroPowerBase
         Debug.Log($"[Arcane Bolt] Armed — will deal 3 damage to a random enemy at combat start");
     }
 
+    /// <summary>Reset armed state along with UsedThisTurn to prevent free bolts across turns.</summary>
+    public override void ResetForNewTurn()
+    {
+        base.ResetForNewTurn();
+        armed = false;
+    }
+
     public override void OnCombatStart(Player owner, Player opponent)
     {
         if (!armed) return;

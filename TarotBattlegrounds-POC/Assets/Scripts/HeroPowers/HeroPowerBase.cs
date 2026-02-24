@@ -30,7 +30,7 @@ public abstract class HeroPowerBase
     }
 
     /// <summary>Reset for new recruit phase.</summary>
-    public void ResetForNewTurn()
+    public virtual void ResetForNewTurn()
     {
         UsedThisTurn = false;
     }

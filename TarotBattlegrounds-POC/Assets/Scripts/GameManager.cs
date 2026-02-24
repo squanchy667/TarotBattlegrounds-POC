@@ -752,6 +752,14 @@ public class GameManager : MonoBehaviour
             {
                 if (p1 >= 0 && p2 >= 0 && p1 < playerCount && p2 < playerCount)
                 {
+                    // Snapshot live board state before hero power combat buffs
+                    // Hero powers modify the live board directly (WarChief +1 Atk, Tactician +2/+2,
+                    // ArcaneBolt removes cards). We must restore after SimulateBattle clones them.
+                    var p1Snapshot = players[p1].board.Select(c => (card: c, atk: c.attack, hp: c.health, aegis: c.hasAegis)).ToList();
+                    var p2Snapshot = players[p2].board.Select(c => (card: c, atk: c.attack, hp: c.health, aegis: c.hasAegis)).ToList();
+                    var p1BoardBackup = new List<Card>(players[p1].board);
+                    var p2BoardBackup = new List<Card>(players[p2].board);
+
                     // T115: Trigger combat-start hero powers before battle
                     if (HeroPowerManager.Instance != null)
                     {
@@ -764,6 +772,12 @@ public class GameManager : MonoBehaviour
                     string p1Name = $"Player {p1 + 1}" + (GameConfig.IsHumanPlayer(p1) ? "" : " (AI)");
                     string p2Name = $"Player {p2 + 1}" + (GameConfig.IsHumanPlayer(p2) ? "" : " (AI)");
                     var (damage, winner) = CombatManager.SimulateBattle(board1, board2, players[p1].currentTavernTier, players[p2].currentTavernTier, p1Name, p2Name);
+
+                    // Restore live boards after SimulateBattle has cloned the buffed state
+                    players[p1].board.Clear(); players[p1].board.AddRange(p1BoardBackup);
+                    players[p2].board.Clear(); players[p2].board.AddRange(p2BoardBackup);
+                    foreach (var (card, atk, hp, aegis) in p1Snapshot) { card.attack = atk; card.health = hp; card.hasAegis = aegis; }
+                    foreach (var (card, atk, hp, aegis) in p2Snapshot) { card.attack = atk; card.health = hp; card.hasAegis = aegis; }
                     Debug.Log($"[Combat] {p1Name} vs {p2Name}");
                     Debug.Log($"  {p1Name} Board: " + string.Join(", ", board1.Select(c => c.cardName)));
                     Debug.Log($"  {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName)));
