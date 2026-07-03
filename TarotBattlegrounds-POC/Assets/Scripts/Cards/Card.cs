@@ -128,6 +128,18 @@ public class Card : ScriptableObject
     [System.NonSerialized] private bool _hasStoredBaseStats = false;
 
     /// <summary>
+    /// UX06: Public read-only access to base attack for buff comparison in UI.
+    /// Returns current attack if base stats have not been stored yet.
+    /// </summary>
+    public int BaseAttack => _hasStoredBaseStats ? _baseAttack : attack;
+
+    /// <summary>
+    /// UX06: Public read-only access to base health for buff comparison in UI.
+    /// Returns current health if base stats have not been stored yet.
+    /// </summary>
+    public int BaseHealth => _hasStoredBaseStats ? _baseHealth : health;
+
+    /// <summary>
     /// Create and register the ability for this card instance.
     /// Call this when the card enters play.
     /// </summary>
