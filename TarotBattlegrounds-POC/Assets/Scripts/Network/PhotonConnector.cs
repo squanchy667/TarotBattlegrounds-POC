@@ -85,8 +85,7 @@ public class PhotonConnector : MonoBehaviourPunCallbacks
 
         PhotonNetwork.NickName = playerName;
 
-        // T006: Allow room rejoin for reconnection
-        PhotonNetwork.PhotonServerSettings.AppSettings.PlayerTtl = (int)(RECONNECT_TIMEOUT * 1000);
+        // T006: PlayerTtl is set per-room via RoomOptions in RoomManager.cs
 
         // M7 fix: Clear fixed region so Photon auto-selects best region for player
         if (!string.IsNullOrEmpty(PhotonNetwork.PhotonServerSettings.AppSettings.FixedRegion))

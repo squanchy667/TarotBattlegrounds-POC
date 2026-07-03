@@ -135,8 +135,8 @@ namespace TarotBattlegrounds.UI
                 }
 #endif
 
-                UpdatePlayer(i, name, player.health, startingHealth,
-                    player.currentTavernTier, !player.isAlive, i == localIndex);
+                UpdatePlayer(i, name, player.Health, startingHealth,
+                    player.currentTavernTier, player.Health <= 0, i == localIndex);
             }
         }
 
