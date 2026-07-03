@@ -84,7 +84,7 @@ public class UIScaleSetup : EditorWindow
 
     private static int ScaleCardDisplayPrefab()
     {
-        string path = "Assets/Preferbs/UI/CardDisplay.prefab";
+        string path = "Assets/Prefabs/UI/CardDisplay.prefab";
         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         if (prefab == null)
         {
@@ -174,7 +174,7 @@ public class UIScaleSetup : EditorWindow
 
     private static int ScaleEmptySlotPrefab()
     {
-        string path = "Assets/Preferbs/UI/EmptySlot.prefab";
+        string path = "Assets/Prefabs/UI/EmptySlot.prefab";
         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         if (prefab == null)
         {

@@ -297,14 +297,14 @@ public class PhasePUISetup : EditorWindow
 
         // Load CardDisplay prefab
         GameObject cardDisplayPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-            "Assets/Preferbs/UI/CardDisplay.prefab");
+            "Assets/Prefabs/UI/CardDisplay.prefab");
         if (cardDisplayPrefab != null)
         {
             so.FindProperty("cardDisplayPrefab").objectReferenceValue = cardDisplayPrefab;
         }
         else
         {
-            Debug.LogWarning("[PhasePUISetup] CardDisplay.prefab not found at Assets/Preferbs/UI/CardDisplay.prefab");
+            Debug.LogWarning("[PhasePUISetup] CardDisplay.prefab not found at Assets/Prefabs/UI/CardDisplay.prefab");
         }
 
         so.ApplyModifiedProperties();

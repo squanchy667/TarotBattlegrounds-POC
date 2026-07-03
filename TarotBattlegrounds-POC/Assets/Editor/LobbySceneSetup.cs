@@ -58,7 +58,7 @@ public class LobbySceneSetup : EditorWindow
         Debug.Log("[LobbySceneSetup] Lobby scene created and saved!");
         EditorUtility.DisplayDialog("Lobby Scene Created",
             "Lobby scene saved to Assets/Scenes/Lobby.unity\n" +
-            "RoomListEntry prefab saved to Assets/Preferbs/UI/RoomListEntry.prefab\n" +
+            "RoomListEntry prefab saved to Assets/Prefabs/UI/RoomListEntry.prefab\n" +
             "Lobby added to Build Settings.\n\n" +
             "You can now test: MainMenu → Multiplayer → Lobby", "OK");
     }
@@ -271,7 +271,7 @@ public class LobbySceneSetup : EditorWindow
 
     private static GameObject CreateRoomListEntryPrefab()
     {
-        string prefabPath = "Assets/Preferbs/UI/RoomListEntry.prefab";
+        string prefabPath = "Assets/Prefabs/UI/RoomListEntry.prefab";
 
         // Check if already exists
         GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
@@ -282,10 +282,10 @@ public class LobbySceneSetup : EditorWindow
         }
 
         // Ensure directory exists
-        if (!AssetDatabase.IsValidFolder("Assets/Preferbs"))
-            AssetDatabase.CreateFolder("Assets", "Preferbs");
-        if (!AssetDatabase.IsValidFolder("Assets/Preferbs/UI"))
-            AssetDatabase.CreateFolder("Assets/Preferbs", "UI");
+        if (!AssetDatabase.IsValidFolder("Assets/Prefabs"))
+            AssetDatabase.CreateFolder("Assets", "Prefabs");
+        if (!AssetDatabase.IsValidFolder("Assets/Prefabs/UI"))
+            AssetDatabase.CreateFolder("Assets/Prefabs", "UI");
 
         // Create prefab
         GameObject entryObj = new GameObject("RoomListEntry");
