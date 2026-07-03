@@ -14,12 +14,12 @@ public class LobbyManager : MonoBehaviour
 
     // ====== EVENTS ======
     public static event Action<int> OnTurnStarted; // turnNumber
-    public static event Action<GamePhase> OnPhaseChanged; // phase
+    public static event Action<LobbyPhase> OnPhaseChanged; // phase
     public static event Action<int, int> OnPlayerEliminated; // playerId, placement
     public static event Action<int> OnGameEnded; // winnerId
     public static event Action<int, int, int> OnMatchResult; // player1Id, player2Id, winnerId
 
-    public enum GamePhase
+    public enum LobbyPhase
     {
         Lobby,      // Pre-game setup
         Recruit,    // Shop phase
@@ -47,7 +47,7 @@ public class LobbyManager : MonoBehaviour
     public List<Player> players = new List<Player>();
 
     [Header("Runtime State")]
-    [SerializeField] private GamePhase currentPhase = GamePhase.Lobby;
+    [SerializeField] private LobbyPhase currentPhase = LobbyPhase.Lobby;
     [SerializeField] private int currentTurn = 0;
     [SerializeField] private List<int> eliminationOrder = new List<int>();
     [SerializeField] private int humanPlayerId = 1;
@@ -61,7 +61,7 @@ public class LobbyManager : MonoBehaviour
     // Round-robin matchmaking history
     private Dictionary<int, HashSet<int>> recentOpponents = new Dictionary<int, HashSet<int>>();
 
-    public GamePhase CurrentPhase => currentPhase;
+    public LobbyPhase CurrentPhase => currentPhase;
     public int CurrentTurn => currentTurn;
     public int HumanPlayerId => humanPlayerId;
 
@@ -140,7 +140,7 @@ public class LobbyManager : MonoBehaviour
             }
         }
 
-        currentPhase = GamePhase.Lobby;
+        currentPhase = LobbyPhase.Lobby;
         Debug.Log("[LobbyManager] Lobby initialized. Call StartGame() to begin.");
     }
 
@@ -208,7 +208,7 @@ public class LobbyManager : MonoBehaviour
     /// </summary>
     private IEnumerator RecruitPhase()
     {
-        currentPhase = GamePhase.Recruit;
+        currentPhase = LobbyPhase.Recruit;
         OnPhaseChanged?.Invoke(currentPhase);
         Debug.Log($"[LobbyManager] Recruit Phase - Turn {currentTurn}");
 
@@ -261,7 +261,7 @@ public class LobbyManager : MonoBehaviour
     /// </summary>
     private IEnumerator CombatPhase()
     {
-        currentPhase = GamePhase.Combat;
+        currentPhase = LobbyPhase.Combat;
         OnPhaseChanged?.Invoke(currentPhase);
         Debug.Log($"[LobbyManager] Combat Phase - Turn {currentTurn}");
 
@@ -429,7 +429,7 @@ public class LobbyManager : MonoBehaviour
     /// </summary>
     private void EndGame()
     {
-        currentPhase = GamePhase.Results;
+        currentPhase = LobbyPhase.Results;
         OnPhaseChanged?.Invoke(currentPhase);
         gameInProgress = false;
 
@@ -503,7 +503,7 @@ public class LobbyManager : MonoBehaviour
         if (activePlayers.Contains(playerId))
         {
             // Still playing - if game over, they won
-            return currentPhase == GamePhase.Results ? 1 : 0;
+            return currentPhase == LobbyPhase.Results ? 1 : 0;
         }
 
         int elimIndex = eliminationOrder.IndexOf(playerId);
