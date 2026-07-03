@@ -41,3 +41,6 @@ TestLog.txt
 TestResults.xml
 mono_crash.*.json
 WebGLBuild/
+
+# ParrelSync test logs (analysis .md files stay tracked)
+test-logs/*.txt
