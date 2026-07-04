@@ -72,7 +72,7 @@ public class CardLayoutSetup : Editor
         // ===== 1. Create Layout Zones =====
 
         // Name Banner: top strip, stretched horizontal, 24px height
-        GameObject nameBannerObj = CreateUIChild(display.gameObject, "NameBanner");
+        GameObject nameBannerObj = EditorUiFactory.CreateUIChild(display.gameObject, "NameBanner");
         Image nameBannerImage = nameBannerObj.AddComponent<Image>();
         nameBannerImage.color = new Color(0f, 0f, 0f, 0.5f); // Semi-transparent dark
         nameBannerImage.raycastTarget = false;
@@ -84,7 +84,7 @@ public class CardLayoutSetup : Editor
         nameBannerRect.anchoredPosition = Vector2.zero;
 
         // Artwork Area: center, with margins for name banner and stat bar
-        GameObject artworkAreaObj = CreateUIChild(display.gameObject, "ArtworkArea");
+        GameObject artworkAreaObj = EditorUiFactory.CreateUIChild(display.gameObject, "ArtworkArea");
         RectTransform artworkAreaRect = artworkAreaObj.GetComponent<RectTransform>();
         artworkAreaRect.anchorMin = Vector2.zero;
         artworkAreaRect.anchorMax = Vector2.one;
@@ -92,7 +92,7 @@ public class CardLayoutSetup : Editor
         artworkAreaRect.offsetMax = new Vector2(-4f, -24f);      // Top: name banner
 
         // Ability Area: below artwork, above stat bar
-        GameObject abilityAreaObj = CreateUIChild(display.gameObject, "AbilityArea");
+        GameObject abilityAreaObj = EditorUiFactory.CreateUIChild(display.gameObject, "AbilityArea");
         RectTransform abilityAreaRect = abilityAreaObj.GetComponent<RectTransform>();
         abilityAreaRect.anchorMin = new Vector2(0f, 0f);
         abilityAreaRect.anchorMax = new Vector2(1f, 0f);
@@ -101,7 +101,7 @@ public class CardLayoutSetup : Editor
         abilityAreaRect.anchoredPosition = new Vector2(0f, 28f); // Above stat bar
 
         // Ability Text inside AbilityArea
-        GameObject abilityTextObj = CreateUIChild(abilityAreaObj, "AbilityText");
+        GameObject abilityTextObj = EditorUiFactory.CreateUIChild(abilityAreaObj, "AbilityText");
         TextMeshProUGUI abilityTmp = abilityTextObj.AddComponent<TextMeshProUGUI>();
         abilityTmp.fontSize = 11f;
         abilityTmp.fontStyle = FontStyles.Italic;
@@ -113,7 +113,7 @@ public class CardLayoutSetup : Editor
         StretchToParent(abilityTextObj.GetComponent<RectTransform>());
 
         // Stat Bar: bottom strip, stretched horizontal, 28px height
-        GameObject statBarObj = CreateUIChild(display.gameObject, "StatBar");
+        GameObject statBarObj = EditorUiFactory.CreateUIChild(display.gameObject, "StatBar");
         RectTransform statBarRect = statBarObj.GetComponent<RectTransform>();
         statBarRect.anchorMin = new Vector2(0f, 0f);
         statBarRect.anchorMax = new Vector2(1f, 0f);
@@ -204,7 +204,7 @@ public class CardLayoutSetup : Editor
         Vector2 position, Color badgeColor)
     {
         // Badge root with background image
-        GameObject badgeObj = CreateUIChild(parent, name);
+        GameObject badgeObj = EditorUiFactory.CreateUIChild(parent, name);
         Image badgeBg = badgeObj.AddComponent<Image>();
         badgeBg.color = badgeColor;
         badgeBg.raycastTarget = false;
@@ -217,7 +217,7 @@ public class CardLayoutSetup : Editor
         badgeRect.anchoredPosition = position;
 
         // Value text child (centered in badge)
-        GameObject valueTextObj = CreateUIChild(badgeObj, "Value");
+        GameObject valueTextObj = EditorUiFactory.CreateUIChild(badgeObj, "Value");
         TextMeshProUGUI valueTmp = valueTextObj.AddComponent<TextMeshProUGUI>();
         valueTmp.fontSize = 22f;
         valueTmp.fontStyle = FontStyles.Bold;
@@ -236,17 +236,6 @@ public class CardLayoutSetup : Editor
         badgeSO.ApplyModifiedProperties();
 
         return badgeObj;
-    }
-
-    /// <summary>
-    /// Create a UI child GameObject with a RectTransform.
-    /// </summary>
-    private static GameObject CreateUIChild(GameObject parent, string name)
-    {
-        GameObject child = new GameObject(name, typeof(RectTransform));
-        child.transform.SetParent(parent.transform, false);
-        Undo.RegisterCreatedObjectUndo(child, $"Create {name}");
-        return child;
     }
 
     /// <summary>

@@ -24,7 +24,7 @@ public class BackgroundSetup : EditorWindow
         Canvas canvas = Object.FindObjectOfType<Canvas>();
         if (canvas == null)
         {
-            canvas = CreateCanvas();
+            canvas = EditorUiFactory.CreateCanvas().GetComponent<Canvas>();
         }
 
         // Remove old background layers if they exist
@@ -176,29 +176,5 @@ public class BackgroundSetup : EditorWindow
     /// <summary>
     /// Create a basic Canvas if none exists in the scene.
     /// </summary>
-    private static Canvas CreateCanvas()
-    {
-        GameObject canvasObj = new GameObject("Canvas");
-
-        Canvas canvas = canvasObj.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-        CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
-
-        canvasObj.AddComponent<GraphicRaycaster>();
-
-        // EventSystem
-        if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
-        {
-            GameObject esObj = new GameObject("EventSystem");
-            esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
-            esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
-        }
-
-        return canvas;
-    }
 }
 #endif

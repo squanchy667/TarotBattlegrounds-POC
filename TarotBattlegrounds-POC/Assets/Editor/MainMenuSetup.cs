@@ -52,7 +52,7 @@ public class MainMenuSetup : EditorWindow
         Canvas canvas = Object.FindObjectOfType<Canvas>();
         if (canvas == null)
         {
-            canvas = CreateCanvas().GetComponent<Canvas>();
+            canvas = EditorUiFactory.CreateCanvas().GetComponent<Canvas>();
         }
 
         // Find or create MainMenuManager
@@ -95,7 +95,7 @@ public class MainMenuSetup : EditorWindow
         // ===============================
         // 2. MAIN PANEL (inside ContentGroup)
         // ===============================
-        GameObject mainPanel = CreateFullscreenPanel(contentGroupObj.transform, "MainPanel");
+        GameObject mainPanel = EditorUiFactory.CreateFullscreenPanel(contentGroupObj.transform, "MainPanel");
         managerSO.FindProperty("mainPanel").objectReferenceValue = mainPanel;
 
         // ===============================
@@ -133,16 +133,16 @@ public class MainMenuSetup : EditorWindow
         managerSO.FindProperty("logoImage").objectReferenceValue = logoImage;
 
         // Title text
-        GameObject titleTextObj = CreateText(titleArea.transform, "TitleText",
-            "TAROT BATTLEGROUNDS", 48, FontStyles.Bold, GoldAccent, TextAlignmentOptions.Center);
+        GameObject titleTextObj = EditorUiFactory.CreateText(titleArea.transform, "TitleText",
+            "TAROT BATTLEGROUNDS", 48, FontStyles.Bold, GoldAccent, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
         TMP_Text titleTMP = titleTextObj.GetComponent<TMP_Text>();
 
         managerSO.FindProperty("titleText").objectReferenceValue = titleTMP;
         visualSO.FindProperty("titleText").objectReferenceValue = titleTMP;
 
         // Subtitle text
-        GameObject subtitleObj = CreateText(titleArea.transform, "SubtitleText",
-            "A Mystical Auto-Battler", 22, FontStyles.Italic, SubtitleGray, TextAlignmentOptions.Center);
+        GameObject subtitleObj = EditorUiFactory.CreateText(titleArea.transform, "SubtitleText",
+            "A Mystical Auto-Battler", 22, FontStyles.Italic, SubtitleGray, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
         TMP_Text subtitleTMP = subtitleObj.GetComponent<TMP_Text>();
 
         managerSO.FindProperty("subtitleText").objectReferenceValue = subtitleTMP;
@@ -183,8 +183,8 @@ public class MainMenuSetup : EditorWindow
         managerSO.FindProperty("rankedButton").objectReferenceValue = rankedBtn.GetComponent<Button>();
 
         // Player info text (below ranked button, for authenticated user display)
-        GameObject playerInfoObj = CreateText(buttonArea.transform, "PlayerInfoText",
-            "", 16, FontStyles.Normal, SubtitleGray, TextAlignmentOptions.Center);
+        GameObject playerInfoObj = EditorUiFactory.CreateText(buttonArea.transform, "PlayerInfoText",
+            "", 16, FontStyles.Normal, SubtitleGray, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
         managerSO.FindProperty("playerInfoText").objectReferenceValue =
             playerInfoObj.GetComponent<TMP_Text>();
 
@@ -327,52 +327,11 @@ public class MainMenuSetup : EditorWindow
 
     // ===================== CANVAS =====================
 
-    private static GameObject CreateCanvas()
-    {
-        GameObject canvasObj = new GameObject("Canvas");
-
-        Canvas canvas = canvasObj.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-        CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
-
-        canvasObj.AddComponent<GraphicRaycaster>();
-
-        // EventSystem
-        if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
-        {
-            GameObject esObj = new GameObject("EventSystem");
-            esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
-            esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
-        }
-
-        return canvasObj;
-    }
-
-    // ===================== PANELS =====================
-
-    private static GameObject CreateFullscreenPanel(Transform parent, string name)
-    {
-        GameObject panel = new GameObject(name);
-        panel.transform.SetParent(parent, false);
-
-        RectTransform rect = panel.AddComponent<RectTransform>();
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-
-        return panel;
-    }
-
     // ===================== SOLO PANEL =====================
 
     private static GameObject CreateSoloPanel(Transform parent, SerializedObject managerSO)
     {
-        GameObject panel = CreateFullscreenPanel(parent, "SoloPanel");
+        GameObject panel = EditorUiFactory.CreateFullscreenPanel(parent, "SoloPanel");
         managerSO.FindProperty("soloPanel").objectReferenceValue = panel;
 
         // Semi-transparent background overlay
@@ -404,15 +363,15 @@ public class MainMenuSetup : EditorWindow
         vlg.padding = new RectOffset(40, 40, 30, 30);
 
         // Title
-        CreateText(container.transform, "SoloTitle", "SOLO GAME", 34,
-            FontStyles.Bold, GoldAccent, TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(container.transform, "SoloTitle", "SOLO GAME", 34,
+            FontStyles.Bold, GoldAccent, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
 
         // Player count label
-        CreateText(container.transform, "PlayerCountLabel", "Number of Players", 20,
-            FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(container.transform, "PlayerCountLabel", "Number of Players", 20,
+            FontStyles.Normal, Color.white, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
 
         // Player count buttons row
-        GameObject countRow = CreateHorizontalRow(container.transform, "PlayerCountRow", 20);
+        GameObject countRow = EditorUiFactory.CreateHorizontalRow(container.transform, "PlayerCountRow", 20);
 
         GameObject btn4 = CreateStyledButton(countRow.transform, "Players4Button", "4 Players", 150, 50, ButtonVariant.Primary);
         managerSO.FindProperty("players4Button").objectReferenceValue = btn4.GetComponent<Button>();
@@ -424,11 +383,12 @@ public class MainMenuSetup : EditorWindow
         managerSO.FindProperty("players8Button").objectReferenceValue = btn8.GetComponent<Button>();
 
         // Difficulty label
-        CreateText(container.transform, "DifficultyLabel", "AI Difficulty", 20,
-            FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(container.transform, "DifficultyLabel", "AI Difficulty", 20,
+            FontStyles.Normal, Color.white, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
 
         // Difficulty dropdown
-        GameObject diffDropdown = CreateDropdown(container.transform, "DifficultyDropdown", 250, 45);
+        GameObject diffDropdown = EditorUiFactory.CreateDropdown(container.transform, "DifficultyDropdown", 250, 45,
+            backgroundColor: DimPurple);
         managerSO.FindProperty("difficultyDropdown").objectReferenceValue =
             diffDropdown.GetComponent<TMP_Dropdown>();
 
@@ -436,7 +396,7 @@ public class MainMenuSetup : EditorWindow
         CreateSpacer(container.transform, 10);
 
         // Bottom buttons row
-        GameObject bottomRow = CreateHorizontalRow(container.transform, "BottomRow", 30);
+        GameObject bottomRow = EditorUiFactory.CreateHorizontalRow(container.transform, "BottomRow", 30);
 
         GameObject backBtn = CreateStyledButton(bottomRow.transform, "BackButton", "Back", 150, 50, ButtonVariant.Danger);
         managerSO.FindProperty("backButton").objectReferenceValue = backBtn.GetComponent<Button>();
@@ -474,8 +434,9 @@ public class MainMenuSetup : EditorWindow
         rowLE.preferredHeight = 40;
 
         // Label
-        GameObject labelObj = CreateText(row.transform, "Label", label,
-            16, FontStyles.Bold, SubtitleGray, TextAlignmentOptions.MidlineLeft);
+        GameObject labelObj = EditorUiFactory.CreateText(row.transform, "Label", label,
+            16, FontStyles.Bold, SubtitleGray, TextAlignmentOptions.MidlineLeft,
+            heightPadding: 14, raycastTarget: false);
         LayoutElement labelLE = labelObj.GetComponent<LayoutElement>();
         if (labelLE != null)
         {
@@ -664,162 +625,6 @@ public class MainMenuSetup : EditorWindow
     }
 
     // ===================== SHARED HELPERS =====================
-
-    private static GameObject CreateText(Transform parent, string name, string text,
-        int fontSize, FontStyles style, Color color, TextAlignmentOptions alignment)
-    {
-        GameObject obj = new GameObject(name);
-        obj.transform.SetParent(parent, false);
-
-        RectTransform rect = obj.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(0, fontSize + 14);
-
-        TextMeshProUGUI tmp = obj.AddComponent<TextMeshProUGUI>();
-        tmp.text = text;
-        tmp.fontSize = fontSize;
-        tmp.fontStyle = style;
-        tmp.color = color;
-        tmp.alignment = alignment;
-        tmp.enableWordWrapping = true;
-        tmp.overflowMode = TextOverflowModes.Overflow;
-        tmp.raycastTarget = false;
-
-        TMP_FontAsset font = FindFont();
-        if (font != null) tmp.font = font;
-
-        LayoutElement le = obj.AddComponent<LayoutElement>();
-        le.minHeight = fontSize + 14;
-
-        return obj;
-    }
-
-    private static GameObject CreateHorizontalRow(Transform parent, string name, float spacing)
-    {
-        GameObject row = new GameObject(name);
-        row.transform.SetParent(parent, false);
-        row.AddComponent<RectTransform>();
-
-        HorizontalLayoutGroup hlg = row.AddComponent<HorizontalLayoutGroup>();
-        hlg.spacing = spacing;
-        hlg.childAlignment = TextAnchor.MiddleCenter;
-        hlg.childControlWidth = false;
-        hlg.childControlHeight = false;
-        hlg.childForceExpandWidth = false;
-        hlg.childForceExpandHeight = false;
-
-        LayoutElement le = row.AddComponent<LayoutElement>();
-        le.minHeight = 55;
-
-        return row;
-    }
-
-    private static GameObject CreateDropdown(Transform parent, string name,
-        float width, float height)
-    {
-        GameObject dropObj = new GameObject(name);
-        dropObj.transform.SetParent(parent, false);
-
-        RectTransform rect = dropObj.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(width, height);
-
-        Image img = dropObj.AddComponent<Image>();
-        img.color = DimPurple;
-
-        LayoutElement le = dropObj.AddComponent<LayoutElement>();
-        le.minWidth = width;
-        le.preferredWidth = width;
-        le.minHeight = height;
-
-        // Label
-        GameObject labelObj = new GameObject("Label");
-        labelObj.transform.SetParent(dropObj.transform, false);
-        RectTransform labelRect = labelObj.AddComponent<RectTransform>();
-        labelRect.anchorMin = Vector2.zero;
-        labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = new Vector2(10, 2);
-        labelRect.offsetMax = new Vector2(-25, -2);
-
-        TextMeshProUGUI labelTmp = labelObj.AddComponent<TextMeshProUGUI>();
-        labelTmp.text = "Medium";
-        labelTmp.fontSize = 18;
-        labelTmp.color = Color.white;
-        labelTmp.alignment = TextAlignmentOptions.MidlineLeft;
-
-        TMP_FontAsset font = FindFont();
-        if (font != null) labelTmp.font = font;
-
-        // Template
-        GameObject template = new GameObject("Template");
-        template.transform.SetParent(dropObj.transform, false);
-        RectTransform templateRect = template.AddComponent<RectTransform>();
-        templateRect.anchorMin = new Vector2(0, 0);
-        templateRect.anchorMax = new Vector2(1, 0);
-        templateRect.pivot = new Vector2(0.5f, 1f);
-        templateRect.sizeDelta = new Vector2(0, 150);
-
-        Image templateImg = template.AddComponent<Image>();
-        templateImg.color = DimPurple;
-
-        ScrollRect scroll = template.AddComponent<ScrollRect>();
-
-        // Viewport
-        GameObject viewport = new GameObject("Viewport");
-        viewport.transform.SetParent(template.transform, false);
-        RectTransform vpRect = viewport.AddComponent<RectTransform>();
-        vpRect.anchorMin = Vector2.zero;
-        vpRect.anchorMax = Vector2.one;
-        vpRect.offsetMin = Vector2.zero;
-        vpRect.offsetMax = Vector2.zero;
-        viewport.AddComponent<Mask>();
-        viewport.AddComponent<Image>().color = Color.white;
-
-        // Content
-        GameObject contentObj = new GameObject("Content");
-        contentObj.transform.SetParent(viewport.transform, false);
-        RectTransform contentRect = contentObj.AddComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0, 1);
-        contentRect.anchorMax = new Vector2(1, 1);
-        contentRect.pivot = new Vector2(0.5f, 1f);
-        contentRect.sizeDelta = new Vector2(0, 0);
-
-        scroll.viewport = vpRect;
-        scroll.content = contentRect;
-
-        // Item
-        GameObject item = new GameObject("Item");
-        item.transform.SetParent(contentObj.transform, false);
-        RectTransform itemRect = item.AddComponent<RectTransform>();
-        itemRect.sizeDelta = new Vector2(0, 40);
-        itemRect.anchorMin = new Vector2(0, 0.5f);
-        itemRect.anchorMax = new Vector2(1, 0.5f);
-
-        item.AddComponent<Toggle>();
-
-        // Item label
-        GameObject itemLabelObj = new GameObject("Item Label");
-        itemLabelObj.transform.SetParent(item.transform, false);
-        RectTransform ilRect = itemLabelObj.AddComponent<RectTransform>();
-        ilRect.anchorMin = Vector2.zero;
-        ilRect.anchorMax = Vector2.one;
-        ilRect.offsetMin = new Vector2(10, 2);
-        ilRect.offsetMax = new Vector2(-10, -2);
-
-        TextMeshProUGUI itemTmp = itemLabelObj.AddComponent<TextMeshProUGUI>();
-        itemTmp.text = "Option";
-        itemTmp.fontSize = 18;
-        itemTmp.color = Color.white;
-        if (font != null) itemTmp.font = font;
-
-        template.SetActive(false);
-
-        // TMP_Dropdown
-        TMP_Dropdown dropdown = dropObj.AddComponent<TMP_Dropdown>();
-        dropdown.template = templateRect;
-        dropdown.captionText = labelTmp;
-        dropdown.itemText = itemTmp;
-
-        return dropObj;
-    }
 
     private static void CreateSpacer(Transform parent, float height)
     {

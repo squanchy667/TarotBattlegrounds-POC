@@ -80,13 +80,13 @@ public class CardFrameSetup : Editor
         }
 
         // Create OuterFrame — stretched to fill, behind content
-        GameObject outerFrameObj = CreateUIChild(generator.gameObject, "OuterFrame");
+        GameObject outerFrameObj = EditorUiFactory.CreateUIChild(generator.gameObject, "OuterFrame");
         Image outerFrameImage = outerFrameObj.AddComponent<Image>();
         outerFrameImage.raycastTarget = false;
         StretchToParent(outerFrameObj.GetComponent<RectTransform>());
 
         // Create InnerFrame — stretched with padding (3px inset), behind content
-        GameObject innerFrameObj = CreateUIChild(generator.gameObject, "InnerFrame");
+        GameObject innerFrameObj = EditorUiFactory.CreateUIChild(generator.gameObject, "InnerFrame");
         Image innerFrameImage = innerFrameObj.AddComponent<Image>();
         innerFrameImage.raycastTarget = false;
         RectTransform innerFrameRect = innerFrameObj.GetComponent<RectTransform>();
@@ -96,13 +96,13 @@ public class CardFrameSetup : Editor
         innerFrameRect.offsetMax = new Vector2(-3f, -3f);
 
         // Create InnerShadow — stretched to fill, on top of background
-        GameObject innerShadowObj = CreateUIChild(generator.gameObject, "InnerShadow");
+        GameObject innerShadowObj = EditorUiFactory.CreateUIChild(generator.gameObject, "InnerShadow");
         Image innerShadowImage = innerShadowObj.AddComponent<Image>();
         innerShadowImage.raycastTarget = false;
         StretchToParent(innerShadowObj.GetComponent<RectTransform>());
 
         // Create TierGems — small area at top-right corner
-        GameObject tierGemsObj = CreateUIChild(generator.gameObject, "TierGems");
+        GameObject tierGemsObj = EditorUiFactory.CreateUIChild(generator.gameObject, "TierGems");
         Image tierGemsImage = tierGemsObj.AddComponent<Image>();
         tierGemsImage.raycastTarget = false;
         RectTransform tierGemsRect = tierGemsObj.GetComponent<RectTransform>();
@@ -142,17 +142,6 @@ public class CardFrameSetup : Editor
 
         Debug.Log($"[CardFrameSetup] Set up frame layers on {generator.gameObject.name}");
         return true;
-    }
-
-    /// <summary>
-    /// Create a UI child GameObject with a RectTransform.
-    /// </summary>
-    private static GameObject CreateUIChild(GameObject parent, string name)
-    {
-        GameObject child = new GameObject(name, typeof(RectTransform));
-        child.transform.SetParent(parent.transform, false);
-        Undo.RegisterCreatedObjectUndo(child, $"Create {name}");
-        return child;
     }
 
     /// <summary>

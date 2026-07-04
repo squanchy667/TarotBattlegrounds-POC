@@ -38,7 +38,7 @@ public class MatchInfoPanelSetup : EditorWindow
 
         Canvas canvas = Object.FindObjectOfType<Canvas>();
         if (canvas == null)
-            canvas = CreateCanvas().GetComponent<Canvas>();
+            canvas = EditorUiFactory.CreateCanvas().GetComponent<Canvas>();
 
         MatchTracker tracker = Object.FindObjectOfType<MatchTracker>();
         if (tracker == null)
@@ -85,26 +85,6 @@ public class MatchInfoPanelSetup : EditorWindow
             Undo.DestroyObjectImmediate(existing.gameObject);
     }
 
-    private static GameObject CreateCanvas()
-    {
-        GameObject canvasObj = new GameObject("Canvas");
-        Canvas canvas = canvasObj.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
-        canvasObj.AddComponent<GraphicRaycaster>();
-
-        if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
-        {
-            GameObject esObj = new GameObject("EventSystem");
-            esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
-            esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
-        }
-        return canvasObj;
-    }
-
     private static GameObject CreateMatchInfoUI(Transform canvasTransform)
     {
         // Root holder
@@ -119,7 +99,8 @@ public class MatchInfoPanelSetup : EditorWindow
         MatchInfoUI matchInfoUI = holder.AddComponent<MatchInfoUI>();
 
         // === Toggle Button (top-right corner, always visible) ===
-        GameObject toggleBtn = CreateButton(canvasTransform, "MatchInfoToggleButton", "i", 80, 80);
+        GameObject toggleBtn = EditorUiFactory.CreateButton(canvasTransform, "MatchInfoToggleButton", "i", 80, 80,
+            labelFontSize: 22, addLayoutElement: false);
         RectTransform toggleRect = toggleBtn.GetComponent<RectTransform>();
         toggleRect.anchorMin = new Vector2(1, 1);
         toggleRect.anchorMax = new Vector2(1, 1);
@@ -212,51 +193,51 @@ public class MatchInfoPanelSetup : EditorWindow
 
         // === Content sections ===
         // Title
-        GameObject titleObj = CreateText(content.transform, "TitleText", "Match Status", 42,
-            FontStyles.Bold, new Color(1f, 0.84f, 0f), TextAlignmentOptions.Center);
+        GameObject titleObj = EditorUiFactory.CreateText(content.transform, "TitleText", "Match Status", 42,
+            FontStyles.Bold, new Color(1f, 0.84f, 0f), TextAlignmentOptions.Center, flexibleHeight: 1f);
 
         // Turn / Phase / Alive
-        GameObject turnObj = CreateText(content.transform, "TurnText", "Turn 1  |  Phase: Recruit  |  Alive: 4", 30,
-            FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
+        GameObject turnObj = EditorUiFactory.CreateText(content.transform, "TurnText", "Turn 1  |  Phase: Recruit  |  Alive: 4", 30,
+            FontStyles.Normal, Color.white, TextAlignmentOptions.Center, flexibleHeight: 1f);
 
         CreateSeparator(content.transform);
 
         // Section: Player Statuses
-        CreateText(content.transform, "StatusHeader", "PLAYERS", 28,
-            FontStyles.Bold, new Color(0.6f, 0.8f, 1f), TextAlignmentOptions.Left);
+        EditorUiFactory.CreateText(content.transform, "StatusHeader", "PLAYERS", 28,
+            FontStyles.Bold, new Color(0.6f, 0.8f, 1f), TextAlignmentOptions.Left, flexibleHeight: 1f);
 
-        GameObject statusObj = CreateText(content.transform, "PlayerStatusText",
+        GameObject statusObj = EditorUiFactory.CreateText(content.transform, "PlayerStatusText",
             "  P1 (You)  HP: 40  |  Tier 1  |  Coins: 3  |  Hand: 0  |  Board: 0/7\n" +
             "  P2 (AI)   HP: 40  |  Tier 1  |  Coins: 3  |  Hand: 0  |  Board: 0/7",
-            24, FontStyles.Normal, new Color(0.9f, 0.9f, 0.9f), TextAlignmentOptions.Left);
+            24, FontStyles.Normal, new Color(0.9f, 0.9f, 0.9f), TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         CreateSeparator(content.transform);
 
         // Section: Boards
-        CreateText(content.transform, "BoardsHeader", "BOARDS", 28,
-            FontStyles.Bold, new Color(0.6f, 1f, 0.8f), TextAlignmentOptions.Left);
+        EditorUiFactory.CreateText(content.transform, "BoardsHeader", "BOARDS", 28,
+            FontStyles.Bold, new Color(0.6f, 1f, 0.8f), TextAlignmentOptions.Left, flexibleHeight: 1f);
 
-        GameObject boardsObj = CreateText(content.transform, "BoardsText",
+        GameObject boardsObj = EditorUiFactory.CreateText(content.transform, "BoardsText",
             "  P1 Board: (empty)\n  P2 Board: (empty)",
-            22, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left);
+            22, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         CreateSeparator(content.transform);
 
         // Section: Last Round
-        CreateText(content.transform, "LastRoundHeader", "LAST ROUND", 28,
-            FontStyles.Bold, new Color(1f, 0.7f, 0.7f), TextAlignmentOptions.Left);
+        EditorUiFactory.CreateText(content.transform, "LastRoundHeader", "LAST ROUND", 28,
+            FontStyles.Bold, new Color(1f, 0.7f, 0.7f), TextAlignmentOptions.Left, flexibleHeight: 1f);
 
-        GameObject lastRoundObj = CreateText(content.transform, "LastRoundText",
-            "No battles yet", 22, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left);
+        GameObject lastRoundObj = EditorUiFactory.CreateText(content.transform, "LastRoundText",
+            "No battles yet", 22, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         CreateSeparator(content.transform);
 
         // Section: History
-        CreateText(content.transform, "HistoryHeader", "BATTLE HISTORY", 28,
-            FontStyles.Bold, new Color(1f, 0.85f, 0.6f), TextAlignmentOptions.Left);
+        EditorUiFactory.CreateText(content.transform, "HistoryHeader", "BATTLE HISTORY", 28,
+            FontStyles.Bold, new Color(1f, 0.85f, 0.6f), TextAlignmentOptions.Left, flexibleHeight: 1f);
 
-        GameObject historyObj = CreateText(content.transform, "HistoryText",
-            "", 20, FontStyles.Normal, new Color(0.75f, 0.75f, 0.75f), TextAlignmentOptions.Left);
+        GameObject historyObj = EditorUiFactory.CreateText(content.transform, "HistoryText",
+            "", 20, FontStyles.Normal, new Color(0.75f, 0.75f, 0.75f), TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         // === Wire serialized fields ===
         SerializedObject so = new SerializedObject(matchInfoUI);
@@ -301,75 +282,6 @@ public class MatchInfoPanelSetup : EditorWindow
         }
     }
 
-    private static GameObject CreateText(Transform parent, string name, string text,
-        int fontSize, FontStyles style, Color color, TextAlignmentOptions alignment)
-    {
-        GameObject obj = new GameObject(name);
-        obj.transform.SetParent(parent, false);
-        RectTransform rect = obj.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(0, fontSize + 12);
-
-        TextMeshProUGUI tmp = obj.AddComponent<TextMeshProUGUI>();
-        tmp.text = text;
-        tmp.fontSize = fontSize;
-        tmp.fontStyle = style;
-        tmp.color = color;
-        tmp.alignment = alignment;
-        tmp.enableWordWrapping = true;
-        tmp.overflowMode = TextOverflowModes.Overflow;
-
-        TMP_FontAsset font = FindFont();
-        if (font != null) tmp.font = font;
-
-        LayoutElement le = obj.AddComponent<LayoutElement>();
-        le.minHeight = fontSize + 12;
-        le.flexibleHeight = 1;
-
-        return obj;
-    }
-
-    private static GameObject CreateButton(Transform parent, string name, string label,
-        float width, float height)
-    {
-        GameObject btnObj = new GameObject(name);
-        btnObj.transform.SetParent(parent, false);
-        RectTransform rect = btnObj.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(width, height);
-
-        Image img = btnObj.AddComponent<Image>();
-        img.color = new Color(0.25f, 0.22f, 0.35f, 1f);
-
-        Button btn = btnObj.AddComponent<Button>();
-        ColorBlock colors = btn.colors;
-        colors.normalColor = new Color(0.25f, 0.22f, 0.35f, 1f);
-        colors.highlightedColor = new Color(0.35f, 0.3f, 0.45f, 1f);
-        colors.pressedColor = new Color(0.18f, 0.15f, 0.28f, 1f);
-        colors.selectedColor = new Color(0.3f, 0.27f, 0.4f, 1f);
-        colors.disabledColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
-        btn.colors = colors;
-
-        GameObject textObj = new GameObject("Text (TMP)");
-        textObj.transform.SetParent(btnObj.transform, false);
-        RectTransform textRect = textObj.AddComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = Vector2.zero;
-        textRect.offsetMax = Vector2.zero;
-
-        TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
-        tmp.text = label;
-        tmp.fontSize = 22;
-        tmp.fontStyle = FontStyles.Bold;
-        tmp.color = Color.white;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping = false;
-
-        TMP_FontAsset font = FindFont();
-        if (font != null) tmp.font = font;
-
-        return btnObj;
-    }
-
     private static GameObject CreateSeparator(Transform parent)
     {
         GameObject sep = new GameObject("Separator");
@@ -380,18 +292,6 @@ public class MatchInfoPanelSetup : EditorWindow
         le.minHeight = 1;
         le.preferredHeight = 1;
         return sep;
-    }
-
-    private static TMP_FontAsset FindFont()
-    {
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetDatabase.GUIDToAssetPath(guids[0]));
-        }
-        return font;
     }
 }
 #endif

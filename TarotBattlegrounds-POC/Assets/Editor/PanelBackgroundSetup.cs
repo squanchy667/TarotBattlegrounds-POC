@@ -101,19 +101,19 @@ public class PanelBackgroundSetup : Editor
         }
 
         // Create PanelBG (background fill)
-        GameObject bgObj = CreateUIChild(panelObj, "PanelBG");
+        GameObject bgObj = EditorUiFactory.CreateUIChild(panelObj, "PanelBG");
         Image bgImage = bgObj.AddComponent<Image>();
         bgImage.raycastTarget = false;
         StretchToParent(bgObj.GetComponent<RectTransform>());
 
         // Create PanelBorder (border outline)
-        GameObject borderObj = CreateUIChild(panelObj, "PanelBorder");
+        GameObject borderObj = EditorUiFactory.CreateUIChild(panelObj, "PanelBorder");
         Image borderImage = borderObj.AddComponent<Image>();
         borderImage.raycastTarget = false;
         StretchToParent(borderObj.GetComponent<RectTransform>());
 
         // Create PanelHeader (header bar at top)
-        GameObject headerObj = CreateUIChild(panelObj, "PanelHeader");
+        GameObject headerObj = EditorUiFactory.CreateUIChild(panelObj, "PanelHeader");
         Image headerImage = headerObj.AddComponent<Image>();
         headerImage.raycastTarget = false;
         RectTransform headerRect = headerObj.GetComponent<RectTransform>();
@@ -139,17 +139,6 @@ public class PanelBackgroundSetup : Editor
         so.ApplyModifiedProperties();
 
         Debug.Log($"[PanelBackgroundSetup] Set up panel background on {panelName}");
-    }
-
-    /// <summary>
-    /// Create a UI child GameObject with a RectTransform.
-    /// </summary>
-    private static GameObject CreateUIChild(GameObject parent, string name)
-    {
-        GameObject child = new GameObject(name, typeof(RectTransform));
-        child.transform.SetParent(parent.transform, false);
-        Undo.RegisterCreatedObjectUndo(child, $"Create {name}");
-        return child;
     }
 
     /// <summary>

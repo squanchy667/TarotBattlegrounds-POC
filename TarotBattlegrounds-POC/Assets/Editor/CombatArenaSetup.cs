@@ -45,7 +45,7 @@ public class CombatArenaSetup : EditorWindow
 
         Canvas canvas = Object.FindObjectOfType<Canvas>();
         if (canvas == null)
-            canvas = CreateCanvas().GetComponent<Canvas>();
+            canvas = EditorUiFactory.CreateCanvas().GetComponent<Canvas>();
 
         RemoveOld(canvas.transform);
 
@@ -325,26 +325,6 @@ public class CombatArenaSetup : EditorWindow
         Undo.RegisterCreatedObjectUndo(root, "Create CombatArenaRoot");
 
         return root;
-    }
-
-    private static GameObject CreateCanvas()
-    {
-        GameObject canvasObj = new GameObject("Canvas");
-        Canvas canvas = canvasObj.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
-        canvasObj.AddComponent<GraphicRaycaster>();
-
-        if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
-        {
-            GameObject esObj = new GameObject("EventSystem");
-            esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
-            esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
-        }
-        return canvasObj;
     }
 
     private static TMP_FontAsset FindFont()
