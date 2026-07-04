@@ -34,22 +34,15 @@ public class GameManager : MonoBehaviour
     // If no subscriber calls the callback before the fallback timer, the first choice is auto-assigned.
     public static event System.Action<List<HeroPowerBase>, System.Action<HeroPowerBase>> OnHeroPowerSelectionNeeded;
 
-    // H12 fix: Stores the callback so UI can invoke it after player picks.
-    private System.Action<HeroPowerBase> _heroPowerSelectionCallback;
-
     [Header("Player Settings (Auto-configured from GameConfig)")]
     [Tooltip("Number of active players (read from GameConfig)")]
     public int playerCount = 2;
 
     [Header("Dynamic Player Spawning")]
     [Tooltip("Prefab used to instantiate additional players when count exceeds scene objects")]
-    [SerializeField] private GameObject playerPrefab;
+    [SerializeField] internal GameObject playerPrefab;
 
-    private List<int> playerHealths;
-    private GamePhase currentPhase = GamePhase.Recruit;
-    private int turnNumber = 1;
-    private float recruitTimer = 35f;
-    private int startingHealth = 40;
+    internal float recruitTimer = 35f;
 
     [Header("AI Settings (Legacy - use GameConfig instead)")]
     [Tooltip("These are now read from GameConfig automatically")]
@@ -57,30 +50,31 @@ public class GameManager : MonoBehaviour
     public AIDifficulty defaultAIDifficulty = AIDifficulty.Medium;
 
     private Dictionary<int, AIController> aiControllers = new Dictionary<int, AIController>();
-    private HashSet<int> playersReadyForCombat = new HashSet<int>();
-    private List<int> eliminationOrder = new List<int>(); // Players eliminated in order (first eliminated = last place)
-
-    // Matchmaking history to avoid consecutive same opponents
-    private Dictionary<int, HashSet<int>> recentOpponents = new Dictionary<int, HashSet<int>>();
 
     // H4 fix: Guards against starting the host game loop twice (e.g. both
     // OnNetworkSetupComplete and AssumeHostDuties fire on the same frame).
     private bool _hostGameLoopRunning = false;
 
-    public GamePhase CurrentPhase => currentPhase;
-    public int TurnNumber => turnNumber;
+    // Extracted god-class helpers (Game/ folder) — constructed in Awake().
+    private GameSessionState session;
+    private BattlePairingService pairing;
+    private BattleExecutor battleExecutor;
+    private GameInitializer initializer;
+
+    public GamePhase CurrentPhase => session.CurrentPhase;
+    public int TurnNumber => session.TurnNumber;
 
     /// <summary>
     /// Apply phase and turn from network RPC (client-side).
     /// </summary>
     public void SetPhaseFromNetwork(string phase, int turn)
     {
-        turnNumber = turn;
+        session.TurnNumber = turn;
         if (phase == "Combat")
-            currentPhase = GamePhase.Combat;
+            session.CurrentPhase = GamePhase.Combat;
         else
-            currentPhase = GamePhase.Recruit;
-        Debug.Log($"[GameManager] Network phase sync: {currentPhase}, Turn {turnNumber}");
+            session.CurrentPhase = GamePhase.Recruit;
+        Debug.Log($"[GameManager] Network phase sync: {session.CurrentPhase}, Turn {session.TurnNumber}");
     }
 
     /// <summary>
@@ -104,50 +98,30 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void PlayerReadyForCombat(int playerIndex)
     {
-        if (currentPhase != GamePhase.Recruit) return;
+        if (session.CurrentPhase != GamePhase.Recruit) return;
 
-        if (playersReadyForCombat.Contains(playerIndex)) return;
+        if (session.IsReady(playerIndex)) return;
 
-        playersReadyForCombat.Add(playerIndex);
-        Debug.Log($"[GameManager] Player {playerIndex + 1} is ready for combat ({playersReadyForCombat.Count}/{GetAlivePlayerCount()}).");
+        session.MarkReady(playerIndex);
+        Debug.Log($"[GameManager] Player {playerIndex + 1} is ready for combat ({session.ReadyCount}/{session.GetAlivePlayerCount(playerCount)}).");
     }
 
     /// <summary>
     /// Check whether a specific player has already clicked End Turn this phase.
     /// </summary>
-    public bool IsPlayerReady(int playerIndex) => playersReadyForCombat.Contains(playerIndex);
-
-    private int GetAlivePlayerCount()
-    {
-        int count = 0;
-        for (int i = 0; i < playerCount; i++)
-        {
-            if (playerHealths[i] > 0) count++;
-        }
-        return count;
-    }
-
-    private bool AllAlivePlayersReady()
-    {
-        for (int i = 0; i < playerCount; i++)
-        {
-            if (playerHealths[i] > 0 && !playersReadyForCombat.Contains(i))
-                return false;
-        }
-        return true;
-    }
+    public bool IsPlayerReady(int playerIndex) => session.IsReady(playerIndex);
 
     /// <summary>
     /// Legacy shortcut — kept for backward compatibility. Marks all alive players as ready.
     /// </summary>
     public void EndRecruitPhaseEarly()
     {
-        if (currentPhase != GamePhase.Recruit) return;
+        if (session.CurrentPhase != GamePhase.Recruit) return;
 
         for (int i = 0; i < playerCount; i++)
         {
-            if (playerHealths[i] > 0)
-                playersReadyForCombat.Add(i);
+            if (session.GetHealth(i) > 0)
+                session.MarkReady(i);
         }
         Debug.Log("[GameManager] Recruit phase force-ended (all players marked ready).");
     }
@@ -155,33 +129,16 @@ public class GameManager : MonoBehaviour
     private void TriggerGameOver(int winnerIndex)
     {
         // Build standings: winner first, then reverse elimination order (last eliminated = 2nd place)
-        List<int> standings = new List<int>();
-
-        if (winnerIndex >= 0)
-            standings.Add(winnerIndex);
-
-        // Add eliminated players in reverse order (last eliminated is highest placement)
-        for (int i = eliminationOrder.Count - 1; i >= 0; i--)
-        {
-            if (!standings.Contains(eliminationOrder[i]))
-                standings.Add(eliminationOrder[i]);
-        }
-
-        // Add any remaining players not yet in standings
-        for (int i = 0; i < playerCount; i++)
-        {
-            if (!standings.Contains(i))
-                standings.Add(i);
-        }
+        List<int> standings = session.BuildStandings(winnerIndex, playerCount);
 
         GameOverData data = new GameOverData
         {
             winnerPlayerIndex = winnerIndex,
             standings = standings,
-            totalTurns = turnNumber
+            totalTurns = session.TurnNumber
         };
 
-        Debug.Log($"[GameManager] Game Over! Winner: Player {(winnerIndex >= 0 ? (winnerIndex + 1).ToString() : "None")}. Turns played: {turnNumber}");
+        Debug.Log($"[GameManager] Game Over! Winner: Player {(winnerIndex >= 0 ? (winnerIndex + 1).ToString() : "None")}. Turns played: {session.TurnNumber}");
         for (int i = 0; i < standings.Count; i++)
         {
             Debug.Log($"  #{i + 1}: Player {standings[i] + 1}");
@@ -226,69 +183,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void ApplyNetworkPlayerState(NetworkPlayerState state)
     {
-        if (state.playerIndex < 0 || state.playerIndex >= players.Count) return;
-
-        Player player = players[state.playerIndex];
-
-        // Update basic stats (bypass events temporarily to avoid spam)
-        player.coins = state.coins;
-        player.currentTavernTier = state.tavernTier;
-        player.Health = state.health;
-        player.ShopFrozen = state.shopFrozen;
-        // M5: Store synced upgrade cost for UI display
-        player.SyncedUpgradeCost = state.upgradeCost;
-
-        // Update health tracking
-        if (state.playerIndex < playerHealths.Count)
-            playerHealths[state.playerIndex] = state.health;
-
-        // Reconstruct hand
-        player.hand.Clear();
-        if (state.hand != null)
-        {
-            int handFailed = 0;
-            foreach (var cardData in state.hand)
-            {
-                Card card = cardData.ToCard();
-                if (card != null)
-                    player.hand.Add(card);
-                else
-                    handFailed++;
-            }
-            if (handFailed > 0)
-                Debug.LogError($"[ApplyNetworkPlayerState] Player {state.playerIndex}: {handFailed}/{state.hand.Length} hand cards failed to reconstruct");
-        }
-
-        // Reconstruct board
-        player.board.Clear();
-        if (state.board != null)
-        {
-            int boardFailed = 0;
-            foreach (var cardData in state.board)
-            {
-                Card card = cardData.ToCard();
-                if (card != null)
-                {
-                    player.board.Add(card);
-                    // M6: Log card stats to verify ability effects are synced
-                    Debug.Log($"[Client/M6] P{state.playerIndex} board card: {card.cardName} {card.attack}/{card.health}, Aegis={card.hasAegis}");
-                }
-                else
-                    boardFailed++;
-            }
-            if (boardFailed > 0)
-                Debug.LogError($"[ApplyNetworkPlayerState] Player {state.playerIndex}: {boardFailed}/{state.board.Length} board cards failed to reconstruct");
-        }
-
-        // Reconstruct shop
-        if (state.shopCards != null && TavernManager.Instance != null)
-        {
-            List<Card> shopCards = NetworkCardData.ToCardList(state.shopCards);
-            TavernManager.Instance.SetShopFromNetwork(state.playerIndex, shopCards);
-        }
-
-        // Notify UI
-        player.NotifyAllStateChanged();
+        PlayerStateSync.Apply(state, players, session);
     }
 
     /// <summary>
@@ -296,12 +191,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public bool IsHumanPlayer(int playerIndex) => GameConfig.IsHumanPlayer(playerIndex);
 
-    public int GetPlayerHealth(int index)
-    {
-        if (index >= 0 && index < playerHealths.Count)
-            return playerHealths[index];
-        return 0;
-    }
+    public int GetPlayerHealth(int index) => session.GetHealth(index);
 
     void Start()
     {
@@ -313,17 +203,17 @@ public class GameManager : MonoBehaviour
         GameConfig.LogConfig();
 
         // Apply runtime config overrides if available
-        ApplyRuntimeConfig();
+        initializer.ApplyRuntimeConfig();
 
         // Apply 8-player scaling if EightPlayerManager is present
         if (EightPlayerManager.Instance != null)
         {
-            startingHealth = EightPlayerManager.Instance.GetStartingHealth(playerCount);
-            Debug.Log($"[GameManager] 8-player scaling: startingHealth={startingHealth} for {playerCount} players");
+            session.StartingHealth = EightPlayerManager.Instance.GetStartingHealth(playerCount);
+            Debug.Log($"[GameManager] 8-player scaling: startingHealth={session.StartingHealth} for {playerCount} players");
         }
 
         // Spawn additional player objects if the scene doesn't have enough
-        EnsurePlayerCount(playerCount);
+        initializer.EnsurePlayerCount(playerCount);
 
         if (players == null || players.Count < playerCount)
         {
@@ -335,218 +225,38 @@ public class GameManager : MonoBehaviour
         if (IsOnlineMode)
         {
             Debug.Log("[GameManager] Online mode: waiting for network setup...");
-            InitializePlayers();
+            initializer.InitializePlayers();
             // Don't start game loop yet — OnNetworkSetupComplete() will do it on host
             return;
         }
 
         // Offline mode: normal initialization
-        InitializePlayers();
-        InitializeAI();
-        InitializeHeroPowers();
+        initializer.InitializePlayers();
+        initializer.InitializeAI();
+        initializer.InitializeHeroPowers();
         StartCoroutine(GameLoop());
     }
 
     /// <summary>
-    /// Apply runtime balance config from RuntimeDataLoader if available.
+    /// H12 fix: Raises OnHeroPowerSelectionNeeded (or auto-assigns the first choice
+    /// if there is no subscriber). Events can only be invoked from their declaring
+    /// class, so GameInitializer routes through this internal method.
     /// </summary>
-    private void ApplyRuntimeConfig()
+    internal void RaiseHeroPowerSelectionNeeded(int playerIndex, List<HeroPowerBase> choices, System.Action<HeroPowerBase> callback)
     {
-        if (RuntimeDataLoader.Instance == null || !RuntimeDataLoader.Instance.IsLoaded) return;
-
-        var config = RuntimeDataLoader.Instance.Config;
-        if (config == null) return;
-
-        if (config.recruitTimerSeconds > 0)
+        if (OnHeroPowerSelectionNeeded != null)
         {
-            recruitTimer = config.recruitTimerSeconds;
-            Debug.Log($"[GameManager] Runtime config: recruitTimer={recruitTimer}s");
+            // Notify any wired UI; the UI is responsible for invoking the callback
+            Debug.Log($"[GameManager] Presenting hero power selection UI for player {playerIndex + 1}");
+            OnHeroPowerSelectionNeeded.Invoke(choices, callback);
         }
-
-        if (config.startingHealth > 0)
+        else
         {
-            startingHealth = config.startingHealth;
-            Debug.Log($"[GameManager] Runtime config: startingHealth={startingHealth}");
+            // No UI wired yet — auto-assign the first choice so the game still works
+            Debug.Log($"[GameManager] No hero power UI subscriber; auto-assigning first choice for player {playerIndex + 1}");
+            if (choices.Count > 0)
+                callback.Invoke(choices[0]);
         }
-    }
-
-    /// <summary>
-    /// Ensure the players list has enough Player instances for the requested count.
-    /// Instantiates additional players from the prefab if needed.
-    /// </summary>
-    private void EnsurePlayerCount(int required)
-    {
-        if (players == null)
-            players = new List<Player>();
-
-        while (players.Count < required)
-        {
-            if (playerPrefab == null)
-            {
-                Debug.LogError($"[GameManager] playerPrefab is null — cannot spawn Player {players.Count + 1}. Assign it in the Inspector.");
-                return;
-            }
-
-            GameObject obj = Instantiate(playerPrefab);
-            obj.name = $"Player {players.Count + 1} (Spawned)";
-            Player p = obj.GetComponent<Player>();
-            if (p == null)
-            {
-                Debug.LogError($"[GameManager] playerPrefab has no Player component!");
-                Destroy(obj);
-                return;
-            }
-            players.Add(p);
-            Debug.Log($"[GameManager] Spawned additional Player {players.Count}");
-        }
-    }
-
-    /// <summary>
-    /// Initialize player objects and tavern slots (shared between online/offline).
-    /// </summary>
-    private void InitializePlayers()
-    {
-        // M6: Clear stale ability registrations from previous games
-        AbilityManager.ClearAll();
-
-        for (int i = 0; i < playerCount; i++)
-        {
-            if (players[i] == null)
-            {
-                Debug.LogError($"Player {i + 1} is null in GameManager.players!");
-                return;
-            }
-            players[i].playerId = i + 1;
-            Debug.Log($"Player {i + 1}: {players[i].gameObject.name}, Instance ID: {players[i].GetInstanceID()}");
-
-            if (TavernManager.Instance != null)
-            {
-                if (!TavernManager.Instance.availableCards.ContainsKey(i + 1))
-                {
-                    TavernManager.Instance.availableCards[i + 1] = new List<Card>();
-                }
-            }
-            else
-            {
-                Debug.LogError($"TavernManager.Instance is null during GameManager Start!");
-            }
-        }
-
-        // Disable unused player objects
-        for (int i = playerCount; i < players.Count; i++)
-        {
-            if (players[i] != null)
-            {
-                players[i].gameObject.SetActive(false);
-                Debug.Log($"[GameManager] Player {i + 1} disabled (not needed for {playerCount}-player game)");
-            }
-        }
-
-        playerHealths = new List<int>(Enumerable.Repeat(startingHealth, playerCount).ToArray());
-
-        // Apply runtime config to each player (upgrade costs, etc.)
-        if (RuntimeDataLoader.Instance != null && RuntimeDataLoader.Instance.IsLoaded && RuntimeDataLoader.Instance.Config != null)
-        {
-            for (int i = 0; i < playerCount; i++)
-            {
-                players[i].Health = startingHealth;
-                players[i].ApplyRuntimeConfig(RuntimeDataLoader.Instance.Config);
-            }
-        }
-
-        // Initialize matchmaking history
-        recentOpponents.Clear();
-        for (int i = 0; i < playerCount; i++)
-            recentOpponents[i] = new HashSet<int>();
-    }
-
-    /// <summary>
-    /// Initialize AI controllers for non-human players.
-    /// </summary>
-    private void InitializeAI()
-    {
-        for (int i = 0; i < playerCount; i++)
-        {
-            if (!GameConfig.IsHumanPlayer(i))
-            {
-                AIController ai = players[i].GetComponent<AIController>();
-                if (ai == null)
-                {
-                    ai = players[i].gameObject.AddComponent<AIController>();
-                }
-
-                ai.Initialize(players[i]);
-                ai.difficulty = GameConfig.GetAIDifficulty(i);
-
-                aiControllers[i] = ai;
-                Debug.Log($"[GameManager] Player {i + 1} is AI ({ai.difficulty})");
-            }
-            else
-            {
-                Debug.Log($"[GameManager] Player {i + 1} is HUMAN");
-            }
-        }
-
-        // Refresh shops for all players (offline) or host-side (online)
-        for (int i = 0; i < playerCount; i++)
-        {
-            if (playerHealths[i] > 0)
-                players[i].RefreshShop(1);
-        }
-    }
-
-    /// <summary>
-    /// T115 / H12 fix: Assign hero powers at game start.
-    /// AI players get a random auto-assignment.
-    /// Human players fire OnHeroPowerSelectionNeeded so UI can present 3 choices;
-    /// the first choice is auto-assigned as a fallback if no UI subscriber responds.
-    /// </summary>
-    private void InitializeHeroPowers()
-    {
-        if (HeroPowerManager.Instance == null)
-        {
-            Debug.Log("[GameManager] No HeroPowerManager found, skipping hero power init");
-            return;
-        }
-
-        for (int i = 0; i < playerCount; i++)
-        {
-            if (playerHealths[i] <= 0) continue;
-
-            // H12 fix: human players get a selection UI; AI players get random auto-assignment
-            if (GameConfig.IsHumanPlayer(i))
-            {
-                int playerId = players[i].playerId;
-                List<HeroPowerBase> choices = HeroPowerManager.Instance.GetRandomChoices(3);
-
-                // Build the callback that assigns whichever power the player picks
-                _heroPowerSelectionCallback = (chosen) =>
-                {
-                    HeroPowerManager.Instance.AssignHeroPower(playerId, chosen);
-                    Debug.Log($"[GameManager] Human player {i + 1} selected hero power: {chosen.PowerName}");
-                };
-
-                if (OnHeroPowerSelectionNeeded != null)
-                {
-                    // Notify any wired UI; the UI is responsible for invoking the callback
-                    Debug.Log($"[GameManager] Presenting hero power selection UI for player {i + 1}");
-                    OnHeroPowerSelectionNeeded.Invoke(choices, _heroPowerSelectionCallback);
-                }
-                else
-                {
-                    // No UI wired yet — auto-assign the first choice so the game still works
-                    Debug.Log($"[GameManager] No hero power UI subscriber; auto-assigning first choice for player {i + 1}");
-                    if (choices.Count > 0)
-                        _heroPowerSelectionCallback.Invoke(choices[0]);
-                }
-            }
-            else
-            {
-                HeroPowerManager.Instance.AutoAssignForAI(players[i].playerId);
-            }
-        }
-
-        Debug.Log($"[GameManager] Hero powers initialised for {playerCount} players");
     }
 
     /// <summary>
@@ -560,7 +270,7 @@ public class GameManager : MonoBehaviour
         if (IsHost)
         {
             // Initialize AI for non-human slots on host
-            InitializeAI();
+            initializer.InitializeAI();
             // H4 fix: record that the host game loop is now running so AssumeHostDuties
             // does not start a second coroutine if it is called after a host migration.
             _hostGameLoopRunning = true;
@@ -578,6 +288,13 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[GameManager] Registered AI controller for slot {slot}");
     }
 
+    /// <summary>
+    /// Reset the pairing/matchmaking history. Routed through the facade because
+    /// GameInitializer (which needs to call this from InitializePlayers) does not
+    /// hold a direct reference to the BattlePairingService instance.
+    /// </summary>
+    internal void ResetPairingHistory(int count) => pairing.Reset(count);
+
     // ================================================================
     // H4: HOST DISCONNECT RECOVERY
     // ================================================================
@@ -593,23 +310,22 @@ public class GameManager : MonoBehaviour
     public void EliminateDisconnectedPlayer(int playerIndex)
     {
         if (playerIndex < 0 || playerIndex >= playerCount) return;
-        if (playerHealths == null || playerIndex >= playerHealths.Count) return;
-        if (playerHealths[playerIndex] <= 0) return; // Already eliminated
+        if (session.PlayerHealths == null || playerIndex >= session.PlayerHealths.Count) return;
+        if (session.PlayerHealths[playerIndex] <= 0) return; // Already eliminated
 
         Debug.LogWarning($"[GameManager] EliminateDisconnectedPlayer: slot {playerIndex} eliminated due to disconnect.");
 
-        playerHealths[playerIndex] = 0;
+        session.SetHealth(playerIndex, 0);
         if (players != null && playerIndex < players.Count)
             players[playerIndex].Health = 0;
 
-        if (!eliminationOrder.Contains(playerIndex))
-            eliminationOrder.Add(playerIndex);
+        session.RecordElimination(playerIndex);
 
         // Auto-ready the slot so the recruit phase timer is not blocked
-        playersReadyForCombat.Add(playerIndex);
+        session.MarkReady(playerIndex);
 
         Debug.Log($"[GameManager] Slot {playerIndex} eliminated (disconnected). " +
-                  $"Remaining alive: {GetAlivePlayerCount()}");
+                  $"Remaining alive: {session.GetAlivePlayerCount(playerCount)}");
     }
 
     /// <summary>
@@ -642,19 +358,11 @@ public class GameManager : MonoBehaviour
 #endif
 
         // Rebuild playerHealths from live Player objects in case we are out of sync.
-        if (playerHealths == null)
-            playerHealths = new List<int>(new int[playerCount]);
+        session.RebuildFromPlayers(players, playerCount);
 
-        for (int i = 0; i < playerCount && i < players.Count; i++)
-            playerHealths[i] = players[i].Health;
-
-        // Ensure recentOpponents map is initialized (may be null if this was a client).
-        if (recentOpponents == null)
-        {
-            recentOpponents = new Dictionary<int, HashSet<int>>();
-            for (int i = 0; i < playerCount; i++)
-                recentOpponents[i] = new HashSet<int>();
-        }
+        // Ensure recentOpponents map is initialized (may be empty if this was a
+        // client); preserves accumulated history like the original null-guard.
+        pairing.EnsureInitialized(playerCount);
 
         // Attach AI controllers to all slots without a live Photon actor.
         for (int i = 0; i < playerCount && i < players.Count; i++)
@@ -682,7 +390,7 @@ public class GameManager : MonoBehaviour
         {
             for (int i = 0; i < playerCount && i < players.Count; i++)
             {
-                if (playerHealths[i] <= 0) continue;
+                if (session.PlayerHealths[i] <= 0) continue;
                 int playerId = players[i].playerId;
                 if (HeroPowerManager.Instance.GetHeroPower(playerId) == null)
                     HeroPowerManager.Instance.AutoAssignForAI(playerId);
@@ -713,10 +421,10 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameLoop()
     {
-        while (playerHealths.Any(h => h > 0))
+        while (session.PlayerHealths.Any(h => h > 0))
         {
             yield return StartCoroutine(RecruitPhase());
-            currentPhase = GamePhase.Combat;
+            session.CurrentPhase = GamePhase.Combat;
 
             // Notify UI of phase change
             if (GameUIManager.Instance != null)
@@ -725,122 +433,34 @@ public class GameManager : MonoBehaviour
 #if PHOTON_UNITY_NETWORKING
             // Broadcast phase change to clients
             if (IsOnlineMode && NetworkGameBridge.Instance != null)
-                NetworkGameBridge.Instance.BroadcastPhaseChange("Combat", turnNumber, 0f);
+                NetworkGameBridge.Instance.BroadcastPhaseChange("Combat", session.TurnNumber, 0f);
 #endif
 
-            Debug.Log("Current Phase: " + currentPhase);
-            List<int> activePlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
+            Debug.Log("Current Phase: " + session.CurrentPhase);
+            List<int> activePlayers = session.PlayerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
             if (activePlayers.Count == 1)
             {
                 TriggerGameOver(activePlayers[0]);
                 yield break;
             }
             // Clear old opponent history after turn 2
-            if (turnNumber > 2)
-                ClearOldOpponentHistory();
+            if (session.TurnNumber > 2)
+                pairing.ClearOldOpponentHistory();
 
             // Delegate to EightPlayerManager for pairings when available (supports ghost opponents)
             List<(int, int)> battles = EightPlayerManager.Instance != null
-                ? EightPlayerManager.Instance.GeneratePairings(activePlayers, turnNumber)
-                : GeneratePairwiseBattles(activePlayers);
+                ? EightPlayerManager.Instance.GeneratePairings(activePlayers, session.TurnNumber)
+                : pairing.GeneratePairwiseBattles(activePlayers);
 
             // Begin tracking this combat round
             if (MatchTracker.Instance != null)
-                MatchTracker.Instance.BeginRound(turnNumber);
+                MatchTracker.Instance.BeginRound(session.TurnNumber);
 
             foreach (var (p1, p2) in battles)
             {
                 if (p1 >= 0 && p2 >= 0 && p1 < playerCount && p2 < playerCount)
                 {
-                    // Snapshot live board state before hero power combat buffs
-                    // Hero powers modify the live board directly (WarChief +1 Atk, Tactician +2/+2,
-                    // ArcaneBolt removes cards). We must restore after SimulateBattle clones them.
-                    var p1Snapshot = players[p1].board.Select(c => (card: c, atk: c.attack, hp: c.health, aegis: c.hasAegis)).ToList();
-                    var p2Snapshot = players[p2].board.Select(c => (card: c, atk: c.attack, hp: c.health, aegis: c.hasAegis)).ToList();
-                    var p1BoardBackup = new List<Card>(players[p1].board);
-                    var p2BoardBackup = new List<Card>(players[p2].board);
-
-                    // T115: Trigger combat-start hero powers before battle
-                    if (HeroPowerManager.Instance != null)
-                    {
-                        HeroPowerManager.Instance.TriggerCombatPassives(players[p1], players[p2]);
-                        HeroPowerManager.Instance.TriggerCombatPassives(players[p2], players[p1]);
-                    }
-
-                    var board1 = players[p1].board;
-                    var board2 = players[p2].board;
-                    string p1Name = $"Player {p1 + 1}" + (GameConfig.IsHumanPlayer(p1) ? "" : " (AI)");
-                    string p2Name = $"Player {p2 + 1}" + (GameConfig.IsHumanPlayer(p2) ? "" : " (AI)");
-                    var (damage, winner) = CombatManager.SimulateBattle(board1, board2, players[p1].currentTavernTier, players[p2].currentTavernTier, p1Name, p2Name);
-
-                    // Restore live boards after SimulateBattle has cloned the buffed state
-                    players[p1].board.Clear(); players[p1].board.AddRange(p1BoardBackup);
-                    players[p2].board.Clear(); players[p2].board.AddRange(p2BoardBackup);
-                    foreach (var (card, atk, hp, aegis) in p1Snapshot) { card.attack = atk; card.health = hp; card.hasAegis = aegis; }
-                    foreach (var (card, atk, hp, aegis) in p2Snapshot) { card.attack = atk; card.health = hp; card.hasAegis = aegis; }
-                    Debug.Log($"[Combat] {p1Name} vs {p2Name}");
-                    Debug.Log($"  {p1Name} Board: " + string.Join(", ", board1.Select(c => c.cardName)));
-                    Debug.Log($"  {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName)));
-
-                    // T316: Play animated combat replay if this is the local player's battle
-                    if (CombatAnimator.Instance != null && CombatManager.lastReplay != null
-                        && IsLocalPlayerBattle(p1, p2))
-                    {
-                        CombatAnimator.Instance.PlayReplay(CombatManager.lastReplay);
-                        // Wait for animation to complete before proceeding
-                        while (CombatAnimator.Instance.IsPlaying)
-                            yield return null;
-                    }
-
-                    // Use 8-player scaled damage when applicable
-                    if (EightPlayerManager.Instance != null && activePlayers.Count > 4 && winner != "Tie")
-                    {
-                        int boardStrength = damage; // surviving count + tavern tier from CombatManager
-                        damage = EightPlayerManager.Instance.CalculateCombatDamage(turnNumber, boardStrength, activePlayers.Count);
-                    }
-
-                    int winnerIndex;
-                    if (winner == "Tie")
-                    {
-                        playerHealths[p1] -= damage;
-                        playerHealths[p2] -= damage;
-                        players[p1].Health = playerHealths[p1];
-                        players[p2].Health = playerHealths[p2];
-                        winnerIndex = -1;
-                        Debug.Log($"[Combat] TIE! Both take {damage} damage. {p1Name}: {playerHealths[p1]} HP, {p2Name}: {playerHealths[p2]} HP");
-                    }
-                    else if (winner == p1Name)
-                    {
-                        playerHealths[p2] -= damage;
-                        players[p2].Health = playerHealths[p2];
-                        winnerIndex = p1;
-                        Debug.Log($"[Combat] {p1Name} WINS! {p2Name} takes {damage} damage. Health: {playerHealths[p2]}");
-                    }
-                    else
-                    {
-                        playerHealths[p1] -= damage;
-                        players[p1].Health = playerHealths[p1];
-                        winnerIndex = p2;
-                        Debug.Log($"[Combat] {p2Name} WINS! {p1Name} takes {damage} damage. Health: {playerHealths[p1]}");
-                    }
-
-                    // Record battle for match info scoreboard
-                    if (MatchTracker.Instance != null)
-                        MatchTracker.Instance.RecordBattle(p1, p2, winnerIndex, damage);
-
-#if PHOTON_UNITY_NETWORKING
-                    // Broadcast combat result and updated states to clients
-                    if (IsOnlineMode && NetworkGameBridge.Instance != null)
-                    {
-                        NetworkGameBridge.Instance.BroadcastCombatResult(p1, p2, winner, damage);
-                        NetworkGameBridge.Instance.BroadcastPlayerState(p1);
-                        NetworkGameBridge.Instance.BroadcastPlayerState(p2);
-                    }
-#endif
-
-                    // Track recent opponents for matchmaking
-                    recentOpponents[p1].Add(p2);
-                    recentOpponents[p2].Add(p1);
+                    yield return battleExecutor.RunBattle(p1, p2, activePlayers.Count);
                 }
             }
 
@@ -850,17 +470,10 @@ public class GameManager : MonoBehaviour
             if (GameUIManager.Instance != null)
                 GameUIManager.Instance.ShowMatchInfoAfterCombat();
 
-            turnNumber++;
+            session.TurnNumber++;
 
             // Track newly eliminated players
-            for (int i = 0; i < playerCount; i++)
-            {
-                if (playerHealths[i] <= 0 && !eliminationOrder.Contains(i))
-                {
-                    eliminationOrder.Add(i);
-                    Debug.Log($"[GameManager] Player {i + 1} eliminated! (Elimination #{eliminationOrder.Count})");
-                }
-            }
+            session.TrackNewEliminations(playerCount);
 
 #if PHOTON_UNITY_NETWORKING
             // Broadcast all states after combat
@@ -869,7 +482,7 @@ public class GameManager : MonoBehaviour
 #endif
 
             // Check for eliminations and game end AFTER combat
-            List<int> remainingPlayers = playerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
+            List<int> remainingPlayers = session.PlayerHealths.Select((h, i) => h > 0 ? i : -1).Where(i => i >= 0).ToList();
             if (remainingPlayers.Count == 1)
             {
                 TriggerGameOver(remainingPlayers[0]);
@@ -886,88 +499,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// T316: Check if a battle involves the local/human player for animated replay.
-    /// </summary>
-    private bool IsLocalPlayerBattle(int p1, int p2)
-    {
-        // In offline mode, check if either player is the human player
-        if (!IsOnlineMode)
-            return GameConfig.IsHumanPlayer(p1) || GameConfig.IsHumanPlayer(p2);
-
-#if PHOTON_UNITY_NETWORKING
-        if (NetworkGameBridge.Instance != null)
-        {
-            int localSlot = NetworkGameBridge.Instance.LocalPlayerSlot;
-            return p1 == localSlot || p2 == localSlot;
-        }
-#endif
-        return false;
-    }
-
-    /// <summary>
-    /// Generate match pairings avoiding recent opponents when possible.
-    /// </summary>
-    private List<(int, int)> GeneratePairwiseBattles(List<int> activePlayers)
-    {
-        List<(int, int)> battles = new List<(int, int)>();
-        var available = new List<int>(activePlayers);
-
-        // Shuffle for randomness base
-        available = available.OrderBy(x => Random.value).ToList();
-
-        // Handle odd number of players - give bye to player with fewest recent fights
-        if (available.Count % 2 != 0)
-        {
-            int byePlayer = available.OrderBy(p => recentOpponents.ContainsKey(p) ? recentOpponents[p].Count : 0).First();
-            available.Remove(byePlayer);
-            Debug.Log($"[GameManager] Player {byePlayer + 1} gets a bye this round (fewest recent matches)");
-        }
-
-        // Pair up players, preferring opponents not recently fought
-        while (available.Count >= 2)
-        {
-            int p1 = available[0];
-            available.RemoveAt(0);
-
-            int bestOpponent = -1;
-            int bestScore = int.MaxValue;
-
-            foreach (int p2 in available)
-            {
-                int score = (recentOpponents.ContainsKey(p1) && recentOpponents[p1].Contains(p2)) ? 10 : 0;
-                if (score < bestScore)
-                {
-                    bestScore = score;
-                    bestOpponent = p2;
-                }
-            }
-
-            if (bestOpponent >= 0)
-            {
-                available.Remove(bestOpponent);
-                battles.Add((p1, bestOpponent));
-            }
-        }
-
-        return battles;
-    }
-
-    /// <summary>
-    /// Clear opponent history when it gets too large.
-    /// </summary>
-    private void ClearOldOpponentHistory()
-    {
-        foreach (var kvp in recentOpponents)
-        {
-            if (kvp.Value.Count > 2)
-                kvp.Value.Clear();
-        }
-    }
-
     private IEnumerator RecruitPhase()
     {
-        currentPhase = GamePhase.Recruit;
+        session.CurrentPhase = GamePhase.Recruit;
 
         // T315: Play recruit music
         if (MusicManager.Instance != null)
@@ -976,17 +510,17 @@ public class GameManager : MonoBehaviour
 #if PHOTON_UNITY_NETWORKING
         // Broadcast phase change to clients
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
-            NetworkGameBridge.Instance.BroadcastPhaseChange("Recruit", turnNumber, recruitTimer);
+            NetworkGameBridge.Instance.BroadcastPhaseChange("Recruit", session.TurnNumber, recruitTimer);
 #endif
 
-        Debug.Log("Current Phase: " + currentPhase);
+        Debug.Log("Current Phase: " + session.CurrentPhase);
 
         // M5 FIX: Game lifecycle event - Reduce upgrade costs for ALL players by 1 each turn
-        if (turnNumber > 1)
+        if (session.TurnNumber > 1)
         {
             for (int i = 0; i < playerCount; i++)
             {
-                if (playerHealths[i] <= 0) continue;
+                if (session.GetHealth(i) <= 0) continue;
                 var player = players[i];
                 player.currentUpgradeCost = Mathf.Max(0, player.currentUpgradeCost - 1);
                 Debug.Log($"[Lifecycle Event] Player {i + 1}: Upgrade cost reduced to {player.currentUpgradeCost}");
@@ -996,13 +530,13 @@ public class GameManager : MonoBehaviour
         float timer = recruitTimer;
         for (int i = 0; i < playerCount; i++)
         {
-            if (playerHealths[i] <= 0) continue;
+            if (session.GetHealth(i) <= 0) continue;
             var player = players[i];
-            Debug.Log($"Turn {turnNumber}: Recruit Phase - Time to build your board!");
-            int expectedCoins = Mathf.Min(3 + (turnNumber - 1), 10);
-            if (turnNumber > 1)
+            Debug.Log($"Turn {session.TurnNumber}: Recruit Phase - Time to build your board!");
+            int expectedCoins = Mathf.Min(3 + (session.TurnNumber - 1), 10);
+            if (session.TurnNumber > 1)
             {
-                player.RefreshShop(turnNumber);
+                player.RefreshShop(session.TurnNumber);
             }
             Debug.Log($"Player {i + 1} Recruit Start: Coins = {player.coins}/{expectedCoins}, Upgrade Cost = {player.GetUpgradeCost()}, Current Tier = {player.currentTavernTier}, Hand Size = {player.hand.Count}, Board Size = {player.board.Count}");
         }
@@ -1013,13 +547,13 @@ public class GameManager : MonoBehaviour
             HeroPowerManager.Instance.ResetAllForNewTurn();
             for (int i = 0; i < playerCount; i++)
             {
-                if (playerHealths[i] <= 0) continue;
+                if (session.GetHealth(i) <= 0) continue;
                 HeroPowerManager.Instance.TriggerRecruitPassives(players[i]);
             }
         }
 
         // Reset ready state for new recruit phase
-        playersReadyForCombat.Clear();
+        session.ClearReady();
 
 #if PHOTON_UNITY_NETWORKING
         // Broadcast initial player states and shops to human clients
@@ -1027,7 +561,7 @@ public class GameManager : MonoBehaviour
         {
             for (int i = 0; i < playerCount; i++)
             {
-                if (playerHealths[i] <= 0) continue;
+                if (session.GetHealth(i) <= 0) continue;
                 NetworkGameBridge.Instance.BroadcastPlayerState(i);
                 if (NetworkGameBridge.Instance.IsNetworkPlayerSlot(i))
                     NetworkGameBridge.Instance.BroadcastShopForPlayer(i);
@@ -1044,7 +578,7 @@ public class GameManager : MonoBehaviour
         foreach (var kvp in aiControllers)
         {
             int playerIndex = kvp.Key;
-            if (playerHealths[playerIndex] <= 0) continue;
+            if (session.GetHealth(playerIndex) <= 0) continue;
 
             AIController ai = kvp.Value;
             Debug.Log($"[GameManager] AI Player {playerIndex + 1} executing turn...");
@@ -1055,7 +589,7 @@ public class GameManager : MonoBehaviour
         if (GameUIManager.Instance != null && GameUIManager.Instance.GetShopUI() != null)
             GameUIManager.Instance.GetShopUI().RefreshShopDisplay();
         int lastLoggedSecond = Mathf.FloorToInt(timer);
-        while (timer > 0 && !AllAlivePlayersReady())
+        while (timer > 0 && !session.AllAlivePlayersReady(playerCount))
         {
             // Update UI timer
             if (GameUIManager.Instance != null)
@@ -1073,35 +607,13 @@ public class GameManager : MonoBehaviour
 
         for (int i = 0; i < playerCount; i++)
         {
-            if (playerHealths[i] <= 0) continue;
+            if (session.GetHealth(i) <= 0) continue;
             var player = players[i];
             player.EndRecruitPhase();
             Debug.Log($"Player {i + 1} Shop Offered: " + string.Join(", ", TavernManager.Instance.availableCards[i + 1].Select(c => c.cardName + " (Tier " + c.tier + ")")));
             Debug.Log($"Player {i + 1} Hand: " + string.Join(", ", player.hand.Select(c => c.cardName)));
             Debug.Log($"Player {i + 1} Board: " + string.Join(", ", player.board.Select(c => c.cardName + " (Tier " + c.tier + ")")) + " Size " + player.board.Count);
         }
-    }
-
-    private void SimulateAI()
-    {
-        Debug.Log("AI opponent: Randomly buying and positioning cards (placeholder).");
-    }
-
-    private List<Card> GenerateAIBoard(int turnNumber, int playerTier)
-    {
-        List<Card> aiBoard = new List<Card>();
-        int aiSize = Mathf.Min(turnNumber + Random.Range(0, 2), 7);
-        List<Card> filteredPool = TavernManager.Instance.GetFullPool().Where(c => c.tier <= playerTier + 1).ToList();
-        for (int i = 0; i < aiSize; i++)
-        {
-            if (filteredPool.Count == 0) break;
-            int idx = Random.Range(0, filteredPool.Count);
-            Card aiCard = filteredPool[idx].Clone();
-            aiBoard.Add(aiCard);
-            TavernManager.Instance.RemoveCardFromPool(aiCard);
-            filteredPool.RemoveAt(idx);
-        }
-        return aiBoard;
     }
 
     private void Awake()
@@ -1113,6 +625,11 @@ public class GameManager : MonoBehaviour
         }
 
         Instance = this;
+
+        session = new GameSessionState();
+        pairing = new BattlePairingService();
+        battleExecutor = new BattleExecutor(this, session, pairing);
+        initializer = new GameInitializer(this, session, aiControllers);
         // Optional: Uncomment the line below if GameManager should persist across scene loads
         // DontDestroyOnLoad(this.gameObject);
     }
