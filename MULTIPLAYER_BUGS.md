@@ -1,3 +1,6 @@
+> **Note:** Snapshot from 2026-01-30. All three bugs listed here were fixed.
+> See [TarotBattlegrounds-docs/resources/known-issues.md](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/resources/known-issues.md) for live status.
+
 # Multiplayer 1v1 - Known Bugs & TODO
 
 **Date:** 2026-01-30

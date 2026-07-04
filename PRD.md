@@ -1,3 +1,7 @@
+> **Note:** Written 2026-01-17. Describes the original 8-player asynchronous concept.
+> This was superseded by the shipped 2-8 player real-time Photon game.
+> See the [docs repo](https://github.com/squanchy667/TarotBattlegrounds-docs) for current product docs.
+
 # Tarot Battlegrounds
 
 ## Product Requirements Document (PRD)

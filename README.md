@@ -2,32 +2,41 @@
 
 > A tarot-themed auto-battler inspired by Hearthstone Battlegrounds
 
-[![Phase 4](https://img.shields.io/badge/Phase-4%20UI%20System-blue)]()
-[![Unity](https://img.shields.io/badge/Unity-2023%20LTS-black)]()
+[![Unity](https://img.shields.io/badge/Unity-2022.3.48f1-black)]()
+[![Networking](https://img.shields.io/badge/Networking-Photon%20PUN%202-blue)]()
 [![License](https://img.shields.io/badge/License-Private-red)]()
+
+---
+
+> ## 📖 Documentation lives in [TarotBattlegrounds-docs](https://github.com/squanchy667/TarotBattlegrounds-docs)
+>
+> This README is a **quickstart only**. For architecture, roadmap, known issues, changelog,
+> and everything else, see the docs repo — it is the canonical source of truth for this project.
 
 ---
 
 ## 🎮 What is This?
 
-**Tarot Battlegrounds** is a 4-8 player auto-battler where players:
+**Tarot Battlegrounds** is a **2-8 player** real-time auto-battler where players:
 - **Recruit** tarot cards from a mystical tavern
-- **Build** synergistic boards with tribal mechanics (Pentacles, Cups, Swords, Wands)
+- **Build** synergistic boards across 6 tribal factions
 - **Battle** opponents in automated combat
 - **Survive** to be the last hero standing
 
-**Current Status**: Phase 4 - UI System (Step 6 in progress)
+**Current Status**: Production audit complete (2026-02-24) — full 7-phase feature set shipped
+(online infra, hero powers, 110-card pool, combat VFX, UI overhaul, ranked/MMR, 8-player scale).
+UX overhaul + audit remediation in progress as of 2026-07.
 
 ---
 
 ## 📚 Documentation
 
-**Full documentation available at:**  
+**Full documentation available at:**
 **[TarotBattlegrounds-docs](https://github.com/squanchy667/TarotBattlegrounds-docs)**
 
 ### Quick Links
 - 🏗️ [Architecture Overview](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/developer/architecture.md)
-- 🎯 [Current Roadmap (Phase 4)](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/product/roadmap/phase-4-ui.md)
+- 🎯 [Roadmap](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/product/roadmap/)
 - 🔧 [Setup Guide](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/developer/setup-guide.md)
 - 🐛 [Known Issues](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/resources/known-issues.md)
 - 📝 [Changelog](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/resources/changelog.md)
@@ -37,7 +46,7 @@
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Unity 2023 LTS
+- Unity **2022.3.48f1**
 - Git
 
 ### Installation
@@ -47,155 +56,62 @@ cd TarotBattlegrounds-POC
 ```
 
 ### Run the Game
-1. Open project in Unity Hub
-2. Open `Scenes/MainMenu.unity`
+1. Open project in Unity Hub (`TarotBattlegrounds-POC/` is the Unity project directory)
+2. Open `Assets/Scenes/MainMenu.unity`
 3. Press Play ▶️
-4. Click **PLAY** button
-5. Use UI buttons to buy cards, play to board, battle!
+4. From the main menu, host or join a lobby (`Lobby.unity`) or start a local game (`Game.unity`)
 
 ---
 
-## 🎯 Current Phase: UI System
+## 🏗️ Tech Stack
 
-### ✅ Completed (Steps 1-5)
-- Main Menu scene with Play/Quit buttons
-- Game UI framework (replaced OnGUI debug system)
-- Shop UI - Browse and buy cards
-- Hand UI - Manage purchased cards
-- Board UI - Deploy cards for battle
-- Player info panel (coins, tier, health)
-- Action buttons (Buy, Sell, Play, Refresh, Upgrade, Switch Player)
-
-### 🔄 In Progress (Step 6)
-- **Player switching UI refresh** - All panels update when switching between Player 1 and Player 2
-
-### 📋 Next Up
-- Card asset system with artwork
-- Full gameplay loop testing
-- UI polish and animations
-
----
-
-## 🏗️ Architecture
-
-### Core Systems
-- **GameManager** - Game loop, phase management
-- **TavernManager** - Card pool, shop generation, tier system
-- **Player** - Player state, coins, hand, board
-- **CombatManager** - Auto-battle simulation
-
-### Card System
-- ScriptableObject-based cards
-- 6 tier progression system
-- 4 tribal synergies (Pentacles, Cups, Swords, Wands)
-- Card effects: Guardian (taunt), Aegis (shield), Echo (deathrattle)
-
-### Combat System
-- Turn-based auto-battles
-- Random first attacker
-- Counterattack mechanics
-- Health system (40 HP start)
-- Damage calculation with caps
-
-**For detailed architecture, see [Documentation](https://github.com/squanchy667/TarotBattlegrounds-docs)**
-
----
-
-## 📊 Project Status
-
-| Phase | Status | Description |
-|-------|--------|-------------|
-| Phase 1 | ✅ Complete | Core Systems (GameManager, loop) |
-| Phase 2 | ✅ Complete | Card System (ScriptableObjects, shop) |
-| Phase 3 | ✅ Complete | Combat System (auto-battles) |
-| **Phase 4** | 🔄 **In Progress** | **UI System (Steps 1-5 done, Step 6 pending)** |
-| Phase 5 | ⏳ Planned | Polish & Balance |
-| Phase 6 | ⏳ Planned | Multiplayer (Mirror networking) |
-
----
-
-## 🎴 Game Features
-
-### Recruit Phase
-- **Buy Cards** (3 gold) - Add to your hand
-- **Sell Cards** (1 gold) - Get gold refund
-- **Reroll Shop** (1 gold) - Refresh available cards
-- **Upgrade Tier** (5 gold, decreasing) - Unlock stronger cards
-- **Play Cards** - Deploy from hand to board (max 7)
-
-### Combat Phase
-- Automated battles between player boards
-- Turn-based attacks with counterattacks
-- Card abilities trigger during combat
-- Damage dealt to losing player's health
-- Last hero standing wins!
-
-### Tarot Theme
-- **Suits as Tribes**: Pentacles (wealth), Cups (healing), Swords (aggression), Wands (energy)
-- **Major Arcana as Heroes**: Special powers (Phase 5 feature)
-- **Card Tiers**: 1-6 progressive power scaling
-- **Mystical Shop**: The Tavern - your source of power
-
----
-
-## 🛠️ Tech Stack
-
-- **Engine**: Unity 2023 LTS (2D Core)
+- **Engine**: Unity 2022.3.48f1 (2D Core)
 - **Language**: C# (.NET)
 - **UI**: uGUI (Canvas) + TextMesh Pro
-- **Networking** (Future): Mirror
-- **Backend** (Future): Firebase (free tier)
+- **Networking**: Photon PUN 2, host-authoritative
+- **Hosting**: AWS S3 + CloudFront (WebGL build) — live at [dui22oafwco41.cloudfront.net](https://dui22oafwco41.cloudfront.net)
+- **Backend**: DevZone serverless (separate `tarot-devzone` repo) — game auth, matchmaking, ranked/MMR/seasons
 - **Version Control**: Git + GitHub
+
+> Note: Mirror networking and Firebase were early candidates but were **never used in shipped
+> code**. The unused Mirror package has since been removed from this repo.
+
+---
+
+## 🎴 Game Content
+
+- **110 cards** across **6 tribes**: Pentacles, Cups, Swords, Wands, Stars, Coins
+- **12 hero powers**
+- **16 ability types**
+- **415 EditMode tests**
 
 ---
 
 ## 📁 File Structure
 
 ```
-Assets/
-├── Cards/
-│   └── Card.cs                    # ScriptableObject definition
-├── Scenes/
-│   ├── MainMenu.unity             # Title screen
-│   └── Game.unity                 # Main gameplay
-├── Scripts/
-│   ├── Core/
-│   │   ├── GameManager.cs         # Game loop
-│   │   ├── TavernManager.cs       # Shop system
-│   │   ├── Player.cs              # Player state
-│   │   └── CombatManager.cs       # Battle logic
-│   └── UI/
-│       ├── MainMenuManager.cs
-│       ├── GameUIManager.cs
-│       ├── ShopUI.cs
-│       ├── HandUI.cs
-│       └── BoardUI.cs
-├── Prefabs/UI/
-│   ├── ShopCard.prefab
-│   ├── HandCard.prefab
-│   └── BoardCard.prefab
-└── Resources/Cards/              # Card assets
+TarotBattlegrounds-POC/          # Unity project directory
+├── Assets/
+│   ├── Scenes/
+│   │   ├── MainMenu.unity       # Title screen / entry point
+│   │   ├── Lobby.unity          # Photon lobby (host/join)
+│   │   └── Game.unity           # Main gameplay
+│   ├── Scripts/                 # Core, Cards, Combat, UI, Networking, Auth, etc.
+│   └── Editor/                  # Scene/asset setup tooling
+AWS/
+├── PLAN.md                      # AWS infrastructure plan
+└── scripts/                     # deploy-webgl.sh, redeploy.sh, validate-deployment.sh
+tools/                            # Log analysis utilities
 ```
-
----
-
-## 🐛 Known Issues
-
-- Player switch doesn't refresh UI panels (Step 6 fix pending)
-- Cards use placeholder colors, no artwork yet
-- Combat phase has no visualization (works in background)
-- 7 dark slots visible from old BoardPanel (cleanup needed)
-
-**See full issue tracker:** [Known Issues](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/resources/known-issues.md)
 
 ---
 
 ## 🤝 Contributing
 
-This is currently a private POC. For documentation updates or suggestions:
+This is currently a private project. For documentation updates or suggestions:
 1. Check the [Documentation Repo](https://github.com/squanchy667/TarotBattlegrounds-docs)
 2. Review [Coding Standards](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/developer/coding-standards.md)
-3. See [Current Roadmap](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/product/roadmap/)
+3. See the [Roadmap](https://github.com/squanchy667/TarotBattlegrounds-docs/blob/main/product/roadmap/)
 
 ---
 
@@ -210,48 +126,6 @@ Private project - All rights reserved
 - **squanchy667** - Project Lead & Developer
 - **Theylon** - Contributor
 - **AI Assistants**: Claude (Anthropic), Grok (xAI)
-
----
-
-## 📞 Links
-
-- **Documentation**: [TarotBattlegrounds-docs](https://github.com/squanchy667/TarotBattlegrounds-docs)
-- **Main Branch**: `develop`
-- **Unity Version**: 2023 LTS
-
----
-
-## 🔄 Recent Updates
-
-**January 2026** - Phase 4 UI System
-- ✅ Completed Steps 1-5 (Main Menu → Shop/Hand/Board UI)
-- 🔄 Step 6 in progress (Player switching refresh)
-
-**July 2025** - Phase 3 Combat System
-- ✅ Auto-battle simulation complete
-- ✅ Card effects implemented
-- ✅ Balance testing (50+ runs)
-
-**July 2025** - Phase 2 Card System
-- ✅ ScriptableObject architecture
-- ✅ Shop mechanics (buy/sell/reroll)
-- ✅ Tier system with unlocking
-
----
-
-**Last Updated**: January 20, 2026
-
----
-
-## 🎯 Vision
-
-Build a compelling tarot-themed auto-battler that combines:
-- Strategic deck building
-- Mystical tarot aesthetics
-- Fast-paced auto-combat
-- Social multiplayer lobbies
-
-**Final Goal**: 4-8 player online multiplayer with mobile support
 
 ---
 
