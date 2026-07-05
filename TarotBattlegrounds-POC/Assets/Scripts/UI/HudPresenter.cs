@@ -15,6 +15,7 @@ public class HudPresenter
     private readonly GameUIThemeApplier theme;
 
     private float circularTimerTotal = 35f; // UX10: Tracked total time for circular timer
+    private int lastDisplayedSecond = -1; // T704: avoid per-frame string alloc + TMP rebuild
     private GameManager.GamePhase lastBannerPhase = (GameManager.GamePhase)(-1); // UX11: Track phase for banner triggers
     private int lastBannerTurn = -1; // UX11: Track turn for badge updates
 
@@ -135,8 +136,14 @@ public class HudPresenter
     {
         if (owner.timerText != null)
         {
+            // T704: GameManager.RecruitPhase calls this every frame for the whole shop
+            // phase; only rebuild the string (and TMP mesh) when the shown second changes.
             int display = time <= 0f ? 0 : Mathf.CeilToInt(time);
-            owner.timerText.text = $"{display}s";
+            if (display != lastDisplayedSecond)
+            {
+                lastDisplayedSecond = display;
+                owner.timerText.text = $"{display}s";
+            }
         }
 
         // UX10: Track the max time seen as the total (first call each phase has the full value)
