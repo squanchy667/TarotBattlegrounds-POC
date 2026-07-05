@@ -23,6 +23,21 @@ namespace TarotBattlegrounds.Combat.VFX
         private List<ParticleSystem> activeEffects = new List<ParticleSystem>();
         private Transform poolRoot;
 
+        /// <summary>
+        /// T702: Global VFX on/off toggle driven by SettingsUI's VFX toggle. When disabled,
+        /// new effect playback requests are skipped — pooled/already-playing ParticleSystems
+        /// are left alone (no destruction) so re-enabling is instant.
+        /// </summary>
+        public bool Enabled { get; private set; } = true;
+
+        /// <summary>
+        /// T702: Enable/disable VFX playback. Does not touch the pool.
+        /// </summary>
+        public void SetEnabled(bool enabled)
+        {
+            Enabled = enabled;
+        }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -46,6 +61,8 @@ namespace TarotBattlegrounds.Combat.VFX
         /// </summary>
         public void PlayAttackVFX(Vector3 sourcePos, Vector3 targetPos)
         {
+            if (!Enabled) return;
+
             var swoosh = GetFromPool(VFXType.AttackSwoosh);
             if (swoosh != null)
             {
@@ -71,6 +88,8 @@ namespace TarotBattlegrounds.Combat.VFX
         /// </summary>
         public void PlayAbilityVFX(Vector3 position, string abilityName)
         {
+            if (!Enabled) return;
+
             VFXType type = MapAbilityToVFX(abilityName);
             var ps = GetFromPool(type);
             if (ps != null)
@@ -87,6 +106,8 @@ namespace TarotBattlegrounds.Combat.VFX
         /// </summary>
         public void PlayDeathVFX(Vector3 position)
         {
+            if (!Enabled) return;
+
             var soul = GetFromPool(VFXType.DeathSoulRelease);
             if (soul != null)
             {
@@ -111,6 +132,8 @@ namespace TarotBattlegrounds.Combat.VFX
         /// </summary>
         public void PlayBuffVFX(Vector3 position)
         {
+            if (!Enabled) return;
+
             var ps = GetFromPool(VFXType.BuffGlow);
             if (ps != null)
             {
@@ -126,6 +149,8 @@ namespace TarotBattlegrounds.Combat.VFX
         /// </summary>
         public void PlayAegisPopVFX(Vector3 position)
         {
+            if (!Enabled) return;
+
             var ps = GetFromPool(VFXType.AegisPop);
             if (ps != null)
             {
@@ -141,6 +166,8 @@ namespace TarotBattlegrounds.Combat.VFX
         /// </summary>
         public void PlayRebornVFX(Vector3 position)
         {
+            if (!Enabled) return;
+
             var ps = GetFromPool(VFXType.RebornRevive);
             if (ps != null)
             {

@@ -50,6 +50,10 @@ namespace TarotBattlegrounds.UI
             if (closeButton != null) closeButton.onClick.AddListener(Close);
             if (resetButton != null) resetButton.onClick.AddListener(ResetToDefaults);
 
+            // T702: fullscreen is meaningless on mobile — hide its whole settings row.
+            if (Application.isMobilePlatform && fullscreenToggle != null)
+                fullscreenToggle.transform.parent.gameObject.SetActive(false);
+
             // Audio listeners
             if (masterVolumeSlider != null) masterVolumeSlider.onValueChanged.AddListener(OnMasterVolumeChanged);
             if (musicVolumeSlider != null) musicVolumeSlider.onValueChanged.AddListener(OnMusicVolumeChanged);
@@ -144,17 +148,17 @@ namespace TarotBattlegrounds.UI
 
         private void OnMusicVolumeChanged(float value)
         {
-            // MusicManager integration
-            var musicMgr = FindObjectOfType<TarotBattlegrounds.Combat.Audio.MusicManager>();
-            if (musicMgr != null)
-            {
-                // MusicManager would need a SetVolume method
-            }
+            // T702: MusicManager.MusicVolume setter already existed — just wasn't wired.
+            if (TarotBattlegrounds.Combat.Audio.MusicManager.Instance != null)
+                TarotBattlegrounds.Combat.Audio.MusicManager.Instance.MusicVolume = value;
             UpdateVolumeTexts();
         }
 
         private void OnSFXVolumeChanged(float value)
         {
+            // T702: SFXManager.MasterVolume setter already existed — just wasn't wired.
+            if (TarotBattlegrounds.Combat.Audio.SFXManager.Instance != null)
+                TarotBattlegrounds.Combat.Audio.SFXManager.Instance.MasterVolume = value;
             UpdateVolumeTexts();
         }
 
@@ -171,7 +175,7 @@ namespace TarotBattlegrounds.UI
         // Graphics callbacks
         private void OnQualityChanged(int index) { QualitySettings.SetQualityLevel(index); }
         private void OnFullscreenChanged(bool value) { Screen.fullScreen = value; }
-        private void OnVFXToggleChanged(bool value) { /* VFXManager.Instance?.SetEnabled(value); */ }
+        private void OnVFXToggleChanged(bool value) { TarotBattlegrounds.Combat.VFX.VFXManager.Instance?.SetEnabled(value); }
 
         // Gameplay callbacks
         private void OnCombatSpeedChanged(float value) { UpdateCombatSpeedText(); }
