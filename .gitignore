@@ -44,3 +44,7 @@ WebGLBuild/
 
 # ParrelSync test logs (analysis .md files stay tracked)
 test-logs/*.txt
+
+# Metas for gitignored vendored files (Unity regenerates locally; clones lack the assets)
+*.pdb.meta
+TarotBattlegrounds-POC/Assets/Photon/PhotonUnityNetworking/Icons.meta
