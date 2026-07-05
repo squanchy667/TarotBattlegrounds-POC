@@ -39,6 +39,12 @@ namespace TarotBattlegrounds.Combat.Audio
             }
             Instance = this;
 
+            // T701: SFXConfig isn't scene/prefab-assigned when SFXManager is created by
+            // AudioBootstrap at runtime — fall back to Resources so PlaySFX has clips to
+            // look up once audio assets are added (T723).
+            if (sfxConfig == null)
+                sfxConfig = Resources.Load<SFXConfig>("SFXConfig");
+
             poolRoot = new GameObject("SFX_Pool").transform;
             poolRoot.SetParent(transform);
 

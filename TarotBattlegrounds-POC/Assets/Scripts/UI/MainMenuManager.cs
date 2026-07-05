@@ -54,6 +54,10 @@ public class MainMenuManager : MonoBehaviour
     {
         Debug.Log("MainMenuManager initialized");
 
+        // T701: menu music was composed into MusicManager but never triggered anywhere.
+        if (TarotBattlegrounds.Combat.Audio.MusicManager.Instance != null)
+            TarotBattlegrounds.Combat.Audio.MusicManager.Instance.PlayMenuMusic();
+
         playerCountButtons = new Button[] { players4Button, players6Button, players8Button };
 
         // Main panel buttons

@@ -571,15 +571,41 @@ namespace TarotBattlegrounds.Combat.Animator
                 }
             }
 
-            // Play victory/defeat stinger
-            if (MusicManager.Instance != null)
+            // T701: Play victory/defeat stinger based on whether the LOCAL player won —
+            // previously this always fired PlayVictoryStinger() for any non-tie result,
+            // including local player losses, and PlayDefeatStinger() was never called.
+            if (MusicManager.Instance != null && result.winnerName != "Tie")
             {
-                if (result.winnerName != "Tie")
+                if (IsLocalPlayerWin(result.winnerName))
                     MusicManager.Instance.PlayVictoryStinger();
+                else
+                    MusicManager.Instance.PlayDefeatStinger();
             }
 
             if (SFXManager.Instance != null)
                 SFXManager.Instance.PlaySFX(SFXEvent.CombatEnd);
+        }
+
+        /// <summary>
+        /// T701: Determine whether a replay result's winner string refers to the local/human
+        /// player. Mirrors GameOverUI.ShowGameOver's local-player identification
+        /// (GameConfig.HumanPlayerIndex offline, NetworkGameBridge.LocalPlayerSlot online) and
+        /// relies on BattleExecutor's naming convention where winnerName is exactly
+        /// "Player {index + 1}" for a human-controlled slot (no " (AI)" suffix).
+        /// PlayReplay is only ever invoked for battles that include the local player
+        /// (see BattleExecutor.IsLocalPlayerBattle), so winnerName here is always either the
+        /// local player or their opponent.
+        /// </summary>
+        private bool IsLocalPlayerWin(string winnerName)
+        {
+#if PHOTON_UNITY_NETWORKING
+            int localIndex = GameConfig.CurrentGameMode == GameConfig.GameMode.Multiplayer && NetworkGameBridge.Instance != null
+                ? NetworkGameBridge.Instance.LocalPlayerSlot
+                : GameConfig.HumanPlayerIndex;
+#else
+            int localIndex = GameConfig.HumanPlayerIndex;
+#endif
+            return winnerName == $"Player {localIndex + 1}";
         }
 
         private void SetPanelVisible(bool visible)

@@ -46,6 +46,10 @@ namespace TarotBattlegrounds.Combat.Audio
                 return;
             }
             Instance = this;
+            // T701: Persist across scene loads, matching the singleton pattern used by
+            // TavernManager/ThemeManager/etc. — without this, loading MainMenu/Lobby/Game
+            // destroyed and recreated MusicManager every scene change.
+            DontDestroyOnLoad(gameObject);
 
             sourceA = gameObject.AddComponent<AudioSource>();
             sourceA.playOnAwake = false;
