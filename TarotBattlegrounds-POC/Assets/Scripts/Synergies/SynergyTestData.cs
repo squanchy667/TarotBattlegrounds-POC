@@ -228,7 +228,7 @@ public static class SynergyTestData
                 threshold = 6,
                 trigger = SynergyTrigger.StartOfCombat,
                 effect = SynergyEffect.BuffAttack,
-                target = SynergyTarget.AllTribeMembers,
+                target = SynergyTarget.AllFriendly,
                 value = 2,
                 description = "(6) Wands get +2 Attack at combat start"
             }

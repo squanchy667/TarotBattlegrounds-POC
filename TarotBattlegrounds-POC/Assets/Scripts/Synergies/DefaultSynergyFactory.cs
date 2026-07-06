@@ -146,7 +146,7 @@ public static class DefaultSynergyFactory
         {
             new SynergyTier { threshold = 2, trigger = SynergyTrigger.Passive, effect = SynergyEffect.BuffAttack, target = SynergyTarget.AllFriendly, value = 1, description = "(2) All friendlies get +1 Attack" },
             new SynergyTier { threshold = 4, trigger = SynergyTrigger.Passive, effect = SynergyEffect.BuffStats, target = SynergyTarget.AllTribeMembers, value = 1, description = "(4) Wands get +1/+1" },
-            new SynergyTier { threshold = 6, trigger = SynergyTrigger.StartOfCombat, effect = SynergyEffect.BuffAttack, target = SynergyTarget.AllTribeMembers, value = 2, description = "(6) Wands get +2 Attack at combat start" }
+            new SynergyTier { threshold = 6, trigger = SynergyTrigger.StartOfCombat, effect = SynergyEffect.BuffAttack, target = SynergyTarget.AllFriendly, value = 2, description = "(6) Wands get +2 Attack at combat start" }
         };
         return wands;
     }

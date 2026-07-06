@@ -701,7 +701,7 @@ public class AbilityTests
     [Test]
     public void AuraAbility_BuffAllFriendlyAttack_BuffsAllOtherAliveCards()
     {
-        var source = MakeCard("AuraSource");
+        var source = MakeCard("AuraSource", attack: 1);
         var ally1 = MakeCard("Ally1", attack: 1, health: 2);
         var ally2 = MakeCard("Ally2", attack: 1, health: 2);
         var dead = MakeCard("Dead", attack: 1, health: 0);
@@ -803,7 +803,7 @@ public class AbilityTests
     public void OnAllyDeathAbility_BuffRandomAllyAttack_BuffsNeitherSourceNorDyingCard()
     {
         var source = MakeCard("Watcher", attack: 1, health: 4);
-        var dyingAlly = MakeCard("DyingAlly", health: 0);
+        var dyingAlly = MakeCard("DyingAlly", attack: 1, health: 0);
         var survivor = MakeCard("Survivor", attack: 1, health: 4);
         var board = new List<Card> { source, dyingAlly, survivor };
 
