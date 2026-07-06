@@ -20,6 +20,10 @@ public class UpgradeCostTests
     [SetUp]
     public void SetUp()
     {
+        // Reset any polluted TavernManager singleton left over from a previous fixture
+        // (TearDown DestroyImmediate()s the GameObject but never clears TavernManager.Instance)
+        if (TavernManager.Instance != null) Object.DestroyImmediate(TavernManager.Instance.gameObject);
+
         // Create GameManager
         gameManagerObj = new GameObject("GameManager");
         gameManager = gameManagerObj.AddComponent<GameManager>();
@@ -44,6 +48,10 @@ public class UpgradeCostTests
             }
         }
         tavernManager.ResetPool();
+        // Awake() doesn't reliably fire synchronously for AddComponent<TavernManager>() in
+        // this EditMode test context, so TavernManager.Instance is never set by the engine.
+        // Set the singleton directly (Instance has a private setter, hence reflection).
+        SetTavernInstance(tavernManager);
 
         // Create Player
         playerObj = new GameObject("TestPlayer");
@@ -62,6 +70,14 @@ public class UpgradeCostTests
         if (playerObj != null) Object.DestroyImmediate(playerObj);
         if (tavernManagerObj != null) Object.DestroyImmediate(tavernManagerObj);
         if (gameManagerObj != null) Object.DestroyImmediate(gameManagerObj);
+        SetTavernInstance(null);
+    }
+
+    private static void SetTavernInstance(TavernManager instance)
+    {
+        typeof(TavernManager).GetProperty("Instance",
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .SetValue(null, instance);
     }
 
     [Test]

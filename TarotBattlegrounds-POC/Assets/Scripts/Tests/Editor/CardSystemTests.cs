@@ -16,29 +16,45 @@ public class CardSystemTests
     [SetUp]
     public void Setup()
     {
+        // Reset any polluted TavernManager singleton left over from a previous fixture
+        // (TearDown DestroyImmediate()s the GameObject but never clears TavernManager.Instance)
+        if (TavernManager.Instance != null) Object.DestroyImmediate(TavernManager.Instance.gameObject);
+
         // Create TavernManager
         tavernGO = new GameObject("TavernManager");
         tavern = tavernGO.AddComponent<TavernManager>();
         tavern.masterCards = CreateTestCards();
         tavern.ResetPool();
-        
+        // Awake() doesn't reliably fire synchronously for AddComponent<TavernManager>() in
+        // this EditMode test context, so TavernManager.Instance is never set by the engine.
+        // Set the singleton directly (Instance has a private setter, hence reflection).
+        SetTavernInstance(tavern);
+
         // Create Player
         playerGO = new GameObject("Player");
         player = playerGO.AddComponent<Player>();
         player.playerId = 1;
-        
+
         tavern.availableCards[1] = new List<Card>();
         tavern.RefreshPlayerShop(1, 1);
         player.coins = 10;
     }
-    
+
     [TearDown]
     public void TearDown()
     {
         Object.DestroyImmediate(playerGO);
         Object.DestroyImmediate(tavernGO);
+        SetTavernInstance(null);
     }
-    
+
+    private static void SetTavernInstance(TavernManager instance)
+    {
+        typeof(TavernManager).GetProperty("Instance",
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .SetValue(null, instance);
+    }
+
     private List<Card> CreateTestCards()
     {
         var cards = new List<Card>();

@@ -18,6 +18,10 @@ public class BugFixVerificationTests
     [SetUp]
     public void SetUp()
     {
+        // Reset any polluted TavernManager singleton left over from a previous fixture
+        // (TearDown DestroyImmediate()s the GameObject but never clears TavernManager.Instance)
+        if (TavernManager.Instance != null) Object.DestroyImmediate(TavernManager.Instance.gameObject);
+
         // Create TavernManager
         tavernManagerObj = new GameObject("TavernManager");
         tavern = tavernManagerObj.AddComponent<TavernManager>();
@@ -38,6 +42,10 @@ public class BugFixVerificationTests
             }
         }
         tavern.ResetPool();
+        // Awake() doesn't reliably fire synchronously for AddComponent<TavernManager>() in
+        // this EditMode test context, so TavernManager.Instance is never set by the engine.
+        // Set the singleton directly (Instance has a private setter, hence reflection).
+        SetTavernInstance(tavern);
 
         // Create Player
         playerObj = new GameObject("TestPlayer");
@@ -52,6 +60,14 @@ public class BugFixVerificationTests
     {
         if (playerObj != null) Object.DestroyImmediate(playerObj);
         if (tavernManagerObj != null) Object.DestroyImmediate(tavernManagerObj);
+        SetTavernInstance(null);
+    }
+
+    private static void SetTavernInstance(TavernManager instance)
+    {
+        typeof(TavernManager).GetProperty("Instance",
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .SetValue(null, instance);
     }
 
     // ====================================
@@ -451,7 +467,9 @@ public class BugFixVerificationTests
     public void Fix4_Discovery_NullTavernCheck()
     {
         // Setup: Clear tavern reference
-        player.GetType().GetField("tavern", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+        // Note: "tavern" is a property backed by the private field "_tavern" — GetField
+        // must target the actual backing field name, not the property name.
+        player.GetType().GetField("_tavern", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                .SetValue(player, null);
 
         // Act: Try to add discovery card with null tavern
