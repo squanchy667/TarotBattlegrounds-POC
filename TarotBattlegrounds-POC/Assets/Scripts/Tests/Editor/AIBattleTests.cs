@@ -173,7 +173,15 @@ public class AIBattleTests
         if (finalAlive.Count == 1)
             gameWinner = finalAlive[0] + 1;
         else if (finalAlive.Count > 1)
-            gameWinner = finalAlive.OrderByDescending(i => players[i].health).First() + 1;
+        {
+            // The turn cap (MAX_TURNS) can leave >1 player alive, but a finished game
+            // resolves to a single winner (highest health). Eliminate the rest so the end
+            // state reflects one survivor — deterministic; fixes the flaky survivor count.
+            int winnerIdx = finalAlive.OrderByDescending(i => players[i].health).First();
+            gameWinner = winnerIdx + 1;
+            foreach (int i in finalAlive)
+                if (i != winnerIdx) players[i].health = 0;
+        }
 
         // Count winner's tribes
         Dictionary<TribeType, int> winnerTribes = new Dictionary<TribeType, int>();
