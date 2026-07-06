@@ -101,12 +101,12 @@ public class EdgeCaseTests
     public void TierUpgrade_AtMaxTier_Fails()
     {
         player.currentTavernTier = 6;
-        player.coins = 100;
-        
+        player.coins = 10; // gold caps at MAX_COINS (10); 100 is clamped, so use a valid value
+
         player.UpgradeTavern();
-        
+
         Assert.AreEqual(6, player.currentTavernTier);
-        Assert.AreEqual(100, player.coins);
+        Assert.AreEqual(10, player.coins); // max-tier upgrade refused → gold unspent
     }
     
     // ==================== BOARD EDGE CASES ====================

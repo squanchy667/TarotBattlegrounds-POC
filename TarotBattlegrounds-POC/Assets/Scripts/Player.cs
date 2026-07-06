@@ -468,6 +468,19 @@ public class Player : MonoBehaviour
     /// </summary>
     public void AddDiscoveryCard(Card card)
     {
+        // Respect the 10-card hand limit (mirrors BuyCard). A full hand blocks discovery:
+        // nothing is added, and ALL reserved discovery cards (incl. the would-be-chosen) return to the pool.
+        if (hand.Count >= 10)
+        {
+            if (tavern != null && _pendingDiscoveryCards.Count > 0)
+            {
+                tavern.ReturnDiscoveryCards(_pendingDiscoveryCards);
+                _pendingDiscoveryCards.Clear();
+            }
+            Debug.Log($"Player {playerId}: Discovery blocked — hand is full ({hand.Count}).");
+            return;
+        }
+
         Card newCard = card.Clone();
         hand.Add(newCard);
 
@@ -712,6 +725,9 @@ public class Player : MonoBehaviour
     
     public int GetUpgradeCost()
     {
+        // No upgrade exists past the max tavern tier (6) — cost is 0 for host and clients alike.
+        if (currentTavernTier >= 6) return 0;
+
         // M5 FIX (REVISED): Simple game lifecycle mechanic
         // In multiplayer, clients use synced value from host
         if (GameManager.Instance != null && GameManager.Instance.IsOnlineMode && !GameManager.Instance.IsHost)

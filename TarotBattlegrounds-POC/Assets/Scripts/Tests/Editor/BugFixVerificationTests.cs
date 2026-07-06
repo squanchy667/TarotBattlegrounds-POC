@@ -426,16 +426,20 @@ public class BugFixVerificationTests
         Card chosenCard = discoveryCards[0];
         string chosenCardName = chosenCard.cardName;
 
-        // Count copies of chosen card in pool before
-        int copiesBeforeDiscovery = tavern.GetFullPool().Count(c => c.cardName == chosenCardName && c.tier == chosenCard.tier);
+        // Mirror the real discovery flow: Player tracks the reserved cards (normally set
+        // by the buy-triggered discovery path) so the unchosen ones are returned on choice.
+        typeof(Player).GetField("_pendingDiscoveryCards", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .SetValue(player, new List<Card>(discoveryCards));
 
         // Act: Add discovery card to player's hand
         player.AddDiscoveryCard(chosenCard);
 
-        // Assert: Pool should have one less copy of the chosen card
-        int copiesAfterDiscovery = tavern.GetFullPool().Count(c => c.cardName == chosenCardName && c.tier == chosenCard.tier);
-        Assert.AreEqual(copiesBeforeDiscovery - 1, copiesAfterDiscovery,
-            $"Pool should have one less copy of {chosenCardName} after discovery");
+        // Assert: the full discover->add flow consumes exactly one card from the pool.
+        // GetDiscoveryCards reserved the offered cards; AddDiscoveryCard returns the unchosen,
+        // keeping only the chosen — so the pool is net -1 vs before reservation (initialPoolSize).
+        int finalPoolSize = tavern.GetFullPool().Count;
+        Assert.AreEqual(initialPoolSize - 1, finalPoolSize,
+            "Discovery should consume exactly one card from the pool (chosen kept, unchosen returned)");
 
         // Assert: Player should have the card in hand
         Assert.AreEqual(1, player.hand.Count, "Player should have 1 card in hand");
