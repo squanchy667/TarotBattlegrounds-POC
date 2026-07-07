@@ -36,10 +36,15 @@ public class CardTooltipUI : MonoBehaviour
     [SerializeField] private float tooltipWidth = 300f;
     [SerializeField] private float edgePadding = 15f;
 
+    [Header("T728 — Tap-and-hold / fixed anchor")]
+    [Tooltip("When shown via tap-and-hold (touch), anchor the tooltip here instead of following the cursor. If null, defaults to screen top-center. showDelay doubles as the hold threshold.")]
+    [SerializeField] private RectTransform fixedAnchor;
+
     private Card currentCard;
     private float hoverTimer;
     private bool isWaitingToShow;
     private RectTransform canvasRect;
+    private bool _useFixedPosition; // T728: true when shown via tap-and-hold (fixed anchor, not cursor-follow)
 
     private void Awake()
     {
@@ -78,21 +83,43 @@ public class CardTooltipUI : MonoBehaviour
             }
         }
 
-        // Follow mouse if visible
-        if (tooltipPanel != null && tooltipPanel.activeSelf)
+        // Reposition while visible. Cursor-follow updates every frame; a fixed anchor is placed
+        // once in ShowTooltip and stays put, so only re-follow when not in fixed-position mode.
+        if (tooltipPanel != null && tooltipPanel.activeSelf && !_useFixedPosition)
         {
             PositionTooltip();
         }
     }
 
     /// <summary>
-    /// Call when mouse enters a card.
+    /// Call when the mouse enters a card (desktop hover → cursor-following tooltip).
     /// </summary>
     public void OnCardHoverEnter(Card card)
+    {
+        BeginShow(card, useFixedPosition: false);
+    }
+
+    /// <summary>
+    /// T728: Call when a card is pressed-and-held (touch). Shows the tooltip at a fixed anchor after
+    /// the same showDelay, so a quick tap doesn't flash it and the finger doesn't cover the tooltip.
+    /// </summary>
+    public void OnCardPressStart(Card card)
+    {
+        BeginShow(card, useFixedPosition: true);
+    }
+
+    /// <summary>T728: Call when a press-and-hold is released.</summary>
+    public void OnCardPressEnd()
+    {
+        OnCardHoverExit();
+    }
+
+    private void BeginShow(Card card, bool useFixedPosition)
     {
         if (card == null) return;
 
         currentCard = card;
+        _useFixedPosition = useFixedPosition;
         hoverTimer = 0f;
         isWaitingToShow = true;
 
@@ -293,6 +320,22 @@ public class CardTooltipUI : MonoBehaviour
     private void PositionTooltip()
     {
         if (tooltipRect == null) return;
+
+        Vector2 tooltipSizeFixed = tooltipRect.sizeDelta;
+
+        // T728: fixed-position anchor (tap-and-hold on touch). A cursor-follow tooltip would sit
+        // under the finger, so anchor to `fixedAnchor` if assigned, else screen top-center, clamped.
+        if (_useFixedPosition)
+        {
+            Vector2 anchorPos = fixedAnchor != null
+                ? (Vector2)fixedAnchor.position
+                : new Vector2(Screen.width * 0.5f, Screen.height - edgePadding);
+
+            float fx = Mathf.Clamp(anchorPos.x - tooltipSizeFixed.x * 0.5f, edgePadding, Mathf.Max(edgePadding, Screen.width - tooltipSizeFixed.x - edgePadding));
+            float fy = Mathf.Clamp(anchorPos.y, tooltipSizeFixed.y + edgePadding, Screen.height - edgePadding);
+            tooltipRect.position = new Vector2(fx, fy);
+            return;
+        }
 
         Vector2 mousePos = Input.mousePosition;
         Vector2 tooltipPos = mousePos + offset;

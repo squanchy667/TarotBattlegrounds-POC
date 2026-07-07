@@ -2,10 +2,14 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 /// <summary>
-/// Add this component to any card UI element to enable hover tooltips.
+/// Add this component to any card UI element to enable card tooltips.
 /// Requires a Card reference - will try to get it from CardDisplayUI, ShopCardUI, etc.
+///
+/// T728: routes by pointer type so both input styles work without conflicting:
+///   - Mouse (pointerId &lt; 0)  -> hover (enter/exit), cursor-following tooltip (desktop, unchanged).
+///   - Touch (pointerId &gt;= 0) -> tap-and-hold (down/up), fixed-anchor tooltip (mobile).
 /// </summary>
-public class CardHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class CardHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
 {
     private Card card;
 
@@ -34,6 +38,10 @@ public class CardHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        // Mouse hover only (negative pointerId). Touch fires enter on press too — that path is
+        // handled by OnPointerDown so touch gets tap-and-hold, not an instant hover tooltip.
+        if (eventData.pointerId >= 0) return;
+
         Card hoverCard = GetCard();
         if (hoverCard != null && CardTooltipUI.Instance != null)
         {
@@ -43,9 +51,35 @@ public class CardHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
     public void OnPointerExit(PointerEventData eventData)
     {
+        if (eventData.pointerId >= 0) return;
+
         if (CardTooltipUI.Instance != null)
         {
             CardTooltipUI.Instance.OnCardHoverExit();
+        }
+    }
+
+    // T728: tap-and-hold for touch. pointerId >= 0 is a touch; mouse buttons are negative, so this
+    // never hijacks a desktop click. The tooltip's showDelay doubles as the hold threshold, so a
+    // quick tap (to buy/select) doesn't flash the tooltip.
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        if (eventData.pointerId < 0) return;
+
+        Card pressCard = GetCard();
+        if (pressCard != null && CardTooltipUI.Instance != null)
+        {
+            CardTooltipUI.Instance.OnCardPressStart(pressCard);
+        }
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        if (eventData.pointerId < 0) return;
+
+        if (CardTooltipUI.Instance != null)
+        {
+            CardTooltipUI.Instance.OnCardPressEnd();
         }
     }
 
