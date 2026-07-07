@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 public class EconomistPower : HeroPowerBase
 {
-    public override string PowerName => "Economist";
+    public override string PowerName => "Wheel of Fortune";
     public override string Description => "Gain 2 coins";
     public override int CoinCost => 1;
 

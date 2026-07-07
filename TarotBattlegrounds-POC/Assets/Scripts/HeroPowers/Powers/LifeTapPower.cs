@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 public class LifeTapPower : HeroPowerBase
 {
-    public override string PowerName => "Life Tap";
+    public override string PowerName => "The Hanged Man";
     public override string Description => "Take 2 damage, gain 1 coin";
     public override int CoinCost => 0;
 

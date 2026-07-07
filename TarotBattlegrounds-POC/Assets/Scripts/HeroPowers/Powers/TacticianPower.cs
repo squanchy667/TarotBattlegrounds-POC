@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class TacticianPower : HeroPowerBase
 {
-    public override string PowerName => "Tactician";
+    public override string PowerName => "The High Priestess";
     public override string Description => "Passive: A random friendly minion starts combat with +2/+2";
     public override bool IsPassive => true;
 

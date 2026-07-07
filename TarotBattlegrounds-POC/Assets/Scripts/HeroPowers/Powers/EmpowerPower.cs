@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 public class EmpowerPower : HeroPowerBase
 {
-    public override string PowerName => "Empower";
+    public override string PowerName => "The Magician";
     public override string Description => "Give all friendly minions +1 Health";
     public override int CoinCost => 2;
 

@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 public class BladeMasterPower : HeroPowerBase
 {
-    public override string PowerName => "Blade Master";
+    public override string PowerName => "The Chariot";
     public override string Description => "Give a random friendly minion +1 Attack";
     public override int CoinCost => 2;
 

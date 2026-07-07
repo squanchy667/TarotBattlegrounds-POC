@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class ArcaneBoltPower : HeroPowerBase
 {
-    public override string PowerName => "Arcane Bolt";
+    public override string PowerName => "The Tower";
     public override string Description => "Deal 3 damage to a random enemy minion at combat start";
     public override int CoinCost => 2;
 

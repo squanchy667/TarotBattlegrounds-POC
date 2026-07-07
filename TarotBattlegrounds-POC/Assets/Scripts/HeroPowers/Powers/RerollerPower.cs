@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class RerollerPower : HeroPowerBase
 {
-    public override string PowerName => "Reroller";
+    public override string PowerName => "The Fool";
     public override string Description => "Refresh your shop (costs 1, saves the 1-coin refresh)";
     public override int CoinCost => 1;
 

@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class HealerPower : HeroPowerBase
 {
-    public override string PowerName => "Healer";
+    public override string PowerName => "Temperance";
     public override string Description => "Restore a random friendly minion to full health";
     public override int CoinCost => 1;
 

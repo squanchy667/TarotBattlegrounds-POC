@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class RecruiterPower : HeroPowerBase
 {
-    public override string PowerName => "Recruiter";
+    public override string PowerName => "The Hierophant";
     public override string Description => "Add a random card of your tavern tier to your hand";
     public override int CoinCost => 2;
 

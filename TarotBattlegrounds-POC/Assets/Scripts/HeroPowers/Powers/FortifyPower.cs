@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class FortifyPower : HeroPowerBase
 {
-    public override string PowerName => "Fortify";
+    public override string PowerName => "Strength";
     public override string Description => "Give a random friendly minion Aegis";
     public override int CoinCost => 2;
 

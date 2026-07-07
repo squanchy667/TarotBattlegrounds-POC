@@ -97,7 +97,7 @@ public class HeroPowerTests
     public void MidasTouch_PowerName_IsMidasTouch()
     {
         var power = new MidasTouchPower();
-        Assert.AreEqual("Midas Touch", power.PowerName);
+        Assert.AreEqual("The Empress", power.PowerName);
     }
 
     [Test]
@@ -186,7 +186,7 @@ public class HeroPowerTests
     public void Empower_PowerName_IsEmpower()
     {
         var power = new EmpowerPower();
-        Assert.AreEqual("Empower", power.PowerName);
+        Assert.AreEqual("The Magician", power.PowerName);
     }
 
     [Test]
@@ -277,7 +277,7 @@ public class HeroPowerTests
     public void Healer_PowerName_IsHealer()
     {
         var power = new HealerPower();
-        Assert.AreEqual("Healer", power.PowerName);
+        Assert.AreEqual("Temperance", power.PowerName);
     }
 
     [Test]
@@ -368,7 +368,7 @@ public class HeroPowerTests
     public void ArcaneBolt_PowerName_IsArcaneBolt()
     {
         var power = new ArcaneBoltPower();
-        Assert.AreEqual("Arcane Bolt", power.PowerName);
+        Assert.AreEqual("The Tower", power.PowerName);
     }
 
     [Test]
@@ -486,7 +486,7 @@ public class HeroPowerTests
     public void Fortify_PowerName_IsFortify()
     {
         var power = new FortifyPower();
-        Assert.AreEqual("Fortify", power.PowerName);
+        Assert.AreEqual("Strength", power.PowerName);
     }
 
     [Test]
@@ -597,7 +597,7 @@ public class HeroPowerTests
     public void Reroller_PowerName_IsReroller()
     {
         var power = new RerollerPower();
-        Assert.AreEqual("Reroller", power.PowerName);
+        Assert.AreEqual("The Fool", power.PowerName);
     }
 
     [Test]
@@ -665,7 +665,7 @@ public class HeroPowerTests
     public void LifeTap_PowerName_IsLifeTap()
     {
         var power = new LifeTapPower();
-        Assert.AreEqual("Life Tap", power.PowerName);
+        Assert.AreEqual("The Hanged Man", power.PowerName);
     }
 
     [Test]
@@ -761,7 +761,7 @@ public class HeroPowerTests
     public void BladeMaster_PowerName_IsBladeMaster()
     {
         var power = new BladeMasterPower();
-        Assert.AreEqual("Blade Master", power.PowerName);
+        Assert.AreEqual("The Chariot", power.PowerName);
     }
 
     [Test]
@@ -854,7 +854,7 @@ public class HeroPowerTests
     public void WarChief_PowerName_IsWarChief()
     {
         var power = new WarChiefPower();
-        Assert.AreEqual("War Chief", power.PowerName);
+        Assert.AreEqual("The Emperor", power.PowerName);
     }
 
     [Test]
@@ -943,7 +943,7 @@ public class HeroPowerTests
     public void Tactician_PowerName_IsTactician()
     {
         var power = new TacticianPower();
-        Assert.AreEqual("Tactician", power.PowerName);
+        Assert.AreEqual("The High Priestess", power.PowerName);
     }
 
     [Test]
@@ -1012,7 +1012,7 @@ public class HeroPowerTests
     public void Economist_PowerName_IsEconomist()
     {
         var power = new EconomistPower();
-        Assert.AreEqual("Economist", power.PowerName);
+        Assert.AreEqual("Wheel of Fortune", power.PowerName);
     }
 
     [Test]
@@ -1106,7 +1106,7 @@ public class HeroPowerTests
     public void Recruiter_PowerName_IsRecruiter()
     {
         var power = new RecruiterPower();
-        Assert.AreEqual("Recruiter", power.PowerName);
+        Assert.AreEqual("The Hierophant", power.PowerName);
     }
 
     [Test]
@@ -1216,9 +1216,9 @@ public class HeroPowerTests
     public void HeroPowerDatabase_GetByName_FindsEachPower()
     {
         string[] expectedNames = {
-            "Midas Touch", "Empower", "Healer", "Arcane Bolt",
-            "Fortify", "Reroller", "Life Tap", "Blade Master",
-            "War Chief", "Tactician", "Economist", "Recruiter"
+            "The Empress", "The Magician", "Temperance", "The Tower",
+            "Strength", "The Fool", "The Hanged Man", "The Chariot",
+            "The Emperor", "The High Priestess", "Wheel of Fortune", "The Hierophant"
         };
 
         foreach (var name in expectedNames)

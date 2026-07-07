@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 public class MidasTouchPower : HeroPowerBase
 {
-    public override string PowerName => "Midas Touch";
+    public override string PowerName => "The Empress";
     public override string Description => "Gain 1 coin (once per turn)";
     public override int CoinCost => 0;
 

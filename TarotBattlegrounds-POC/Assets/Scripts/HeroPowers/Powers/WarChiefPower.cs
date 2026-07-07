@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class WarChiefPower : HeroPowerBase
 {
-    public override string PowerName => "War Chief";
+    public override string PowerName => "The Emperor";
     public override string Description => "Passive: Your Swords minions have +1 Attack at combat start";
     public override bool IsPassive => true;
 
