@@ -61,7 +61,21 @@ public class MainMenuManager : MonoBehaviour
         playerCountButtons = new Button[] { players4Button, players6Button, players8Button };
 
         // Main panel buttons
-        if (soloButton != null) soloButton.onClick.AddListener(OnSoloClicked);
+        // T730: on first run the Solo button becomes a prominent one-click "Play"
+        // CTA that starts an easy solo match; after the first game it reverts to
+        // opening the solo config panel.
+        if (soloButton != null)
+        {
+            if (!GameConfig.HasPlayedBefore)
+            {
+                soloButton.onClick.AddListener(OnQuickPlayClicked);
+                PromoteSoloAsFirstRunCta();
+            }
+            else
+            {
+                soloButton.onClick.AddListener(OnSoloClicked);
+            }
+        }
         if (multiplayerButton != null) multiplayerButton.onClick.AddListener(OnMultiplayerClicked);
         if (quitButton != null) quitButton.onClick.AddListener(OnQuitClicked);
         if (collectionButton != null) collectionButton.onClick.AddListener(OnCollectionClicked);
@@ -255,11 +269,64 @@ public class MainMenuManager : MonoBehaviour
         if (difficultyDropdown != null)
             GameConfig.DefaultAIDifficulty = (AIDifficulty)difficultyDropdown.value;
 
+        GameConfig.HasPlayedBefore = true;
         GameConfig.Save();
         GameConfig.LogConfig();
 
         Debug.Log($"Starting solo game: {GameConfig.PlayerCount} players, AI: {GameConfig.DefaultAIDifficulty}");
         SceneManager.LoadScene("Game");
+    }
+
+    /// <summary>
+    /// T730: One-click first-run quick start — drops a new player straight into an
+    /// easy 4-player solo match, skipping the config panel.
+    /// </summary>
+    private void OnQuickPlayClicked()
+    {
+        GameConfig.PlayerCount = 4;
+        GameConfig.CurrentGameMode = GameConfig.GameMode.HumanVsAI;
+        GameConfig.HumanPlayerIndex = 0;
+        GameConfig.DefaultAIDifficulty = AIDifficulty.Easy;
+        GameConfig.HasPlayedBefore = true;
+        GameConfig.Save();
+        GameConfig.LogConfig();
+
+        Debug.Log("[MainMenu] Quick Play (first-run CTA): starting Easy 4-player solo match");
+        SceneManager.LoadScene("Game");
+    }
+
+    /// <summary>
+    /// T730: Visually promote the Solo button as the first-run "Play" CTA
+    /// (relabel, tint green, gentle pulse).
+    /// </summary>
+    private void PromoteSoloAsFirstRunCta()
+    {
+        var label = soloButton.GetComponentInChildren<TMP_Text>();
+        if (label != null) label.text = "Play — Recommended";
+
+        var colors = soloButton.colors;
+        colors.normalColor = new Color(0.35f, 0.78f, 0.42f);
+        colors.highlightedColor = new Color(0.45f, 0.88f, 0.5f);
+        soloButton.colors = colors;
+
+        StartCoroutine(PulseButton(soloButton.transform as RectTransform));
+    }
+
+    /// <summary>
+    /// T730: Gentle looping scale pulse to draw the eye to the first-run CTA.
+    /// Ends automatically when the menu scene unloads.
+    /// </summary>
+    private IEnumerator PulseButton(RectTransform rect)
+    {
+        if (rect == null) yield break;
+        Vector3 baseScale = rect.localScale;
+        float t = 0f;
+        while (true)
+        {
+            t += Time.unscaledDeltaTime * 2.5f;
+            rect.localScale = baseScale * (1f + 0.04f * Mathf.Sin(t));
+            yield return null;
+        }
     }
 
     private void OnBackClicked()
@@ -295,7 +362,7 @@ public class MainMenuManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (soloButton != null) soloButton.onClick.RemoveListener(OnSoloClicked);
+        if (soloButton != null) soloButton.onClick.RemoveAllListeners();
         if (multiplayerButton != null) multiplayerButton.onClick.RemoveListener(OnMultiplayerClicked);
         if (quitButton != null) quitButton.onClick.RemoveListener(OnQuitClicked);
         if (collectionButton != null) collectionButton.onClick.RemoveAllListeners();

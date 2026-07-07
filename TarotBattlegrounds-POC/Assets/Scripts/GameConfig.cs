@@ -13,6 +13,7 @@ public static class GameConfig
     private const string KEY_GAME_MODE = "GameConfig_GameMode";
     private const string KEY_AI_DIFFICULTY = "GameConfig_AIDifficulty";
     private const string KEY_PLAYER_NAME = "GameConfig_PlayerName";
+    private const string KEY_HAS_PLAYED_BEFORE = "GameConfig_HasPlayedBefore";
 
     /// <summary>
     /// Human-controlled slots in multiplayer mode (0-based indices).
@@ -73,6 +74,16 @@ public static class GameConfig
     {
         get => PlayerPrefs.GetString(KEY_PLAYER_NAME, "");
         set => PlayerPrefs.SetString(KEY_PLAYER_NAME, value);
+    }
+
+    /// <summary>
+    /// T730: False until the player has started their first match. Drives the
+    /// first-run "Play (Recommended)" onboarding CTA on the main menu.
+    /// </summary>
+    public static bool HasPlayedBefore
+    {
+        get => PlayerPrefs.GetInt(KEY_HAS_PLAYED_BEFORE, 0) == 1;
+        set => PlayerPrefs.SetInt(KEY_HAS_PLAYED_BEFORE, value ? 1 : 0);
     }
 
     /// <summary>
