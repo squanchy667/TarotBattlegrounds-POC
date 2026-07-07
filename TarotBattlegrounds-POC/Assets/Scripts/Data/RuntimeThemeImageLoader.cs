@@ -72,7 +72,10 @@ public class RuntimeThemeImageLoader : MonoBehaviour
         // Queue tribe icon downloads
         if (themeData.tribes != null)
         {
-            string[] tribeOrder = { "Pentacles", "Cups", "Swords", "Wands" };
+            // T722: Stars and Coins were missing → their tribe icons never queued for download.
+            // Order/index matches ThemeConfig.tribes[] (TribeType enum order, index = (int)tribe - 1):
+            // Pentacles=0, Cups=1, Swords=2, Wands=3, Stars=4, Coins=5.
+            string[] tribeOrder = { "Pentacles", "Cups", "Swords", "Wands", "Stars", "Coins" };
             for (int i = 0; i < tribeOrder.Length; i++)
             {
                 if (themeData.tribes.TryGetValue(tribeOrder[i], out RuntimeTribeThemeData tribeData))
