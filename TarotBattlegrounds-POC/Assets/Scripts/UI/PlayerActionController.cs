@@ -1,5 +1,6 @@
 using UnityEngine;
 using TarotBattlegrounds.UI;
+using TarotBattlegrounds.Combat.Audio;
 
 /// <summary>
 /// Owns action execution for GameUIManager: offline card buy/sell/play/refresh/upgrade
@@ -18,6 +19,17 @@ public class PlayerActionController
     public PlayerActionController(GameUIManager owner)
     {
         this.owner = owner;
+    }
+
+    /// <summary>
+    /// T724: Fire a UI sound for a local-player shop action. No-op when SFXManager or the
+    /// clip is absent (audio assets are deferred), so the hooks are safe to ship silent.
+    /// Lives here because ExecuteAction is the human action boundary — AI actions never route
+    /// through it, so this never plays for bot moves.
+    /// </summary>
+    private static void PlaySfx(SFXEvent e)
+    {
+        if (SFXManager.Instance != null) SFXManager.Instance.PlaySFX(e);
     }
 
     /// <summary>
@@ -46,6 +58,7 @@ public class PlayerActionController
                     int selectedIndex = owner.shopUI.GetSelectedCardIndex();
                     if (selectedIndex >= 0)
                     {
+                        PlaySfx(SFXEvent.CardDraw); // T724: buy sound
                         // UX15: Animate card buy (shop → hand) if UIAnimator is available
                         RectTransform shopCardRect = owner.shopUI.GetSelectedCardRect();
                         RectTransform handTarget = owner.handUI != null ? owner.handUI.GetContainerRect() : null;
@@ -82,6 +95,9 @@ public class PlayerActionController
             case "Sell":
                 int boardSellIndex = owner.boardUI != null ? owner.boardUI.GetSelectedCardIndex() : -1;
                 int handSellIndex = owner.handUI != null ? owner.handUI.GetSelectedCardIndex() : -1;
+
+                if (boardSellIndex >= 0 || handSellIndex >= 0)
+                    PlaySfx(SFXEvent.CoinGain); // T724: sell = gold gained
 
                 if (boardSellIndex >= 0)
                 {
@@ -147,6 +163,7 @@ public class PlayerActionController
                     int selectedIndex = owner.handUI.GetSelectedCardIndex();
                     if (selectedIndex >= 0)
                     {
+                        PlaySfx(SFXEvent.CardPlay); // T724: play sound
                         // UX15: Animate card play (hand → board)
                         RectTransform handCardRect = owner.handUI.GetSelectedCardRect();
                         RectTransform boardTarget = owner.boardUI != null ? owner.boardUI.GetContainerRect() : null;
@@ -183,10 +200,13 @@ public class PlayerActionController
 
             case "Refresh":
                 player.RefreshTavernShop();
+                PlaySfx(SFXEvent.CardDraw); // T724: reroll sound
                 break;
 
             case "Upgrade":
+                bool couldUpgrade = player.currentTavernTier < 6 && player.coins >= player.GetUpgradeCost();
                 player.UpgradeTavern();
+                if (couldUpgrade) PlaySfx(SFXEvent.TierUp); // T724: only on a real upgrade
                 break;
         }
     }
@@ -276,6 +296,7 @@ public class PlayerActionController
                 player.PlayCard(handIndex, slotPosition);
             }
             owner.handUI.ClearSelection();
+            PlaySfx(SFXEvent.CardPlay); // T724: play-to-slot sound
             Debug.Log($"Played hand card {handIndex} to board slot {slotPosition}");
         }
     }
