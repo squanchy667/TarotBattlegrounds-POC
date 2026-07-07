@@ -42,6 +42,10 @@ TestResults.xml
 mono_crash.*.json
 WebGLBuild/
 
+# Unity Test Framework temp PlayMode scene (auto-created; orphaned on interrupted runs)
+TarotBattlegrounds-POC/Assets/InitTestScene*.unity
+TarotBattlegrounds-POC/Assets/InitTestScene*.unity.meta
+
 # ParrelSync test logs (analysis .md files stay tracked)
 test-logs/*.txt
 
