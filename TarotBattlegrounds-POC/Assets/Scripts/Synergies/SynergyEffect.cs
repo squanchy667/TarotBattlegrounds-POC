@@ -11,6 +11,7 @@ public enum SynergyEffect
     // Economy
     BonusGold,      // Gain extra gold
     ReduceCost,     // Reduce cost of cards
+    GoldenHoard,    // T725: Pentacles win-condition — convert the owner's banked coins into a combat stat buff (owner-aware; scales with owner.coins)
 
     // Combat - Offensive
     BonusDamage,    // Deal extra damage on attack

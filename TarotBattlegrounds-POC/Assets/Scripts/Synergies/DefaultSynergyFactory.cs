@@ -45,13 +45,18 @@ public static class DefaultSynergyFactory
         var stars = ScriptableObject.CreateInstance<TribeSynergy>();
         stars.tribe = TribeType.Stars;
         stars.tribeName = "Stars";
-        stars.description = "Celestial beings that grow stronger with each fallen ally.";
+        stars.description = "Celestial beings whose power compounds — they grow permanently stronger at the end of every turn.";
         stars.themeColor = new Color(1f, 0.9f, 0.4f);
+        // T726: Stars → celestial-control. Growth is now PERMANENT and per-turn. EndOfTurn fires on the LIVE
+        // board each recruit phase (Player.EndRecruitPhase) and the buff persists through combat — BattleExecutor
+        // snapshots the already-grown live stats, so it is not wiped. This delivers the scaling identity the
+        // tribe was always described as having, distinct from Swords' one-shot StartOfCombat burst. The per-turn
+        // values are balance placeholders pending the DevZone data pass (backend-gated part of T725).
         stars.tiers = new SynergyTier[]
         {
-            new SynergyTier { threshold = 2, trigger = SynergyTrigger.StartOfCombat, effect = SynergyEffect.BuffAttack, target = SynergyTarget.AllTribeMembers, value = 1, description = "(2) Stars get +1 Attack at combat start" },
-            new SynergyTier { threshold = 4, trigger = SynergyTrigger.StartOfCombat, effect = SynergyEffect.BuffStats, target = SynergyTarget.AllTribeMembers, value = 2, description = "(4) Stars get +2/+2 at combat start" },
-            new SynergyTier { threshold = 6, trigger = SynergyTrigger.StartOfCombat, effect = SynergyEffect.BuffStats, target = SynergyTarget.AllTribeMembers, value = 3, description = "(6) Stars get +3/+3 at combat start" }
+            new SynergyTier { threshold = 2, trigger = SynergyTrigger.EndOfTurn, effect = SynergyEffect.BuffStats, target = SynergyTarget.AllTribeMembers, value = 1, description = "(2) Stars permanently gain +1/+1 at the end of each turn" },
+            new SynergyTier { threshold = 4, trigger = SynergyTrigger.EndOfTurn, effect = SynergyEffect.BuffStats, target = SynergyTarget.AllTribeMembers, value = 2, description = "(4) Stars permanently gain +2/+2 at the end of each turn" },
+            new SynergyTier { threshold = 6, trigger = SynergyTrigger.EndOfTurn, effect = SynergyEffect.BuffStats, target = SynergyTarget.AllTribeMembers, value = 3, description = "(6) Stars permanently gain +3/+3 at the end of each turn" }
         };
         // T211: Stars + Swords combo
         stars.comboTribe = TribeType.Swords;
@@ -98,7 +103,12 @@ public static class DefaultSynergyFactory
         {
             new SynergyTier { threshold = 2, trigger = SynergyTrigger.OnSell, effect = SynergyEffect.BonusGold, target = SynergyTarget.Self, value = 1, description = "(2) +1 gold on sell" },
             new SynergyTier { threshold = 4, trigger = SynergyTrigger.OnSell, effect = SynergyEffect.BonusGold, target = SynergyTarget.Self, value = 2, description = "(4) +2 gold on sell" },
-            new SynergyTier { threshold = 6, trigger = SynergyTrigger.Passive, effect = SynergyEffect.ReduceCost, target = SynergyTarget.AllTribeMembers, value = 1, description = "(6) Pentacles cards cost 1 less" }
+            // T725: Pentacles combat win-condition. Replaces the old passive cost-reduction (economy-only,
+            // no board impact) with "Golden Hoard" — the tribe cashes its banked coins out into board power at
+            // combat start (owner-aware, see SynergyManager.ApplyEffect + threaded owner in SimulateBattle).
+            // value = coins-per-stat divisor (2 => +1/+1 per 2 coins). Divisor is a balance placeholder pending
+            // the DevZone data pass (backend-gated part of T725).
+            new SynergyTier { threshold = 6, trigger = SynergyTrigger.StartOfCombat, effect = SynergyEffect.GoldenHoard, target = SynergyTarget.AllTribeMembers, value = 2, description = "(6) Golden Hoard: Pentacles gain +1/+1 for every 2 coins you've banked, at combat start" }
         };
         return pent;
     }

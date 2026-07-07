@@ -82,14 +82,16 @@ public static class SynergyTestData
                 value = 2,
                 description = $"(4) +2 gold when selling {tribeName} cards"
             },
+            // T725: Pentacles combat win-condition — "Golden Hoard" replaces the old passive cost-reduction.
+            // Mirrors DefaultSynergyFactory.CreatePentacles so the tests exercise the real runtime behavior.
             new SynergyTier
             {
                 threshold = 6,
-                trigger = SynergyTrigger.Passive,
-                effect = SynergyEffect.ReduceCost,
+                trigger = SynergyTrigger.StartOfCombat,
+                effect = SynergyEffect.GoldenHoard,
                 target = SynergyTarget.AllTribeMembers,
-                value = 1,
-                description = $"(6) {tribeName} cards cost 1 less to buy"
+                value = 2,
+                description = $"(6) Golden Hoard: {tribeName} gain +1/+1 for every 2 coins you've banked, at combat start"
             }
         };
 

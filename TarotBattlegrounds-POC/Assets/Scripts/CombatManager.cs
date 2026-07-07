@@ -49,7 +49,7 @@ public static class CombatManager
     /// <summary>
     /// Simulate a battle between two boards
     /// </summary>
-    public static (int damage, string winner) SimulateBattle(List<Card> pBoard, List<Card> aBoard, int pTavernTier, int aTavernTier, string pName, string aName, bool recordReplay = true)
+    public static (int damage, string winner) SimulateBattle(List<Card> pBoard, List<Card> aBoard, int pTavernTier, int aTavernTier, string pName, string aName, bool recordReplay = true, Player pOwner = null, Player aOwner = null)
     {
         Debug.Log($"CombatManager: Simulating battle with {pName}={pBoard.Count} (Tier {pTavernTier}), {aName}={aBoard.Count} (Tier {aTavernTier})");
 
@@ -117,10 +117,10 @@ public static class CombatManager
         if (SynergyManager.Instance != null)
         {
             var pSnapshot = SynergyManager.Instance.CalculateSynergies(pBoardCopy);
-            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, pBoardCopy, null, pSnapshot);
+            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, pBoardCopy, pOwner, pSnapshot);
 
             var aSnapshot = SynergyManager.Instance.CalculateSynergies(aBoardCopy);
-            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, aBoardCopy, null, aSnapshot);
+            SynergyManager.Instance.TriggerSynergies(SynergyTrigger.StartOfCombat, aBoardCopy, aOwner, aSnapshot);
         }
 
         // Fire StartOfCombat ability triggers (e.g., Warlord Supreme's buff)

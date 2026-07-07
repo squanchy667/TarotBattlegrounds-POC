@@ -47,7 +47,9 @@ public class BattleExecutor
         var board2 = gm.players[p2].board;
         string p1Name = $"Player {p1 + 1}" + (GameConfig.IsHumanPlayer(p1) ? "" : " (AI)");
         string p2Name = $"Player {p2 + 1}" + (GameConfig.IsHumanPlayer(p2) ? "" : " (AI)");
-        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, gm.players[p1].currentTavernTier, gm.players[p2].currentTavernTier, p1Name, p2Name);
+        // T725: thread the live owners through so owner-aware synergies (Golden Hoard) can read
+        // each player's banked coins at StartOfCombat. recordReplay stays at its default (true).
+        var (damage, winner) = CombatManager.SimulateBattle(board1, board2, gm.players[p1].currentTavernTier, gm.players[p2].currentTavernTier, p1Name, p2Name, true, gm.players[p1], gm.players[p2]);
 
         // Restore live boards after SimulateBattle has cloned the buffed state
         gm.players[p1].board.Clear(); gm.players[p1].board.AddRange(p1BoardBackup);

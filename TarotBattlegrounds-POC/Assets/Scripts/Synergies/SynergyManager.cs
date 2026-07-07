@@ -585,6 +585,23 @@ public class SynergyManager : MonoBehaviour
                 // Handled passively via GetCostReduction(); no runtime trigger needed
                 break;
 
+            case SynergyEffect.GoldenHoard:
+                // T725: Pentacles combat win-condition. At StartOfCombat, convert the owner's
+                // banked coins into a stat buff. `value` is the coins-per-stat divisor
+                // (e.g. value=2 => +1/+1 per 2 coins). Owner-aware: no-ops without an owner
+                // (AI/test paths that don't thread the player), so pre-existing callers stay safe.
+                if (owner != null && value > 0)
+                {
+                    int hoardBonus = owner.coins / value;
+                    if (hoardBonus > 0)
+                    {
+                        target.attack += hoardBonus;
+                        target.health += hoardBonus;
+                        Debug.Log($"[Synergy] {playerName}: {target.cardName} Golden Hoard +{hoardBonus}/+{hoardBonus} from {owner.coins} coins ({oldAtk}/{oldHp} -> {target.attack}/{target.health})");
+                    }
+                }
+                break;
+
             default:
                 Debug.Log($"[Synergy] {playerName}: Effect {effect} not yet implemented");
                 break;

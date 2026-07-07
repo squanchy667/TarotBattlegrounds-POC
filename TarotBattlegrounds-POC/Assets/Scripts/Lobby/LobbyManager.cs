@@ -279,14 +279,17 @@ public class LobbyManager : MonoBehaviour
 
             Debug.Log($"[LobbyManager] Match: Player {p1Id} vs Player {p2Id}");
 
-            // Run combat
+            // Run combat — T725: thread owners so owner-aware synergies (Golden Hoard) can read banked coins.
             var (damage, winner) = CombatManager.SimulateBattle(
                 player1.board,
                 player2.board,
                 player1.currentTavernTier,
                 player2.currentTavernTier,
                 $"Player {p1Id}",
-                $"Player {p2Id}"
+                $"Player {p2Id}",
+                true,
+                player1,
+                player2
             );
 
             // Apply damage

@@ -425,8 +425,9 @@ public class SynergyTests
     }
 
     [Test]
-    public void Pentacles_Tier6_ReduceCost()
+    public void Pentacles_Tier6_GoldenHoard()
     {
+        // T725: Pentacles' tier-6 payoff is now the Golden Hoard combat win-condition (was passive ReduceCost).
         var board = new List<Card>
         {
             CreateCard("Pent1", new[] { TribeType.Pentacles }),
@@ -441,7 +442,8 @@ public class SynergyTests
 
         var tier = GetActiveTier(snapshot, TribeType.Pentacles);
         Assert.AreEqual(6, tier.threshold);
-        Assert.AreEqual(SynergyEffect.ReduceCost, tier.effect);
+        Assert.AreEqual(SynergyEffect.GoldenHoard, tier.effect);
+        Assert.AreEqual(SynergyTrigger.StartOfCombat, tier.trigger);
     }
 
     // =====================================================
@@ -691,22 +693,50 @@ public class SynergyTests
     }
 
     [Test]
-    public void Effect_CostReduction_PentaclesTier6()
+    public void Effect_GoldenHoard_PentaclesTier6_ScalesWithBankedCoins()
     {
+        // T725: at 6 Pentacles, StartOfCombat converts the owner's banked coins into board power.
+        // value=2 is the coins-per-stat divisor; coins are capped at Player.MAX_COINS (10) => max +5/+5.
         var board = new List<Card>
         {
-            CreateCard("Pent1", new[] { TribeType.Pentacles }),
-            CreateCard("Pent2", new[] { TribeType.Pentacles }),
-            CreateCard("Pent3", new[] { TribeType.Pentacles }),
-            CreateCard("Pent4", new[] { TribeType.Pentacles }),
-            CreateCard("Pent5", new[] { TribeType.Pentacles }),
-            CreateCard("Pent6", new[] { TribeType.Pentacles })
+            CreateCard("Pent1", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("Pent2", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("Pent3", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("Pent4", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("Pent5", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("Pent6", new[] { TribeType.Pentacles }, attack: 1, health: 1)
         };
 
-        var snapshot = synergyManager.CalculateSynergies(board);
+        var ownerGO = new GameObject("HoardOwner");
+        var owner = ownerGO.AddComponent<Player>();
+        owner.coins = 10; // banked hoard (clamped to MAX_COINS = 10)
 
-        int reduction = synergyManager.GetCostReduction(board[0], snapshot);
-        Assert.AreEqual(1, reduction, "Pentacles tier 6 should give -1 cost reduction");
+        var snapshot = synergyManager.CalculateSynergies(board);
+        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, owner, snapshot);
+
+        // 10 coins / 2 = +5/+5 to every Pentacle (base 1/1 -> 6/6)
+        foreach (var card in board)
+        {
+            Assert.AreEqual(6, card.attack, $"{card.cardName} should gain +5 attack from Golden Hoard (10 coins / 2)");
+            Assert.AreEqual(6, card.health, $"{card.cardName} should gain +5 health from Golden Hoard (10 coins / 2)");
+        }
+
+        // A player with no hoard gets no Golden Hoard bonus.
+        var poorBoard = new List<Card>
+        {
+            CreateCard("PentA", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("PentB", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("PentC", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("PentD", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("PentE", new[] { TribeType.Pentacles }, attack: 1, health: 1),
+            CreateCard("PentF", new[] { TribeType.Pentacles }, attack: 1, health: 1)
+        };
+        owner.coins = 0;
+        var poorSnapshot = synergyManager.CalculateSynergies(poorBoard);
+        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, poorBoard, owner, poorSnapshot);
+        Assert.AreEqual(1, poorBoard[0].attack, "0 coins => no Golden Hoard bonus");
+
+        Object.DestroyImmediate(ownerGO);
     }
 
     // =====================================================
@@ -857,8 +887,8 @@ public class SynergyTests
 
         Assert.IsNotNull(tier, "2 Stars should activate tier 2");
         Assert.AreEqual(2, tier.threshold);
-        Assert.AreEqual(SynergyTrigger.StartOfCombat, tier.trigger);
-        Assert.AreEqual(SynergyEffect.BuffAttack, tier.effect);
+        Assert.AreEqual(SynergyTrigger.EndOfTurn, tier.trigger);   // T726: celestial-control — permanent per-turn growth
+        Assert.AreEqual(SynergyEffect.BuffStats, tier.effect);
         Assert.AreEqual(SynergyTarget.AllTribeMembers, tier.target);
         Assert.AreEqual(1, tier.value);
     }
@@ -901,13 +931,16 @@ public class SynergyTests
 
         Assert.IsNotNull(tier, "6 Stars should activate tier 6");
         Assert.AreEqual(6, tier.threshold);
+        Assert.AreEqual(SynergyTrigger.EndOfTurn, tier.trigger);   // T726: celestial-control
         Assert.AreEqual(SynergyEffect.BuffStats, tier.effect);
         Assert.AreEqual(3, tier.value);
     }
 
     [Test]
-    public void Stars_Tier2_BuffsAttackAtStartOfCombat()
+    public void Stars_Tier2_GrowPermanentlyAtEndOfTurn()
     {
+        // T726: Stars → celestial-control. Tier 2 grows +1/+1 PERMANENTLY at end of each turn (EndOfTurn),
+        // and no longer buffs at StartOfCombat.
         var board = new List<Card>
         {
             CreateCard("Star1", new[] { TribeType.Stars }, attack: 2, health: 3),
@@ -915,44 +948,51 @@ public class SynergyTests
         };
 
         var snapshot = synergyManager.CalculateSynergies(board);
-        int originalAtk0 = board[0].attack;
-        int originalAtk1 = board[1].attack;
+        int a0 = board[0].attack, h0 = board[0].health;
+        int a1 = board[1].attack, h1 = board[1].health;
 
+        synergyManager.TriggerSynergies(SynergyTrigger.EndOfTurn, board, null, snapshot);
+
+        // tier 2 => +1/+1 (BuffStats)
+        Assert.AreEqual(a0 + 1, board[0].attack, "Star1 should gain +1 attack at end of turn");
+        Assert.AreEqual(h0 + 1, board[0].health, "Star1 should gain +1 health at end of turn");
+        Assert.AreEqual(a1 + 1, board[1].attack, "Star2 should gain +1 attack at end of turn");
+        Assert.AreEqual(h1 + 1, board[1].health, "Star2 should gain +1 health at end of turn");
+
+        // Stars no longer respond to StartOfCombat after the rework.
+        int a0AfterTurn = board[0].attack;
         synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null, snapshot);
-
-        Assert.AreEqual(originalAtk0 + 1, board[0].attack, "Star1 should gain +1 attack from Stars tier 2");
-        Assert.AreEqual(originalAtk1 + 1, board[1].attack, "Star2 should gain +1 attack from Stars tier 2");
+        Assert.AreEqual(a0AfterTurn, board[0].attack, "Stars should not buff at StartOfCombat post-rework");
     }
 
     [Test]
-    public void Stars_Tier6_BuffsStatsAtStartOfCombat()
+    public void Stars_Tier6_PermanentScaling_StacksAndPersistsAcrossTurns()
     {
-        var board = new List<Card>
-        {
-            CreateCard("Star1", new[] { TribeType.Stars }, attack: 2, health: 3),
-            CreateCard("Star2", new[] { TribeType.Stars }, attack: 1, health: 4),
-            CreateCard("Star3", new[] { TribeType.Stars }, attack: 3, health: 2),
-            CreateCard("Star4", new[] { TribeType.Stars }, attack: 2, health: 2),
-            CreateCard("Star5", new[] { TribeType.Stars }, attack: 1, health: 1),
-            CreateCard("Star6", new[] { TribeType.Stars }, attack: 4, health: 5)
-        };
+        // T726: at 6 Stars the tiers STACK on EndOfTurn: +1 (T2) + +2 (T4) + +3 (T6) = +6/+6 PER TURN,
+        // permanently. A second end-of-turn compounds it to +12/+12 — the celestial-control identity.
+        var board = new List<Card>();
+        for (int i = 0; i < 6; i++)
+            board.Add(CreateCard($"Star{i}", new[] { TribeType.Stars }, attack: 2, health: 2));
 
-        int[] origAtk = board.Select(c => c.attack).ToArray();
-        int[] origHp  = board.Select(c => c.health).ToArray();
+        int[] a = board.Select(c => c.attack).ToArray();
+        int[] h = board.Select(c => c.health).ToArray();
 
         var snapshot = synergyManager.CalculateSynergies(board);
-        synergyManager.TriggerSynergies(SynergyTrigger.StartOfCombat, board, null, snapshot);
 
-        // Tier 6 grants +3/+3 (value=3, BuffStats). Tier 2 (+1 attack) and tier 4 (+2/+2)
-        // also fire because tiers stack, but we only validate tier 6 contribution here.
-        // After all stacked tiers: each card gains +1 atk (T2) + +2/+2 (T4) + +3/+3 (T6)
-        // = +6 attack and +5 health total.
+        // Turn 1 end-of-turn: +6/+6 to every Star.
+        synergyManager.TriggerSynergies(SynergyTrigger.EndOfTurn, board, null, snapshot);
         for (int i = 0; i < board.Count; i++)
         {
-            Assert.IsTrue(board[i].attack > origAtk[i],
-                $"Stars card {i} attack should increase from Stars tier 6 stacked effects");
-            Assert.IsTrue(board[i].health > origHp[i],
-                $"Stars card {i} health should increase from Stars tier 6 stacked effects");
+            Assert.AreEqual(a[i] + 6, board[i].attack, $"Star {i} should gain +6 attack (tiers 2+4+6 stacked) in one turn");
+            Assert.AreEqual(h[i] + 6, board[i].health, $"Star {i} should gain +6 health (tiers 2+4+6 stacked) in one turn");
+        }
+
+        // Turn 2 end-of-turn: growth is permanent and compounds to +12/+12.
+        synergyManager.TriggerSynergies(SynergyTrigger.EndOfTurn, board, null, snapshot);
+        for (int i = 0; i < board.Count; i++)
+        {
+            Assert.AreEqual(a[i] + 12, board[i].attack, $"Star {i} should reach +12 attack after two turns (permanent, compounding)");
+            Assert.AreEqual(h[i] + 12, board[i].health, $"Star {i} should reach +12 health after two turns");
         }
     }
 
