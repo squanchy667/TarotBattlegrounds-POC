@@ -177,7 +177,12 @@ public class GameOverUI : MonoBehaviour, IThemeable
         // Standings list
         if (standingsText != null)
         {
-            string standings = $"Turns Played: {data.totalTurns}\n\n";
+            string standings = $"Turns Played: {data.totalTurns}\n";
+            // T732: "what beat me" recap — surfaced right under the turn count.
+            string defeatRecap = BuildDefeatRecap(localIndex, data);
+            if (!string.IsNullOrEmpty(defeatRecap))
+                standings += defeatRecap + "\n";
+            standings += "\n";
             for (int i = 0; i < data.standings.Count; i++)
             {
                 int playerIndex = data.standings[i];
@@ -276,6 +281,39 @@ public class GameOverUI : MonoBehaviour, IThemeable
             $"\n<b>Tribe Distribution</b>\n" +
             (string.IsNullOrEmpty(tribeStr) ? "  No tribes\n" : tribeStr) +
             $"\nTurns: {data.totalTurns}";
+    }
+
+    /// <summary>
+    /// T732: Build a one-line "what beat me" recap for a defeated local player,
+    /// sourced from MatchTracker's recorded battles. Returns "" for the winner or
+    /// when no fatal battle can be found (e.g. disconnect elimination).
+    /// </summary>
+    private string BuildDefeatRecap(int localIndex, GameOverData data)
+    {
+        // The winner has no "what beat me".
+        if (data.winnerPlayerIndex == localIndex) return "";
+        if (MatchTracker.Instance == null) return "";
+
+        var history = MatchTracker.Instance.roundHistory;
+        // Scan from the most recent round backward for the battle in which the local
+        // player dropped to <= 0 HP — that fight is what knocked them out.
+        for (int r = history.Count - 1; r >= 0; r--)
+        {
+            foreach (var b in history[r].battles)
+            {
+                bool localIsP1 = b.p1Index == localIndex;
+                bool localIsP2 = b.p2Index == localIndex;
+                if (!localIsP1 && !localIsP2) continue;
+
+                int localHpAfter = localIsP1 ? b.p1HpAfter : b.p2HpAfter;
+                if (localHpAfter > 0) continue; // survived this fight — not the fatal one
+
+                int oppIndex = localIsP1 ? b.p2Index : b.p1Index;
+                string oppName = $"Player {oppIndex + 1}" + (GameConfig.IsHumanPlayer(oppIndex) ? "" : " (AI)");
+                return $"<color=#E38A8A>Defeated by {oppName} — {b.damage} dmg on turn {history[r].turnNumber}</color>";
+            }
+        }
+        return "";
     }
 
     private IEnumerator FadeInPanel()
