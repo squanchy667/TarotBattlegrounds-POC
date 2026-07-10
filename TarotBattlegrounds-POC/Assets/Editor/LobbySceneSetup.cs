@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Editor script to create the Lobby scene with all UI elements for LobbyUI.
@@ -82,12 +83,12 @@ public class LobbySceneSetup : EditorWindow
         vlg.padding = new RectOffset(30, 30, 30, 30);
 
         // Title
-        EditorUiFactory.CreateText(content.transform, "TitleText", "Tarot Battlegrounds", 36,
-            FontStyles.Bold, new Color(1f, 0.84f, 0f), TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(content.transform, "TitleText", "Tarot Battlegrounds", (int)Tokens.TextH2,
+            FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.Center);
 
         // Status text
         GameObject statusObj = EditorUiFactory.CreateText(content.transform, "ConnectionStatusText",
-            "Connecting to server...", 22, FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
+            "Connecting to server...", (int)Tokens.TextBody, FontStyles.Normal, Tokens.Bone, TextAlignmentOptions.Center);
         so.FindProperty("connectionStatusText").objectReferenceValue =
             statusObj.GetComponent<TMP_Text>();
 
@@ -111,7 +112,7 @@ public class LobbySceneSetup : EditorWindow
         // Main layout
         GameObject content = EditorUiFactory.CreateCenteredContainer(panel.transform, "Content", 800, 700);
         VerticalLayoutGroup vlg = content.AddComponent<VerticalLayoutGroup>();
-        vlg.spacing = 15;
+        vlg.spacing = Tokens.Space2;
         vlg.childAlignment = TextAnchor.UpperCenter;
         vlg.childControlWidth = true;
         vlg.childControlHeight = false;
@@ -120,8 +121,8 @@ public class LobbySceneSetup : EditorWindow
         vlg.padding = new RectOffset(30, 30, 30, 30);
 
         // Title
-        EditorUiFactory.CreateText(content.transform, "BrowserTitle", "Online Lobby", 32,
-            FontStyles.Bold, new Color(1f, 0.84f, 0f), TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(content.transform, "BrowserTitle", "Online Lobby", (int)Tokens.TextH2,
+            FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.Center);
 
         // Create Room Row
         GameObject createRow = EditorUiFactory.CreateHorizontalRow(content.transform, "CreateRoomRow", 10);
@@ -134,7 +135,7 @@ public class LobbySceneSetup : EditorWindow
 
         // Max players dropdown
         GameObject dropdownObj = EditorUiFactory.CreateDropdown(createRow.transform, "MaxPlayersDropdown", 160, 45,
-            labelText: "2 Players", fontSize: 16);
+            labelText: "2 Players", fontSize: (int)Tokens.TextLabel);
         so.FindProperty("maxPlayersDropdown").objectReferenceValue =
             dropdownObj.GetComponent<TMP_Dropdown>();
 
@@ -158,8 +159,8 @@ public class LobbySceneSetup : EditorWindow
             backBtn.GetComponent<Button>();
 
         // Separator
-        EditorUiFactory.CreateText(content.transform, "RoomsHeader", "Available Rooms", 22,
-            FontStyles.Bold, Color.white, TextAlignmentOptions.Left);
+        EditorUiFactory.CreateText(content.transform, "RoomsHeader", "Available Rooms", (int)Tokens.TextBody,
+            FontStyles.Bold, Tokens.BoneBright, TextAlignmentOptions.Left);
 
         // Room list scroll area
         GameObject scrollArea = CreateScrollView(content.transform, "RoomListScroll", 740, 350);
@@ -168,8 +169,8 @@ public class LobbySceneSetup : EditorWindow
 
         // No rooms text
         GameObject noRoomsObj = EditorUiFactory.CreateText(content.transform, "NoRoomsText",
-            "No rooms available. Create one!", 18, FontStyles.Italic,
-            new Color(0.7f, 0.7f, 0.7f), TextAlignmentOptions.Center);
+            "No rooms available. Create one!", (int)Tokens.TextCaption, FontStyles.Italic,
+            Tokens.BoneDim, TextAlignmentOptions.Center);
         so.FindProperty("noRoomsText").objectReferenceValue =
             noRoomsObj.GetComponent<TMP_Text>();
 
@@ -191,7 +192,7 @@ public class LobbySceneSetup : EditorWindow
 
         GameObject content = EditorUiFactory.CreateCenteredContainer(panel.transform, "Content", 600, 500);
         VerticalLayoutGroup vlg = content.AddComponent<VerticalLayoutGroup>();
-        vlg.spacing = 15;
+        vlg.spacing = Tokens.Space2;
         vlg.childAlignment = TextAnchor.UpperCenter;
         vlg.childControlWidth = true;
         vlg.childControlHeight = false;
@@ -201,14 +202,14 @@ public class LobbySceneSetup : EditorWindow
 
         // Room title
         GameObject roomTitleObj = EditorUiFactory.CreateText(content.transform, "RoomTitleText",
-            "Room Name", 28, FontStyles.Bold, new Color(1f, 0.84f, 0f), TextAlignmentOptions.Center);
+            "Room Name", (int)Tokens.TextH3, FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.Center);
         so.FindProperty("roomTitleText").objectReferenceValue =
             roomTitleObj.GetComponent<TMP_Text>();
 
         // Player list
         GameObject playerListObj = EditorUiFactory.CreateText(content.transform, "PlayerListText",
-            "1. Waiting...\n2. [AI]\n3. [AI]\n4. [AI]", 20, FontStyles.Normal,
-            Color.white, TextAlignmentOptions.Left);
+            "1. Waiting...\n2. [AI]\n3. [AI]\n4. [AI]", (int)Tokens.TextBody, FontStyles.Normal,
+            Tokens.Bone, TextAlignmentOptions.Left);
         LayoutElement ple = playerListObj.AddComponent<LayoutElement>();
         ple.minHeight = 150;
         so.FindProperty("playerListText").objectReferenceValue =
@@ -216,8 +217,8 @@ public class LobbySceneSetup : EditorWindow
 
         // Status text
         GameObject statusObj = EditorUiFactory.CreateText(content.transform, "RoomStatusText",
-            "Waiting for players...", 18, FontStyles.Normal,
-            new Color(0.7f, 0.7f, 0.7f), TextAlignmentOptions.Center);
+            "Waiting for players...", (int)Tokens.TextCaption, FontStyles.Normal,
+            Tokens.BoneDim, TextAlignmentOptions.Center);
         so.FindProperty("roomStatusText").objectReferenceValue =
             statusObj.GetComponent<TMP_Text>();
 
@@ -265,15 +266,15 @@ public class LobbySceneSetup : EditorWindow
 
         // Background image
         Image img = entryObj.AddComponent<Image>();
-        img.color = new Color(0.2f, 0.18f, 0.25f, 1f);
+        img.color = Tokens.Umber;
 
         // Button
         Button btn = entryObj.AddComponent<Button>();
         ColorBlock colors = btn.colors;
-        colors.normalColor = new Color(0.2f, 0.18f, 0.25f, 1f);
-        colors.highlightedColor = new Color(0.3f, 0.25f, 0.35f, 1f);
-        colors.pressedColor = new Color(0.15f, 0.12f, 0.2f, 1f);
-        colors.selectedColor = new Color(0.25f, 0.22f, 0.3f, 1f);
+        colors.normalColor = Tokens.Umber;
+        colors.highlightedColor = Tokens.Ember;
+        colors.pressedColor = Tokens.CharredWood;
+        colors.selectedColor = Tokens.Ember;
         btn.colors = colors;
 
         // LayoutElement
@@ -293,14 +294,12 @@ public class LobbySceneSetup : EditorWindow
 
         TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
         tmp.text = "Room Name (2/4) - Host: Player";
-        tmp.fontSize = 18;
-        tmp.color = Color.white;
+        tmp.fontSize = Tokens.TextCaption;
+        tmp.color = Tokens.Bone;
         tmp.alignment = TextAlignmentOptions.MidlineLeft;
         tmp.enableWordWrapping = false;
 
-        // Try to find font
-        TMP_FontAsset font = FindFont();
-        if (font != null) tmp.font = font;
+        tmp.font = FontRefs.Instance.Body;
 
         // Save as prefab
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(entryObj, prefabPath);
@@ -353,7 +352,7 @@ public class LobbySceneSetup : EditorWindow
         rect.sizeDelta = new Vector2(width, height);
 
         Image img = scrollObj.AddComponent<Image>();
-        img.color = new Color(0.12f, 0.1f, 0.16f, 1f);
+        img.color = Tokens.CharredWood;
 
         ScrollRect scroll = scrollObj.AddComponent<ScrollRect>();
         scroll.horizontal = false;
@@ -404,19 +403,5 @@ public class LobbySceneSetup : EditorWindow
         return scrollObj;
     }
 
-    private static TMP_FontAsset FindFont()
-    {
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
-            }
-        }
-        return font;
-    }
 }
 #endif

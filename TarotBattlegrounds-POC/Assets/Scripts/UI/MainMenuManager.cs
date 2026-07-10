@@ -181,13 +181,22 @@ public class MainMenuManager : MonoBehaviour
     {
         selectedPlayerCount = PlayerOptions[index];
 
-        // Update button visuals — highlight the selected one
+        // Update button visuals — selection is an ignited state (T750)
         for (int i = 0; i < playerCountButtons.Length; i++)
         {
             if (playerCountButtons[i] == null) continue;
-            var colors = playerCountButtons[i].colors;
-            colors.normalColor = (i == index) ? new Color(0.4f, 0.8f, 0.4f) : Color.white;
-            playerCountButtons[i].colors = colors;
+            var ignite = playerCountButtons[i].GetComponent<TarotBattlegrounds.UI.IgniteButton>();
+            if (ignite != null)
+            {
+                ignite.Selected = (i == index);
+            }
+            else
+            {
+                var img = playerCountButtons[i].GetComponent<UnityEngine.UI.Image>();
+                if (img != null)
+                    img.color = (i == index) ? TarotBattlegrounds.UI.Tokens.Ember
+                                             : TarotBattlegrounds.UI.Tokens.CharredWood;
+            }
         }
 
         Debug.Log($"[MainMenu] Selected {selectedPlayerCount} players");
@@ -296,37 +305,17 @@ public class MainMenuManager : MonoBehaviour
     }
 
     /// <summary>
-    /// T730: Visually promote the Solo button as the first-run "Play" CTA
-    /// (relabel, tint green, gentle pulse).
+    /// T730: Visually promote the Solo button as the first-run "Play" CTA.
+    /// T750: emphasis = the ignited/selected ember state (green tint and the
+    /// scale pulse violated DESIGN.md §7 — no green, no scaling/bounce).
     /// </summary>
     private void PromoteSoloAsFirstRunCta()
     {
         var label = soloButton.GetComponentInChildren<TMP_Text>();
         if (label != null) label.text = "Play — Recommended";
 
-        var colors = soloButton.colors;
-        colors.normalColor = new Color(0.35f, 0.78f, 0.42f);
-        colors.highlightedColor = new Color(0.45f, 0.88f, 0.5f);
-        soloButton.colors = colors;
-
-        StartCoroutine(PulseButton(soloButton.transform as RectTransform));
-    }
-
-    /// <summary>
-    /// T730: Gentle looping scale pulse to draw the eye to the first-run CTA.
-    /// Ends automatically when the menu scene unloads.
-    /// </summary>
-    private IEnumerator PulseButton(RectTransform rect)
-    {
-        if (rect == null) yield break;
-        Vector3 baseScale = rect.localScale;
-        float t = 0f;
-        while (true)
-        {
-            t += Time.unscaledDeltaTime * 2.5f;
-            rect.localScale = baseScale * (1f + 0.04f * Mathf.Sin(t));
-            yield return null;
-        }
+        var ignite = soloButton.GetComponent<TarotBattlegrounds.UI.IgniteButton>();
+        if (ignite != null) ignite.Selected = true;
     }
 
     private void OnBackClicked()

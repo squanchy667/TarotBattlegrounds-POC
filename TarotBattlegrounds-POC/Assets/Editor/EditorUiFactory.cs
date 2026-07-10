@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Shared UI-construction helpers for the editor *Setup.cs scripts.
@@ -37,7 +38,7 @@ public static class EditorUiFactory
             bgRect.offsetMin = Vector2.zero;
             bgRect.offsetMax = Vector2.zero;
             Image bgImg = bgObj.AddComponent<Image>();
-            bgImg.color = new Color(0.1f, 0.08f, 0.14f, 1f);
+            bgImg.color = Tokens.Ash;
             bgImg.raycastTarget = false;
         }
 
@@ -79,7 +80,7 @@ public static class EditorUiFactory
         rect.sizeDelta = new Vector2(width, height);
 
         Image bg = container.AddComponent<Image>();
-        bg.color = new Color(0.15f, 0.12f, 0.18f, 0.95f);
+        bg.color = Tokens.WithAlpha(Tokens.Umber, 0.95f);
 
         return container;
     }
@@ -117,7 +118,7 @@ public static class EditorUiFactory
     }
 
     public static GameObject CreateButton(Transform parent, string name, string label,
-        float width, float height, int labelFontSize = 18, bool addLayoutElement = true,
+        float width, float height, int labelFontSize = (int)Tokens.TextCaption, bool addLayoutElement = true,
         bool labelRaycastTarget = true)
     {
         GameObject btnObj = new GameObject(name);
@@ -127,15 +128,15 @@ public static class EditorUiFactory
         rect.sizeDelta = new Vector2(width, height);
 
         Image img = btnObj.AddComponent<Image>();
-        img.color = new Color(0.25f, 0.22f, 0.35f, 1f);
+        img.color = Tokens.CharredWood;
 
         Button btn = btnObj.AddComponent<Button>();
         ColorBlock colors = btn.colors;
-        colors.normalColor = new Color(0.25f, 0.22f, 0.35f, 1f);
-        colors.highlightedColor = new Color(0.35f, 0.3f, 0.45f, 1f);
-        colors.pressedColor = new Color(0.18f, 0.15f, 0.28f, 1f);
-        colors.selectedColor = new Color(0.3f, 0.27f, 0.4f, 1f);
-        colors.disabledColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+        colors.normalColor = Tokens.CharredWood;
+        colors.highlightedColor = Tokens.Ember;
+        colors.pressedColor = Tokens.Ember * 0.8f;
+        colors.selectedColor = Tokens.Ember;
+        colors.disabledColor = Tokens.WithAlpha(Tokens.BoneDim, 0.5f);
         btn.colors = colors;
 
         if (addLayoutElement)
@@ -160,7 +161,7 @@ public static class EditorUiFactory
         tmp.text = label;
         tmp.fontSize = labelFontSize;
         tmp.fontStyle = FontStyles.Bold;
-        tmp.color = Color.white;
+        tmp.color = Tokens.Bone;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.enableWordWrapping = false;
         if (!labelRaycastTarget) tmp.raycastTarget = false;
@@ -198,10 +199,10 @@ public static class EditorUiFactory
     }
 
     public static GameObject CreateDropdown(Transform parent, string name,
-        float width, float height, string labelText = "Medium", int fontSize = 18,
+        float width, float height, string labelText = "Medium", int fontSize = (int)Tokens.TextCaption,
         Color? backgroundColor = null)
     {
-        Color bgColor = backgroundColor ?? new Color(0.18f, 0.15f, 0.22f, 1f);
+        Color bgColor = backgroundColor ?? Tokens.CharredWood;
 
         GameObject dropObj = new GameObject(name);
         dropObj.transform.SetParent(parent, false);
@@ -224,12 +225,12 @@ public static class EditorUiFactory
         labelRect.anchorMin = Vector2.zero;
         labelRect.anchorMax = Vector2.one;
         labelRect.offsetMin = new Vector2(10, 2);
-        labelRect.offsetMax = new Vector2(-25, -2);
+        labelRect.offsetMax = new Vector2(-Tokens.Space3, -2);
 
         TextMeshProUGUI labelTmp = labelObj.AddComponent<TextMeshProUGUI>();
         labelTmp.text = labelText;
         labelTmp.fontSize = fontSize;
-        labelTmp.color = Color.white;
+        labelTmp.color = Tokens.Bone;
         labelTmp.alignment = TextAlignmentOptions.MidlineLeft;
 
         TMP_FontAsset font = FindFont();
@@ -258,7 +259,7 @@ public static class EditorUiFactory
         vpRect.offsetMin = Vector2.zero;
         vpRect.offsetMax = Vector2.zero;
         viewport.AddComponent<Mask>();
-        viewport.AddComponent<Image>().color = Color.white;
+        viewport.AddComponent<Image>().color = Tokens.Umber;
 
         // Content
         GameObject contentObj = new GameObject("Content");
@@ -294,7 +295,7 @@ public static class EditorUiFactory
         TextMeshProUGUI itemTmp = itemLabelObj.AddComponent<TextMeshProUGUI>();
         itemTmp.text = "Option";
         itemTmp.fontSize = fontSize;
-        itemTmp.color = Color.white;
+        itemTmp.color = Tokens.Bone;
         if (font != null) itemTmp.font = font;
 
         template.SetActive(false);
@@ -318,7 +319,7 @@ public static class EditorUiFactory
         rect.sizeDelta = new Vector2(width, height);
 
         Image img = inputObj.AddComponent<Image>();
-        img.color = new Color(0.18f, 0.15f, 0.22f, 1f);
+        img.color = Tokens.CharredWood;
 
         LayoutElement le = inputObj.AddComponent<LayoutElement>();
         le.minWidth = width;
@@ -345,9 +346,9 @@ public static class EditorUiFactory
 
         TextMeshProUGUI phTmp = placeholderObj.AddComponent<TextMeshProUGUI>();
         phTmp.text = placeholder;
-        phTmp.fontSize = 16;
+        phTmp.fontSize = Tokens.TextCaption;
         phTmp.fontStyle = FontStyles.Italic;
-        phTmp.color = new Color(0.5f, 0.5f, 0.5f, 0.7f);
+        phTmp.color = Tokens.WithAlpha(Tokens.BoneDim, 0.7f);
         phTmp.alignment = TextAlignmentOptions.MidlineLeft;
 
         TMP_FontAsset font = FindFont();
@@ -364,8 +365,8 @@ public static class EditorUiFactory
 
         TextMeshProUGUI textTmp = textObj.AddComponent<TextMeshProUGUI>();
         textTmp.text = "";
-        textTmp.fontSize = 16;
-        textTmp.color = Color.white;
+        textTmp.fontSize = Tokens.TextCaption;
+        textTmp.color = Tokens.Bone;
         textTmp.alignment = TextAlignmentOptions.MidlineLeft;
         if (font != null) textTmp.font = font;
 
@@ -375,7 +376,7 @@ public static class EditorUiFactory
         inputField.textComponent = textTmp;
         inputField.placeholder = phTmp;
         inputField.fontAsset = font;
-        inputField.pointSize = 16;
+        inputField.pointSize = Tokens.TextCaption;
 
         return inputObj;
     }
@@ -390,7 +391,7 @@ public static class EditorUiFactory
         rect.sizeDelta = new Vector2(width, height);
 
         Image bg = inputObj.AddComponent<Image>();
-        bg.color = new Color(0.15f, 0.12f, 0.2f, 1f);
+        bg.color = Tokens.CharredWood;
 
         LayoutElement le = inputObj.AddComponent<LayoutElement>();
         le.minWidth = width;
@@ -418,9 +419,9 @@ public static class EditorUiFactory
 
         TextMeshProUGUI phTmp = placeholderObj.AddComponent<TextMeshProUGUI>();
         phTmp.text = placeholder;
-        phTmp.fontSize = 14;
+        phTmp.fontSize = Tokens.TextCaption;
         phTmp.fontStyle = FontStyles.Italic;
-        phTmp.color = new Color(0.5f, 0.5f, 0.5f, 0.6f);
+        phTmp.color = Tokens.WithAlpha(Tokens.BoneDim, 0.6f);
         phTmp.alignment = TextAlignmentOptions.MidlineLeft;
         phTmp.raycastTarget = false;
 
@@ -438,8 +439,8 @@ public static class EditorUiFactory
 
         TextMeshProUGUI textTmp = textObj.AddComponent<TextMeshProUGUI>();
         textTmp.text = "";
-        textTmp.fontSize = 14;
-        textTmp.color = Color.white;
+        textTmp.fontSize = Tokens.TextCaption;
+        textTmp.color = Tokens.Bone;
         textTmp.alignment = TextAlignmentOptions.MidlineLeft;
         textTmp.raycastTarget = false;
 
@@ -451,11 +452,11 @@ public static class EditorUiFactory
         inputField.textComponent = textTmp;
         inputField.placeholder = phTmp;
         inputField.fontAsset = font;
-        inputField.pointSize = 14;
+        inputField.pointSize = Tokens.TextCaption;
 
         // Style the caret
-        inputField.caretColor = new Color(1f, 0.78f, 0.15f);
-        inputField.selectionColor = new Color(0.55f, 0.3f, 0.75f, 0.4f);
+        inputField.caretColor = Tokens.BronzeBright;
+        inputField.selectionColor = Tokens.WithAlpha(Tokens.Ember, 0.4f);
 
         return inputObj;
     }
@@ -470,17 +471,8 @@ public static class EditorUiFactory
 
     private static TMP_FontAsset FindFont()
     {
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
-            }
-        }
-        return font;
+        // Shared across mixed roles (body text, button/dropdown labels, input fields) — Body per Tokens fallback rule.
+        return FontRefs.Instance.Body;
     }
 }
 #endif

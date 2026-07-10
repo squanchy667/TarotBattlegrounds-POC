@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Editor script to set up the Phase Banner and Turn Badge in the Game scene.
@@ -120,7 +121,7 @@ public class PhaseBannerSetup : EditorWindow
         bgRect.anchoredPosition = Vector2.zero;
 
         Image bgImage = bgObj.AddComponent<Image>();
-        bgImage.color = new Color(0.05f, 0.03f, 0.10f, 0.85f);
+        bgImage.color = Tokens.WithAlpha(Tokens.Umber, 0.85f);
         bgImage.raycastTarget = false;
 
         // Shadow text (behind main text, offset by 2, -2)
@@ -135,14 +136,14 @@ public class PhaseBannerSetup : EditorWindow
 
         TextMeshProUGUI shadowTmp = shadowTextObj.AddComponent<TextMeshProUGUI>();
         shadowTmp.text = "PHASE";
-        shadowTmp.fontSize = 48;
+        shadowTmp.fontSize = Tokens.TextDisplay;
         shadowTmp.fontStyle = FontStyles.Bold;
-        shadowTmp.color = new Color(0, 0, 0, 0.5f);
+        shadowTmp.color = Tokens.WithAlpha(Tokens.Ash, 0.5f);
         shadowTmp.alignment = TextAlignmentOptions.Center;
         shadowTmp.enableWordWrapping = false;
         shadowTmp.raycastTarget = false;
 
-        TMP_FontAsset font = FindFont();
+        TMP_FontAsset font = FontRefs.Instance.Body;
         if (font != null) shadowTmp.font = font;
 
         // Main banner text (centered, large bold)
@@ -156,9 +157,9 @@ public class PhaseBannerSetup : EditorWindow
 
         TextMeshProUGUI mainTmp = mainTextObj.AddComponent<TextMeshProUGUI>();
         mainTmp.text = "PHASE";
-        mainTmp.fontSize = 48;
+        mainTmp.fontSize = Tokens.TextDisplay;
         mainTmp.fontStyle = FontStyles.Bold;
-        mainTmp.color = new Color(1f, 0.82f, 0.12f);
+        mainTmp.color = Tokens.BronzeBright;
         mainTmp.alignment = TextAlignmentOptions.Center;
         mainTmp.enableWordWrapping = false;
         mainTmp.raycastTarget = false;
@@ -176,12 +177,12 @@ public class PhaseBannerSetup : EditorWindow
         badgeRect.sizeDelta = new Vector2(120, 36);
 
         Image badgeImage = turnBadgeObj.AddComponent<Image>();
-        badgeImage.color = new Color(0.08f, 0.05f, 0.15f, 0.9f);
+        badgeImage.color = Tokens.WithAlpha(Tokens.Umber, 0.9f);
         badgeImage.raycastTarget = false;
 
         // Add Outline component for gold border effect
         Outline badgeOutline = turnBadgeObj.AddComponent<Outline>();
-        badgeOutline.effectColor = new Color(1f, 0.82f, 0.12f, 0.8f);
+        badgeOutline.effectColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.8f);
         badgeOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
         // Turn text inside the badge
@@ -195,9 +196,9 @@ public class PhaseBannerSetup : EditorWindow
 
         TextMeshProUGUI turnTmp = turnTextObj.AddComponent<TextMeshProUGUI>();
         turnTmp.text = "Turn I";
-        turnTmp.fontSize = 18;
+        turnTmp.fontSize = Tokens.TextCaption;
         turnTmp.fontStyle = FontStyles.Bold;
-        turnTmp.color = new Color(1f, 0.82f, 0.12f);
+        turnTmp.color = Tokens.BronzeBright;
         turnTmp.alignment = TextAlignmentOptions.Center;
         turnTmp.enableWordWrapping = false;
         turnTmp.raycastTarget = false;
@@ -218,18 +219,6 @@ public class PhaseBannerSetup : EditorWindow
         Undo.RegisterCreatedObjectUndo(root, "Create PhaseBannerRoot");
 
         return root;
-    }
-
-    private static TMP_FontAsset FindFont()
-    {
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetDatabase.GUIDToAssetPath(guids[0]));
-        }
-        return font;
     }
 }
 #endif

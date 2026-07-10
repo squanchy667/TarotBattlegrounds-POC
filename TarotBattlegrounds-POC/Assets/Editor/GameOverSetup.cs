@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UX18: Editor tool that sets up the Game Over screen polish elements.
@@ -50,7 +51,7 @@ public class GameOverSetup : Editor
                 overlayRect.offsetMax = Vector2.zero;
 
                 Image overlayImage = overlayObj.AddComponent<Image>();
-                overlayImage.color = new Color(0f, 0f, 0f, 0.7f);
+                overlayImage.color = Tokens.WithAlpha(Tokens.Ash, 0.7f);
                 overlayImage.raycastTarget = false;
 
                 // Place overlay just before the GameOverUI panel in hierarchy
@@ -120,7 +121,7 @@ public class GameOverSetup : Editor
 
                 // Badge background (circular) — use default white sprite tinted by medal color
                 Image badgeImage = badgeObj.AddComponent<Image>();
-                badgeImage.color = new Color(1f, 0.82f, 0.12f); // Default gold
+                badgeImage.color = Tokens.BronzeBright; // Default gold
                 badgeImage.raycastTarget = false;
 
                 so.FindProperty("placementBadge").objectReferenceValue = badgeImage;
@@ -138,9 +139,9 @@ public class GameOverSetup : Editor
 
                 TMP_Text numberText = numberObj.AddComponent<TextMeshProUGUI>();
                 numberText.text = "1st";
-                numberText.fontSize = 28f;
+                numberText.fontSize = Tokens.TextH3;
                 numberText.fontStyle = FontStyles.Bold;
-                numberText.color = Color.white;
+                numberText.color = Tokens.BoneBright;
                 numberText.alignment = TextAlignmentOptions.Center;
                 numberText.raycastTarget = false;
 

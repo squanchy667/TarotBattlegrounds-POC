@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Editor utility to create and wire the ResourceBar UI hierarchy.
@@ -47,11 +48,11 @@ public class ResourceBarSetup : Editor
 
         // Create the 3 containers
         var coinRefs = CreateResourceContainer(resourceBarRoot.transform, "CoinContainer",
-            new Color(1f, 0.82f, 0.12f), true);
+            Tokens.BronzeBright, true);
         var healthRefs = CreateResourceContainer(resourceBarRoot.transform, "HealthContainer",
-            new Color(0.9f, 0.2f, 0.25f), false);
+            Tokens.Blood, false);
         var tierRefs = CreateTierContainer(resourceBarRoot.transform, "TierContainer",
-            new Color(0.55f, 0.3f, 0.75f));
+            Tokens.Bronze);
 
         // Wire references to ResourceBar via SerializedObject
         SerializedObject so = new SerializedObject(resourceBar);
@@ -117,7 +118,7 @@ public class ResourceBarSetup : Editor
         containerRect.sizeDelta = new Vector2(showMaxValue ? 100f : 80f, 40f);
 
         Image containerImage = container.AddComponent<Image>();
-        containerImage.color = new Color(0.08f, 0.05f, 0.14f, 0.8f);
+        containerImage.color = Tokens.WithAlpha(Tokens.CharredWood, 0.8f);
         containerImage.raycastTarget = false;
         refs.container = containerImage;
 
@@ -129,7 +130,7 @@ public class ResourceBarSetup : Editor
         layout.childForceExpandHeight = false;
         layout.childControlWidth = false;
         layout.childControlHeight = false;
-        layout.padding = new RectOffset(8, 8, 4, 4);
+        layout.padding = new RectOffset((int)Tokens.Space1, (int)Tokens.Space1, 4, 4);
 
         // Icon
         GameObject iconObj = new GameObject("Icon");
@@ -152,9 +153,9 @@ public class ResourceBarSetup : Editor
 
         TMP_Text valueText = textObj.AddComponent<TextMeshProUGUI>();
         valueText.text = showMaxValue ? "0/10" : "0";
-        valueText.fontSize = 18f;
+        valueText.fontSize = Tokens.TextCaption;
         valueText.fontStyle = FontStyles.Bold;
-        valueText.color = Color.white;
+        valueText.color = Tokens.BoneBright;
         valueText.alignment = TextAlignmentOptions.MidlineLeft;
         valueText.raycastTarget = false;
         refs.valueText = valueText;
@@ -177,7 +178,7 @@ public class ResourceBarSetup : Editor
         containerRect.sizeDelta = new Vector2(180f, 40f);
 
         Image containerImage = container.AddComponent<Image>();
-        containerImage.color = new Color(0.08f, 0.05f, 0.14f, 0.8f);
+        containerImage.color = Tokens.WithAlpha(Tokens.CharredWood, 0.8f);
         containerImage.raycastTarget = false;
         refs.container = containerImage;
 
@@ -189,7 +190,7 @@ public class ResourceBarSetup : Editor
         layout.childForceExpandHeight = false;
         layout.childControlWidth = false;
         layout.childControlHeight = false;
-        layout.padding = new RectOffset(8, 8, 4, 4);
+        layout.padding = new RectOffset((int)Tokens.Space1, (int)Tokens.Space1, 4, 4);
 
         // Icon
         GameObject iconObj = new GameObject("Icon");
@@ -212,9 +213,9 @@ public class ResourceBarSetup : Editor
 
         TMP_Text tierText = tierTextObj.AddComponent<TextMeshProUGUI>();
         tierText.text = "Tier I";
-        tierText.fontSize = 18f;
+        tierText.fontSize = Tokens.TextCaption;
         tierText.fontStyle = FontStyles.Bold;
-        tierText.color = Color.white;
+        tierText.color = Tokens.BoneBright;
         tierText.alignment = TextAlignmentOptions.MidlineLeft;
         tierText.raycastTarget = false;
         refs.valueText = tierText;
@@ -228,9 +229,9 @@ public class ResourceBarSetup : Editor
 
         TMP_Text costText = costTextObj.AddComponent<TextMeshProUGUI>();
         costText.text = "5g to upgrade";
-        costText.fontSize = 14f;
+        costText.fontSize = Tokens.TextCaption;
         costText.fontStyle = FontStyles.Normal;
-        costText.color = new Color(0.8f, 0.8f, 0.8f);
+        costText.color = Tokens.BoneDim;
         costText.alignment = TextAlignmentOptions.MidlineLeft;
         costText.raycastTarget = false;
         refs.upgradeCostText = costText;

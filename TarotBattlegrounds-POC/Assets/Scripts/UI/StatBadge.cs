@@ -13,16 +13,16 @@ namespace TarotBattlegrounds.UI
     {
         [SerializeField] private Image badgeBackground;
         [SerializeField] private TMP_Text valueText;
-        [SerializeField] private Color badgeColor = Color.gray;
+        [SerializeField] private Color badgeColor = Tokens.StoneEdge;
 
         // Cached procedural circle texture (32x32, shared across all badges)
         private static Texture2D _cachedCircleTexture;
         private static Sprite _cachedCircleSprite;
 
         // Stat value color constants
-        private static readonly Color normalColor = Color.white;
-        private static readonly Color buffedColor = new Color(0.3f, 1f, 0.3f, 1f);   // Bright green
-        private static readonly Color damagedColor = new Color(1f, 0.25f, 0.25f, 1f); // Red
+        private static readonly Color normalColor = Tokens.BoneBright;
+        private static readonly Color buffedColor = Tokens.Ember;   // design system has no green; buffed/positive maps to Ember
+        private static readonly Color damagedColor = Tokens.Blood; // Red
 
         /// <summary>
         /// Set the displayed value and optionally indicate buff/damage state.
@@ -131,12 +131,12 @@ namespace TarotBattlegrounds.UI
                     Color pixel = Color.clear;
                     if (shadowAlpha > 0.001f)
                     {
-                        pixel = new Color(0f, 0f, 0f, shadowAlpha * 0.4f); // Dark shadow
+                        pixel = Tokens.WithAlpha(Tokens.Ash, shadowAlpha * 0.4f); // Dark shadow
                     }
                     if (circleAlpha > 0.001f)
                     {
-                        // White fill — the Image.color will tint this
-                        pixel = new Color(1f, 1f, 1f, circleAlpha);
+                        // White fill (identity) — the Image.color will tint this
+                        pixel = Tokens.WithAlpha(Color.white, circleAlpha);
                     }
 
                     pixels[y * size + x] = pixel;

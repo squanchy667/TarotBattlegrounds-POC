@@ -7,6 +7,7 @@ using Photon.Pun;
 #endif
 using System.Collections;
 using System.Collections.Generic;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Game Over overlay panel. Subscribes to GameManager.OnGameOver to display
@@ -37,21 +38,21 @@ public class GameOverUI : MonoBehaviour, IThemeable
     [Header("UX18: Placement Badge")]
     [SerializeField] private Image placementBadge;
     [SerializeField] private TMP_Text placementNumber;
-    [SerializeField] private Color goldMedal = new Color(1f, 0.82f, 0.12f);
-    [SerializeField] private Color silverMedal = new Color(0.78f, 0.78f, 0.85f);
-    [SerializeField] private Color bronzeMedal = new Color(0.8f, 0.5f, 0.2f);
-    [SerializeField] private Color defaultMedal = new Color(0.5f, 0.5f, 0.5f);
+    [SerializeField] private Color goldMedal = Tokens.BronzeBright;
+    [SerializeField] private Color silverMedal = Tokens.Bone;
+    [SerializeField] private Color bronzeMedal = Tokens.Bronze;
+    [SerializeField] private Color defaultMedal = Tokens.BoneDim;
 
     [Header("UX18: Dark Overlay")]
     [SerializeField] private Image darkOverlay;
 
     [Header("UX18: Animation")]
     [SerializeField] private RectTransform panelRect;
-    [SerializeField] private float animDuration = 0.4f;
+    [SerializeField] private float animDuration = Tokens.DurSlow;
 
     [Header("UX18: Standings Row Container")]
     [SerializeField] private Transform standingsRowContainer;
-    [SerializeField] private Color standingsHighlightColor = new Color(1f, 0.82f, 0.12f, 0.15f);
+    [SerializeField] private Color standingsHighlightColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.15f);
 
     private ThemeConfig currentTheme;
 
@@ -152,12 +153,12 @@ public class GameOverUI : MonoBehaviour, IThemeable
             {
                 string victoryText = currentTheme != null ? currentTheme.victoryText : "Victory!";
                 placementText.text = victoryText;
-                placementText.color = currentTheme != null ? currentTheme.accentColor : Color.yellow;
+                placementText.color = currentTheme != null ? currentTheme.accentColor : Tokens.BronzeBright;
             }
             else if (localPlacement > 0)
             {
                 placementText.text = $"You finished #{localPlacement}";
-                placementText.color = currentTheme != null ? currentTheme.textColorLight : Color.white;
+                placementText.color = currentTheme != null ? currentTheme.textColorLight : Tokens.BoneBright;
             }
             else
             {
@@ -310,7 +311,7 @@ public class GameOverUI : MonoBehaviour, IThemeable
 
                 int oppIndex = localIsP1 ? b.p2Index : b.p1Index;
                 string oppName = $"Player {oppIndex + 1}" + (GameConfig.IsHumanPlayer(oppIndex) ? "" : " (AI)");
-                return $"<color=#E38A8A>Defeated by {oppName} — {b.damage} dmg on turn {history[r].turnNumber}</color>";
+                return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Blood)}>Defeated by {oppName} — {b.damage} dmg on turn {history[r].turnNumber}</color>";
             }
         }
         return "";
@@ -318,7 +319,7 @@ public class GameOverUI : MonoBehaviour, IThemeable
 
     private IEnumerator FadeInPanel()
     {
-        float duration = 0.4f;
+        float duration = Tokens.DurSlow;
         float elapsed = 0f;
         while (elapsed < duration)
         {
@@ -400,12 +401,12 @@ public class GameOverUI : MonoBehaviour, IThemeable
             if (placement > 0)
             {
                 placementNumber.text = GetOrdinalString(placement);
-                placementNumber.color = Color.white;
+                placementNumber.color = Tokens.BoneBright;
             }
             else
             {
                 placementNumber.text = "-";
-                placementNumber.color = Color.white;
+                placementNumber.color = Tokens.BoneBright;
             }
         }
     }

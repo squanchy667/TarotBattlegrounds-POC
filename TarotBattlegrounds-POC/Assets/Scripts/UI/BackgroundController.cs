@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Multi-layered procedural background system that creates a mystical tavern atmosphere.
@@ -19,11 +20,11 @@ public class BackgroundController : MonoBehaviour, IThemeable
     [SerializeField] private Sprite customBackgroundSprite;
 
     [Header("Gradient")]
-    [SerializeField] private Color gradientCenter = new Color(0.08f, 0.05f, 0.14f);
-    [SerializeField] private Color gradientEdge = new Color(0.02f, 0.01f, 0.05f);
+    [SerializeField] private Color gradientCenter = Tokens.CharredWood;
+    [SerializeField] private Color gradientEdge = Tokens.Ash;
 
     [Header("Particles")]
-    [SerializeField] private Color dustColor = new Color(1f, 0.82f, 0.12f, 0.15f);
+    [SerializeField] private Color dustColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.15f);
     [SerializeField] private int dustCount = 40;
     [SerializeField] private float dustSpeed = 8f;
     [SerializeField] private float dustSize = 3f;
@@ -175,7 +176,7 @@ public class BackgroundController : MonoBehaviour, IThemeable
                 float t = Mathf.Clamp01(dist / maxDist);
                 // Ease-in for smoother vignette falloff
                 float alpha = t * t * 0.6f;
-                pixels[y * size + x] = new Color(0f, 0f, 0f, alpha);
+                pixels[y * size + x] = Tokens.WithAlpha(Tokens.Ash, alpha);
             }
         }
 
@@ -257,8 +258,8 @@ public class BackgroundController : MonoBehaviour, IThemeable
         gradient.SetKeys(
             new GradientColorKey[]
             {
-                new GradientColorKey(new Color(dustColor.r, dustColor.g, dustColor.b), 0f),
-                new GradientColorKey(new Color(dustColor.r, dustColor.g, dustColor.b), 1f)
+                new GradientColorKey(dustColor, 0f),
+                new GradientColorKey(dustColor, 1f)
             },
             new GradientAlphaKey[]
             {

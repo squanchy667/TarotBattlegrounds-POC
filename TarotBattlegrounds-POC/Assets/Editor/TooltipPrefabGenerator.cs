@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 public class TooltipPrefabGenerator : EditorWindow
 {
@@ -91,12 +92,12 @@ public class TooltipPrefabGenerator : EditorWindow
 
         // Background image
         Image bg = panel.AddComponent<Image>();
-        bg.color = new Color(0.12f, 0.12f, 0.14f, 0.95f); // Dark background
+        bg.color = Tokens.WithAlpha(Tokens.Umber, 0.95f); // Dark background
 
         // Outline for border effect
         Outline outline = panel.AddComponent<Outline>();
-        outline.effectColor = new Color(1f, 0.84f, 0f, 1f); // Gold
-        outline.effectDistance = new Vector2(2, -2);
+        outline.effectColor = Tokens.BronzeBright; // Gold
+        outline.effectDistance = new Vector2(Tokens.BorderFrame, -Tokens.BorderFrame);
 
         // Vertical layout
         VerticalLayoutGroup vlg = panel.AddComponent<VerticalLayoutGroup>();
@@ -137,13 +138,13 @@ public class TooltipPrefabGenerator : EditorWindow
         hlg.childForceExpandHeight = false;
 
         // Card Name
-        GameObject nameObj = CreateTextObject(header.transform, "CardNameText", "Card Name", 18, FontStyles.Bold, Color.white);
+        GameObject nameObj = CreateTextObject(header.transform, "CardNameText", "Card Name", (int)Tokens.TextCaption, FontStyles.Bold, Tokens.BoneBright);
         LayoutElement nameLE = nameObj.AddComponent<LayoutElement>();
         nameLE.flexibleWidth = 1;
         so.FindProperty("cardNameText").objectReferenceValue = nameObj.GetComponent<TMP_Text>();
 
         // Tier
-        GameObject tierObj = CreateTextObject(header.transform, "TierText", "Tier 1", 13, FontStyles.Normal, new Color(1f, 0.84f, 0f)); // Gold
+        GameObject tierObj = CreateTextObject(header.transform, "TierText", "Tier 1", (int)Tokens.TextCaption, FontStyles.Normal, Tokens.BronzeBright); // Gold
         so.FindProperty("tierText").objectReferenceValue = tierObj.GetComponent<TMP_Text>();
 
         return header;
@@ -157,7 +158,7 @@ public class TooltipPrefabGenerator : EditorWindow
         RectTransform rect = row.AddComponent<RectTransform>();
 
         HorizontalLayoutGroup hlg = row.AddComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 15;
+        hlg.spacing = Tokens.Space2;
         hlg.childAlignment = TextAnchor.MiddleLeft;
         hlg.childControlWidth = true;
         hlg.childControlHeight = true;
@@ -165,7 +166,7 @@ public class TooltipPrefabGenerator : EditorWindow
         hlg.childForceExpandHeight = false;
 
         // Stats
-        GameObject statsObj = CreateTextObject(row.transform, "StatsText", "ATK: 3  |  HP: 4", 14, FontStyles.Normal, Color.white);
+        GameObject statsObj = CreateTextObject(row.transform, "StatsText", "ATK: 3  |  HP: 4", (int)Tokens.TextCaption, FontStyles.Normal, Tokens.BoneBright);
         so.FindProperty("statsText").objectReferenceValue = statsObj.GetComponent<TMP_Text>();
 
         // Spacer
@@ -176,7 +177,7 @@ public class TooltipPrefabGenerator : EditorWindow
         spacerLE.flexibleWidth = 1;
 
         // Tribes
-        GameObject tribesObj = CreateTextObject(row.transform, "TribesText", "Pentacles", 13, FontStyles.Italic, new Color(0.31f, 0.8f, 0.77f)); // Teal
+        GameObject tribesObj = CreateTextObject(row.transform, "TribesText", "Pentacles", (int)Tokens.TextCaption, FontStyles.Italic, Tokens.BoneDim); // was teal accent
         so.FindProperty("tribesText").objectReferenceValue = tribesObj.GetComponent<TMP_Text>();
     }
 
@@ -188,7 +189,7 @@ public class TooltipPrefabGenerator : EditorWindow
         RectTransform rect = divider.AddComponent<RectTransform>();
 
         Image img = divider.AddComponent<Image>();
-        img.color = new Color(0.4f, 0.4f, 0.45f, 1f);
+        img.color = Tokens.StoneEdge;
 
         LayoutElement le = divider.AddComponent<LayoutElement>();
         le.minHeight = 1;
@@ -212,15 +213,16 @@ public class TooltipPrefabGenerator : EditorWindow
         vlg.childForceExpandHeight = false;
 
         // Ability Trigger (e.g., "BATTLECRY")
-        GameObject triggerObj = CreateTextObject(section.transform, "AbilityTriggerText", "<color=#FFD700>BATTLECRY</color>", 14, FontStyles.Bold, Color.white);
+        GameObject triggerObj = CreateTextObject(section.transform, "AbilityTriggerText",
+            $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BronzeBright)}>BATTLECRY</color>", (int)Tokens.TextCaption, FontStyles.Bold, Tokens.BoneBright);
         so.FindProperty("abilityTriggerText").objectReferenceValue = triggerObj.GetComponent<TMP_Text>();
 
         // Ability Effect
-        GameObject effectObj = CreateTextObject(section.transform, "AbilityEffectText", "Give adjacent minions +2 Attack", 13, FontStyles.Normal, new Color(0.9f, 0.9f, 0.9f));
+        GameObject effectObj = CreateTextObject(section.transform, "AbilityEffectText", "Give adjacent minions +2 Attack", (int)Tokens.TextCaption, FontStyles.Normal, Tokens.Bone);
         so.FindProperty("abilityEffectText").objectReferenceValue = effectObj.GetComponent<TMP_Text>();
 
         // Ability Description (flavor text)
-        GameObject descObj = CreateTextObject(section.transform, "AbilityDescriptionText", "\"The dawn brings strength.\"", 12, FontStyles.Italic, new Color(0.7f, 0.7f, 0.7f));
+        GameObject descObj = CreateTextObject(section.transform, "AbilityDescriptionText", "\"The dawn brings strength.\"", (int)Tokens.TextCaption, FontStyles.Italic, Tokens.BoneDim);
         so.FindProperty("abilityDescriptionText").objectReferenceValue = descObj.GetComponent<TMP_Text>();
 
         so.FindProperty("abilitySection").objectReferenceValue = section;
@@ -242,7 +244,8 @@ public class TooltipPrefabGenerator : EditorWindow
         vlg.childForceExpandHeight = false;
 
         // Legacy Effect Text
-        GameObject effectObj = CreateTextObject(section.transform, "LegacyEffectText", "<color=#4169E1>GUARDIAN</color>\nMust be attacked first", 13, FontStyles.Normal, Color.white);
+        GameObject effectObj = CreateTextObject(section.transform, "LegacyEffectText",
+            $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BronzeBright)}>GUARDIAN</color>\nMust be attacked first", (int)Tokens.TextCaption, FontStyles.Normal, Tokens.Bone);
         so.FindProperty("legacyEffectText").objectReferenceValue = effectObj.GetComponent<TMP_Text>();
 
         so.FindProperty("legacyEffectSection").objectReferenceValue = section;
@@ -264,20 +267,8 @@ public class TooltipPrefabGenerator : EditorWindow
         tmp.overflowMode = TextOverflowModes.Overflow;
         tmp.richText = true;
 
-        // Try to find a font asset
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            // Try default TMP font
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
-            }
-        }
-        if (font != null)
-            tmp.font = font;
+        // Shared across mixed roles (card name, tier, stats, tribes, ability/legacy text) — Body per Tokens fallback rule.
+        tmp.font = FontRefs.Instance.Body;
 
         return obj;
     }

@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Editor script to set up the Synergy Display Panel in the Game scene.
@@ -95,7 +96,7 @@ public class SynergyDisplaySetup : EditorWindow
 
         // Semi-transparent background
         Image panelBg = panelObj.AddComponent<Image>();
-        panelBg.color = new Color(0.08f, 0.05f, 0.14f, 0.75f);
+        panelBg.color = Tokens.WithAlpha(Tokens.Umber, 0.75f);
         panelBg.raycastTarget = false;
 
         // Add StyledPanel if available for nicer look
@@ -137,14 +138,14 @@ public class SynergyDisplaySetup : EditorWindow
 
         TextMeshProUGUI titleTMP = titleObj.AddComponent<TextMeshProUGUI>();
         titleTMP.text = "Synergies";
-        titleTMP.fontSize = 12;
+        titleTMP.fontSize = Tokens.TextCaption;
         titleTMP.fontStyle = FontStyles.Bold;
-        titleTMP.color = new Color(1f, 0.84f, 0f);
+        titleTMP.color = Tokens.BronzeBright;
         titleTMP.alignment = TextAlignmentOptions.Center;
         titleTMP.enableWordWrapping = false;
         titleTMP.raycastTarget = false;
 
-        TMP_FontAsset font = FindFont();
+        TMP_FontAsset font = FontRefs.Instance.Label;
         if (font != null) titleTMP.font = font;
 
         // Row container with VerticalLayoutGroup
@@ -181,18 +182,6 @@ public class SynergyDisplaySetup : EditorWindow
         Undo.RegisterCreatedObjectUndo(panelObj, "Create SynergyDisplayPanel");
 
         return panelObj;
-    }
-
-    private static TMP_FontAsset FindFont()
-    {
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetDatabase.GUIDToAssetPath(guids[0]));
-        }
-        return font;
     }
 }
 #endif

@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 using System.Collections.Generic;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Discovery popup UI. Shows 3 card choices when a triple is formed.
@@ -30,13 +31,13 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
     [Header("UX19: Card Fan")]
     [SerializeField] private float fanAngle = 10f;           // Degrees of tilt
     [SerializeField] private float cardSpacing = 160f;
-    [SerializeField] private float staggerDelay = 0.15f;
-    [SerializeField] private float cardScaleSpeed = 0.3f;
+    [SerializeField] private float staggerDelay = Tokens.DurFast;
+    [SerializeField] private float cardScaleSpeed = Tokens.DurBase;
 
     [Header("UX19: Colors")]
-    [SerializeField] private Color backdropColor = new Color(0f, 0f, 0f, 0.7f);
-    [SerializeField] private Color bannerColor = new Color(1f, 0.82f, 0.12f);
-    [SerializeField] private Color selectionFlash = new Color(1f, 1f, 1f, 0.8f);
+    [SerializeField] private Color backdropColor = Tokens.WithAlpha(Tokens.Ash, 0.7f);
+    [SerializeField] private Color bannerColor = Tokens.BronzeBright;
+    [SerializeField] private Color selectionFlash = Tokens.WithAlpha(Tokens.Ember, 0.8f);
 
     private List<GameObject> choiceCards = new List<GameObject>();
     private Dictionary<int, (Player player, List<Card> cards)> pendingDiscoveries = new Dictionary<int, (Player, List<Card>)>();
@@ -300,7 +301,7 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
 
         // Step 2: Fade in backdrop (0.2s)
         float elapsed = 0f;
-        float backdropDuration = 0.2f;
+        float backdropDuration = Tokens.DurBase;
         while (elapsed < backdropDuration)
         {
             elapsed += Time.deltaTime;
@@ -333,7 +334,7 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
                 // Temporarily store original position and use 0 as target
                 float targetY = 0f;
                 elapsed = 0f;
-                float bannerDuration = 0.3f;
+                float bannerDuration = Tokens.DurBase;
                 while (elapsed < bannerDuration)
                 {
                     elapsed += Time.deltaTime;
@@ -448,7 +449,7 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
                     chosenRect.localScale = Vector3.one * 1.1f;
 
                 // Flash duration
-                yield return new WaitForSeconds(0.15f);
+                yield return new WaitForSeconds(Tokens.DurFast);
 
                 // Restore color
                 chosenBg.color = originalColor;
@@ -456,7 +457,7 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
         }
 
         // Fade + shrink non-chosen cards
-        float fadeDuration = 0.25f;
+        float fadeDuration = Tokens.DurBase;
         float elapsed = 0f;
 
         // Cache initial states for non-chosen cards
@@ -488,10 +489,10 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
         }
 
         // Brief hold to let player see their choice
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(Tokens.DurFast);
 
         // Fade out the entire popup
-        float popupFadeDuration = 0.2f;
+        float popupFadeDuration = Tokens.DurBase;
         elapsed = 0f;
         while (elapsed < popupFadeDuration)
         {

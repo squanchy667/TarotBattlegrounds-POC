@@ -9,17 +9,18 @@ using System.Collections.Generic;
 /// <summary>
 /// UX17: Editor script to set up the redesigned MainMenu scene with atmospheric visuals.
 /// Creates: Background (gradient + particles), TitleArea, ButtonArea, BottomBar.
-/// Styles all buttons with TarotButton, wires MainMenuManager and MainMenuVisual references.
+/// Styles all buttons with IgniteButton (T750), wires MainMenuManager and MainMenuVisual references.
 /// Run via menu: Tools/Game/Setup Main Menu
 /// </summary>
 public class MainMenuSetup : EditorWindow
 {
-    // Tarot color palette constants
-    private static readonly Color GoldAccent = new Color(1f, 0.78f, 0.15f);
-    private static readonly Color DarkPurple = new Color(0.12f, 0.08f, 0.18f);
-    private static readonly Color MediumPurple = new Color(0.55f, 0.3f, 0.75f);
-    private static readonly Color DimPurple = new Color(0.22f, 0.18f, 0.30f);
-    private static readonly Color SubtitleGray = new Color(0.65f, 0.65f, 0.7f);
+    // T750: legacy palette names now alias design tokens (full §8 menu rewrite lands
+    // with the T750 Phase-3 restyle; these keep the generator token-pure until then).
+    private static readonly Color GoldAccent = TarotBattlegrounds.UI.Tokens.BronzeBright;
+    private static readonly Color DarkPurple = TarotBattlegrounds.UI.Tokens.CharredWood;
+    private static readonly Color MediumPurple = TarotBattlegrounds.UI.Tokens.Umber;
+    private static readonly Color DimPurple = TarotBattlegrounds.UI.Tokens.CharredWood;
+    private static readonly Color SubtitleGray = TarotBattlegrounds.UI.Tokens.BoneDim;
 
     [MenuItem("Tools/Game/Setup Main Menu")]
     public static void SetupMainMenu()
@@ -124,7 +125,7 @@ public class MainMenuSetup : EditorWindow
         RectTransform logoRect = logoObj.AddComponent<RectTransform>();
         logoRect.sizeDelta = new Vector2(200, 100);
         Image logoImage = logoObj.AddComponent<Image>();
-        logoImage.color = new Color(1f, 1f, 1f, 0.1f); // Very faint placeholder
+        logoImage.color = TarotBattlegrounds.UI.Tokens.WithAlpha(TarotBattlegrounds.UI.Tokens.BoneBright, 0.1f); // faint placeholder
         logoImage.raycastTarget = false;
         LayoutElement logoLE = logoObj.AddComponent<LayoutElement>();
         logoLE.preferredWidth = 200;
@@ -134,7 +135,7 @@ public class MainMenuSetup : EditorWindow
 
         // Title text
         GameObject titleTextObj = EditorUiFactory.CreateText(titleArea.transform, "TitleText",
-            "TAROT BATTLEGROUNDS", 48, FontStyles.Bold, GoldAccent, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
+            "TAROT BATTLEGROUNDS", (int)TarotBattlegrounds.UI.Tokens.TextDisplay, FontStyles.Bold, TarotBattlegrounds.UI.Tokens.BoneBright, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
         TMP_Text titleTMP = titleTextObj.GetComponent<TMP_Text>();
 
         managerSO.FindProperty("titleText").objectReferenceValue = titleTMP;
@@ -142,7 +143,7 @@ public class MainMenuSetup : EditorWindow
 
         // Subtitle text
         GameObject subtitleObj = EditorUiFactory.CreateText(titleArea.transform, "SubtitleText",
-            "A Mystical Auto-Battler", 22, FontStyles.Italic, SubtitleGray, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
+            "A Mystical Auto-Battler", (int)TarotBattlegrounds.UI.Tokens.TextBody, FontStyles.Italic, SubtitleGray, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
         TMP_Text subtitleTMP = subtitleObj.GetComponent<TMP_Text>();
 
         managerSO.FindProperty("subtitleText").objectReferenceValue = subtitleTMP;
@@ -167,24 +168,24 @@ public class MainMenuSetup : EditorWindow
         buttonVLG.childForceExpandHeight = false;
         buttonVLG.padding = new RectOffset(20, 20, 10, 10);
 
-        // Play Solo button (Primary variant - gold, large)
+        // Play Solo button (primary action)
         GameObject soloBtn = CreateStyledButton(buttonArea.transform, "SoloButton",
-            "PLAY SOLO", 350, 65, ButtonVariant.Primary);
+            "PLAY SOLO", 350, 65);
         managerSO.FindProperty("soloButton").objectReferenceValue = soloBtn.GetComponent<Button>();
 
-        // Multiplayer button (Secondary variant - purple)
+        // Multiplayer button
         GameObject mpBtn = CreateStyledButton(buttonArea.transform, "MultiplayerButton",
-            "MULTIPLAYER", 320, 55, ButtonVariant.Secondary);
+            "MULTIPLAYER", 320, 55);
         managerSO.FindProperty("multiplayerButton").objectReferenceValue = mpBtn.GetComponent<Button>();
 
-        // Ranked button (Secondary variant - purple)
+        // Ranked button
         GameObject rankedBtn = CreateStyledButton(buttonArea.transform, "RankedButton",
-            "RANKED", 320, 55, ButtonVariant.Secondary);
+            "RANKED", 320, 55);
         managerSO.FindProperty("rankedButton").objectReferenceValue = rankedBtn.GetComponent<Button>();
 
         // Player info text (below ranked button, for authenticated user display)
         GameObject playerInfoObj = EditorUiFactory.CreateText(buttonArea.transform, "PlayerInfoText",
-            "", 16, FontStyles.Normal, SubtitleGray, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
+            "", (int)TarotBattlegrounds.UI.Tokens.TextCaption, FontStyles.Normal, SubtitleGray, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
         managerSO.FindProperty("playerInfoText").objectReferenceValue =
             playerInfoObj.GetComponent<TMP_Text>();
 
@@ -256,17 +257,9 @@ public class MainMenuSetup : EditorWindow
         GameObject settingsBtn = CreateSmallButton(rightSection.transform, "SettingsButton", "Settings", 100, 40);
         managerSO.FindProperty("settingsButton").objectReferenceValue = settingsBtn.GetComponent<Button>();
 
-        // Quit button (small, danger)
-        GameObject quitBtn = CreateSmallButton(rightSection.transform, "QuitButton", "Quit", 80, 40);
+        // Quit button (small, danger — blood idle sprite)
+        GameObject quitBtn = CreateStyledButton(rightSection.transform, "QuitButton", "Quit", 80, 40, danger: true);
         managerSO.FindProperty("quitButton").objectReferenceValue = quitBtn.GetComponent<Button>();
-        // Style quit as danger
-        TarotButton quitTarot = quitBtn.GetComponent<TarotButton>();
-        if (quitTarot != null)
-        {
-            SerializedObject quitSO = new SerializedObject(quitTarot);
-            quitSO.FindProperty("variant").enumValueIndex = (int)ButtonVariant.Danger;
-            quitSO.ApplyModifiedProperties();
-        }
 
         // ===============================
         // 6. SOLO PANEL (separate, starts hidden)
@@ -336,7 +329,7 @@ public class MainMenuSetup : EditorWindow
 
         // Semi-transparent background overlay
         Image panelBg = panel.AddComponent<Image>();
-        panelBg.color = new Color(DarkPurple.r, DarkPurple.g, DarkPurple.b, 0.95f);
+        panelBg.color = TarotBattlegrounds.UI.Tokens.WithAlpha(TarotBattlegrounds.UI.Tokens.Ash, 0.95f);
         panelBg.raycastTarget = false;
 
         // Centered container
@@ -350,7 +343,7 @@ public class MainMenuSetup : EditorWindow
 
         // Panel background
         Image containerBg = container.AddComponent<Image>();
-        containerBg.color = new Color(0.15f, 0.12f, 0.20f, 0.95f);
+        containerBg.color = TarotBattlegrounds.UI.Tokens.WithAlpha(TarotBattlegrounds.UI.Tokens.Umber, 0.95f);
         containerBg.raycastTarget = false;
 
         VerticalLayoutGroup vlg = container.AddComponent<VerticalLayoutGroup>();
@@ -363,28 +356,28 @@ public class MainMenuSetup : EditorWindow
         vlg.padding = new RectOffset(40, 40, 30, 30);
 
         // Title
-        EditorUiFactory.CreateText(container.transform, "SoloTitle", "SOLO GAME", 34,
-            FontStyles.Bold, GoldAccent, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
+        EditorUiFactory.CreateText(container.transform, "SoloTitle", "SOLO GAME", (int)TarotBattlegrounds.UI.Tokens.TextH2,
+            FontStyles.Bold, TarotBattlegrounds.UI.Tokens.BoneBright, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
 
         // Player count label
-        EditorUiFactory.CreateText(container.transform, "PlayerCountLabel", "Number of Players", 20,
-            FontStyles.Normal, Color.white, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
+        EditorUiFactory.CreateText(container.transform, "PlayerCountLabel", "Number of Players", (int)TarotBattlegrounds.UI.Tokens.TextBody,
+            FontStyles.Normal, TarotBattlegrounds.UI.Tokens.Bone, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
 
         // Player count buttons row
         GameObject countRow = EditorUiFactory.CreateHorizontalRow(container.transform, "PlayerCountRow", 20);
 
-        GameObject btn4 = CreateStyledButton(countRow.transform, "Players4Button", "4 Players", 150, 50, ButtonVariant.Primary);
+        GameObject btn4 = CreateStyledButton(countRow.transform, "Players4Button", "4 Players", 150, 50);
         managerSO.FindProperty("players4Button").objectReferenceValue = btn4.GetComponent<Button>();
 
-        GameObject btn6 = CreateStyledButton(countRow.transform, "Players6Button", "6 Players", 150, 50, ButtonVariant.Secondary);
+        GameObject btn6 = CreateStyledButton(countRow.transform, "Players6Button", "6 Players", 150, 50);
         managerSO.FindProperty("players6Button").objectReferenceValue = btn6.GetComponent<Button>();
 
-        GameObject btn8 = CreateStyledButton(countRow.transform, "Players8Button", "8 Players", 150, 50, ButtonVariant.Secondary);
+        GameObject btn8 = CreateStyledButton(countRow.transform, "Players8Button", "8 Players", 150, 50);
         managerSO.FindProperty("players8Button").objectReferenceValue = btn8.GetComponent<Button>();
 
         // Difficulty label
-        EditorUiFactory.CreateText(container.transform, "DifficultyLabel", "AI Difficulty", 20,
-            FontStyles.Normal, Color.white, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
+        EditorUiFactory.CreateText(container.transform, "DifficultyLabel", "AI Difficulty", (int)TarotBattlegrounds.UI.Tokens.TextBody,
+            FontStyles.Normal, TarotBattlegrounds.UI.Tokens.Bone, TextAlignmentOptions.Center, heightPadding: 14, raycastTarget: false);
 
         // Difficulty dropdown
         GameObject diffDropdown = EditorUiFactory.CreateDropdown(container.transform, "DifficultyDropdown", 250, 45,
@@ -398,10 +391,10 @@ public class MainMenuSetup : EditorWindow
         // Bottom buttons row
         GameObject bottomRow = EditorUiFactory.CreateHorizontalRow(container.transform, "BottomRow", 30);
 
-        GameObject backBtn = CreateStyledButton(bottomRow.transform, "BackButton", "Back", 150, 50, ButtonVariant.Danger);
+        GameObject backBtn = CreateStyledButton(bottomRow.transform, "BackButton", "Back", 150, 50);
         managerSO.FindProperty("backButton").objectReferenceValue = backBtn.GetComponent<Button>();
 
-        GameObject playBtn = CreateStyledButton(bottomRow.transform, "PlayButton", "PLAY", 200, 55, ButtonVariant.Success);
+        GameObject playBtn = CreateStyledButton(bottomRow.transform, "PlayButton", "PLAY", 200, 55);
         managerSO.FindProperty("playButton").objectReferenceValue = playBtn.GetComponent<Button>();
 
         return panel;
@@ -490,36 +483,32 @@ public class MainMenuSetup : EditorWindow
     // ===================== UI FACTORIES =====================
 
     /// <summary>
-    /// Create a styled button with TarotButton component for gradient + hover effects.
+    /// T750: creates a design-system button — notched kit sprite (bronze idle,
+    /// blood idle for danger), IgniteButton interaction, Label font/size. No
+    /// gradients, borders, or scaling (DESIGN.md §5/§7/§10.5).
     /// </summary>
     private static GameObject CreateStyledButton(Transform parent, string name, string label,
-        float width, float height, ButtonVariant variant)
+        float width, float height, bool danger = false)
     {
+        var sprites = TarotBattlegrounds.UI.UiSprites.Instance;
+
         GameObject btnObj = new GameObject(name);
         btnObj.transform.SetParent(parent, false);
 
         RectTransform rect = btnObj.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(width, height);
 
-        // Background image (TarotButton will generate gradient texture)
         Image bgImg = btnObj.AddComponent<Image>();
-        bgImg.color = DimPurple;
+        Sprite idle = null;
+        if (sprites != null)
+        {
+            idle = danger ? sprites.ButtonBlood : sprites.ButtonBronze;
+            TarotBattlegrounds.UI.UiSprites.ApplySliced(bgImg, idle);
+        }
         bgImg.raycastTarget = true;
 
-        // Border image
-        GameObject borderObj = new GameObject("Border");
-        borderObj.transform.SetParent(btnObj.transform, false);
-        RectTransform borderRect = borderObj.AddComponent<RectTransform>();
-        borderRect.anchorMin = Vector2.zero;
-        borderRect.anchorMax = Vector2.one;
-        borderRect.offsetMin = Vector2.zero;
-        borderRect.offsetMax = Vector2.zero;
-        Image borderImg = borderObj.AddComponent<Image>();
-        borderImg.color = new Color(MediumPurple.r, MediumPurple.g, MediumPurple.b, 0.4f);
-        borderImg.raycastTarget = false;
-
-        // Unity Button component
         Button btn = btnObj.AddComponent<Button>();
+        btn.transition = Selectable.Transition.None;
 
         // Text child
         GameObject textObj = new GameObject("Text (TMP)");
@@ -532,11 +521,12 @@ public class MainMenuSetup : EditorWindow
 
         TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
         tmp.text = label;
-        tmp.fontSize = Mathf.RoundToInt(height * 0.38f);
-        tmp.fontStyle = FontStyles.Bold;
-        tmp.color = Color.white;
+        tmp.fontSize = TarotBattlegrounds.UI.Tokens.TextLabel;
+        tmp.characterSpacing = TarotBattlegrounds.UI.Tokens.TrackingLabel * 100f;
+        tmp.color = TarotBattlegrounds.UI.Tokens.Bone;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.enableWordWrapping = false;
+        tmp.raycastTarget = false;
 
         TMP_FontAsset font = FindFont();
         if (font != null) tmp.font = font;
@@ -548,80 +538,37 @@ public class MainMenuSetup : EditorWindow
         le.minHeight = height;
         le.preferredHeight = height;
 
-        // TarotButton component
-        TarotButton tarotBtn = btnObj.AddComponent<TarotButton>();
-        SerializedObject tarotSO = new SerializedObject(tarotBtn);
-        tarotSO.FindProperty("buttonBackground").objectReferenceValue = bgImg;
-        tarotSO.FindProperty("buttonBorder").objectReferenceValue = borderImg;
-        tarotSO.FindProperty("buttonLabel").objectReferenceValue = tmp;
-        tarotSO.FindProperty("variant").enumValueIndex = (int)variant;
-        tarotSO.ApplyModifiedProperties();
+        // IgniteButton interaction (idle bronze/blood → ignited ember, press flash)
+        var ignite = btnObj.AddComponent<TarotBattlegrounds.UI.IgniteButton>();
+        SerializedObject igniteSO = new SerializedObject(ignite);
+        igniteSO.FindProperty("background").objectReferenceValue = bgImg;
+        igniteSO.FindProperty("idleSprite").objectReferenceValue = idle;
+        igniteSO.FindProperty("ignitedSprite").objectReferenceValue = sprites != null ? sprites.ButtonEmber : null;
+        igniteSO.FindProperty("pressedSprite").objectReferenceValue = sprites != null ? sprites.ButtonBronzePressed : null;
+        igniteSO.FindProperty("label").objectReferenceValue = tmp;
+        igniteSO.FindProperty("idleTone").enumValueIndex = (int)TarotBattlegrounds.UI.IgniteButton.LabelTone.Bone;
+        igniteSO.ApplyModifiedProperties();
 
         return btnObj;
     }
 
     /// <summary>
-    /// Create a small icon-style button with TarotButton styling.
+    /// Create a small design-system button (same chrome, compact size).
     /// </summary>
     private static GameObject CreateSmallButton(Transform parent, string name, string label,
         float width, float height)
     {
-        return CreateStyledButton(parent, name, label, width, height, ButtonVariant.Secondary);
+        return CreateStyledButton(parent, name, label, width, height);
     }
 
     /// <summary>
-    /// Create a toggle-style button (for difficulty/player count selectors).
-    /// Compact size, no TarotButton (MainMenuVisual handles styling).
+    /// Create a toggle-style button (difficulty/player count selectors).
+    /// Same IgniteButton chrome; MainMenuVisual drives the Selected state.
     /// </summary>
     private static GameObject CreateToggleButton(Transform parent, string name, string label,
         float width, float height)
     {
-        GameObject btnObj = new GameObject(name);
-        btnObj.transform.SetParent(parent, false);
-
-        RectTransform rect = btnObj.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(width, height);
-
-        Image img = btnObj.AddComponent<Image>();
-        img.color = DimPurple;
-        img.raycastTarget = true;
-
-        Button btn = btnObj.AddComponent<Button>();
-        ColorBlock colors = btn.colors;
-        colors.normalColor = DimPurple;
-        colors.highlightedColor = DimPurple * 1.2f;
-        colors.pressedColor = DimPurple * 0.8f;
-        colors.selectedColor = DimPurple * 1.1f;
-        colors.disabledColor = new Color(0.15f, 0.15f, 0.15f, 0.5f);
-        btn.colors = colors;
-
-        LayoutElement le = btnObj.AddComponent<LayoutElement>();
-        le.minWidth = width;
-        le.preferredWidth = width;
-        le.minHeight = height;
-        le.preferredHeight = height;
-
-        // Text
-        GameObject textObj = new GameObject("Text (TMP)");
-        textObj.transform.SetParent(btnObj.transform, false);
-        RectTransform textRect = textObj.AddComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = new Vector2(4, 2);
-        textRect.offsetMax = new Vector2(-4, -2);
-
-        TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
-        tmp.text = label;
-        tmp.fontSize = 16;
-        tmp.fontStyle = FontStyles.Bold;
-        tmp.color = SubtitleGray;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping = false;
-
-        TMP_FontAsset font = FindFont();
-        if (font != null) tmp.font = font;
-
-        return btnObj;
+        return CreateStyledButton(parent, name, label, width, height);
     }
 
     // ===================== SHARED HELPERS =====================
@@ -637,17 +584,9 @@ public class MainMenuSetup : EditorWindow
 
     private static TMP_FontAsset FindFont()
     {
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
-            }
-        }
-        return font;
+        // Design-system Label font (buttons/labels) — DESIGN.md §4 via FontRefs.
+        var refs = TarotBattlegrounds.UI.FontRefs.Instance;
+        return refs != null ? refs.Label : null;
     }
 }
 #endif

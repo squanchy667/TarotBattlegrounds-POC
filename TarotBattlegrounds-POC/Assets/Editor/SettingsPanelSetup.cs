@@ -19,7 +19,7 @@ public static class SettingsPanelSetup
     private const string ScenePath = "Assets/Scenes/MainMenu.unity";
     private const string RootName = "SettingsRoot";
 
-    private static readonly Color LabelColor = new Color(0.92f, 0.89f, 0.82f, 1f);
+    private static readonly Color LabelColor = Tokens.Bone;
 
     [MenuItem("Tools/Game/Setup Settings Panel")]
     public static void Setup()
@@ -59,7 +59,7 @@ public static class SettingsPanelSetup
     private static Button CreateGearButton(Transform parent)
     {
         GameObject btnObj = EditorUiFactory.CreateButton(parent, "SettingsButton", "⚙",
-            72f, 72f, labelFontSize: 36, addLayoutElement: false);
+            72f, 72f, labelFontSize: (int)Tokens.TextH2, addLayoutElement: false);
         var rt = btnObj.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = new Vector2(1f, 1f);
         rt.pivot = new Vector2(1f, 1f);
@@ -75,13 +75,13 @@ public static class SettingsPanelSetup
         GameObject box = EditorUiFactory.CreateCenteredContainer(panel.transform, "SettingsBox",
             680f, 760f);
         var layout = box.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(32, 32, 24, 24);
+        layout.padding = new RectOffset(32, 32, (int)Tokens.Space3, (int)Tokens.Space3);
         layout.spacing = 14f;
         layout.childForceExpandHeight = false;
         layout.childControlHeight = true;
         layout.childControlWidth = true;
 
-        EditorUiFactory.CreateText(box.transform, "Title", "Settings", 34,
+        EditorUiFactory.CreateText(box.transform, "Title", "Settings", (int)Tokens.TextH2,
             FontStyles.Bold, LabelColor, TextAlignmentOptions.Center);
 
         var settings = panel.AddComponent<SettingsUI>();
@@ -97,17 +97,17 @@ public static class SettingsPanelSetup
 
         // Quality dropdown (row built like the sliders, control from the shared factory).
         GameObject qRow = EditorUiFactory.CreateHorizontalRow(box.transform, "QualityRow", 12f);
-        EditorUiFactory.CreateText(qRow.transform, "Label", "Quality", 22,
+        EditorUiFactory.CreateText(qRow.transform, "Label", "Quality", (int)Tokens.TextBody,
             FontStyles.Normal, LabelColor, TextAlignmentOptions.Left);
         GameObject dd = EditorUiFactory.CreateDropdown(qRow.transform, "QualityDropdown",
-            240f, 48f, "Medium", 18);
+            240f, 48f, "Medium", (int)Tokens.TextCaption);
         so.FindProperty("qualityDropdown").objectReferenceValue = dd.GetComponent<TMP_Dropdown>();
 
         // Fullscreen toggle is desktop-only; SettingsUI.Start hides this row on mobile.
         WireToggle(so, box.transform, "Fullscreen", "fullscreenToggle", true);
 
         GameObject closeObj = EditorUiFactory.CreateButton(box.transform, "CloseButton", "Close",
-            220f, 56f, labelFontSize: 22);
+            220f, 56f, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("closeButton").objectReferenceValue = closeObj.GetComponent<Button>();
 
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -119,7 +119,7 @@ public static class SettingsPanelSetup
         string sliderField, string textField, float defaultValue, float min = 0f, float max = 1f)
     {
         GameObject row = EditorUiFactory.CreateHorizontalRow(parent, label.Replace(" ", "") + "Row", 12f);
-        EditorUiFactory.CreateText(row.transform, "Label", label, 22,
+        EditorUiFactory.CreateText(row.transform, "Label", label, (int)Tokens.TextBody,
             FontStyles.Normal, LabelColor, TextAlignmentOptions.Left);
 
         GameObject sliderObj = DefaultControls.CreateSlider(UiResources());
@@ -131,7 +131,7 @@ public static class SettingsPanelSetup
         slider.minValue = min; slider.maxValue = max; slider.value = defaultValue;
 
         GameObject valueText = EditorUiFactory.CreateText(row.transform, "Value",
-            Mathf.RoundToInt(defaultValue * 100f) + "%", 20,
+            Mathf.RoundToInt(defaultValue * 100f) + "%", (int)Tokens.TextCaption,
             FontStyles.Normal, LabelColor, TextAlignmentOptions.Right);
 
         so.FindProperty(sliderField).objectReferenceValue = slider;
@@ -142,7 +142,7 @@ public static class SettingsPanelSetup
         string toggleField, bool defaultValue)
     {
         GameObject row = EditorUiFactory.CreateHorizontalRow(parent, label.Replace(" ", "") + "Row", 12f);
-        EditorUiFactory.CreateText(row.transform, "Label", label, 22,
+        EditorUiFactory.CreateText(row.transform, "Label", label, (int)Tokens.TextBody,
             FontStyles.Normal, LabelColor, TextAlignmentOptions.Left);
 
         GameObject toggleObj = DefaultControls.CreateToggle(UiResources());

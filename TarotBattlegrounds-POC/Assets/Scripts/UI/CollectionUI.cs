@@ -68,13 +68,13 @@ namespace TarotBattlegrounds.UI
         // UX20: Tribe colors for filter buttons
         private static readonly Dictionary<TribeType, Color> TribeColors = new Dictionary<TribeType, Color>
         {
-            { TribeType.None,      new Color(0.5f, 0.5f, 0.5f) },   // "All" - gray
-            { TribeType.Pentacles, new Color(0.82f, 0.68f, 0.15f) }, // Gold
-            { TribeType.Cups,      new Color(0.25f, 0.45f, 0.95f) }, // Blue
-            { TribeType.Swords,    new Color(0.78f, 0.78f, 0.90f) }, // Silver
-            { TribeType.Wands,     new Color(0.92f, 0.45f, 0.12f) }, // Orange
-            { TribeType.Stars,     new Color(0.55f, 0.75f, 1.0f) },  // Light blue
-            { TribeType.Coins,     new Color(0.90f, 0.80f, 0.20f) }, // Yellow gold
+            { TribeType.None,      Tokens.BoneDim },      // "All" - gray
+            { TribeType.Pentacles, Tokens.BronzeBright }, // Gold
+            { TribeType.Cups,      Tokens.Ember },        // Blue
+            { TribeType.Swords,    Tokens.Bone },          // Silver
+            { TribeType.Wands,     Tokens.Ember },         // Orange
+            { TribeType.Stars,     Tokens.Ember },         // Light blue
+            { TribeType.Coins,     Tokens.BronzeBright }, // Yellow gold
         };
 
         private void Start()
@@ -144,7 +144,7 @@ namespace TarotBattlegrounds.UI
             if (detailAbilities != null)
                 detailAbilities.color = theme.textColorLight;
             if (detailLore != null)
-                detailLore.color = new Color(0.7f, 0.7f, 0.7f, 1f);
+                detailLore.color = Tokens.BoneDim;
         }
 
         public void Open()
@@ -234,7 +234,7 @@ namespace TarotBattlegrounds.UI
 
                 Color color = TribeColors.ContainsKey(tribe)
                     ? TribeColors[tribe]
-                    : Color.gray;
+                    : Tokens.BoneDim;
 
                 TribeType capturedTribe = tribe; // Capture for closure
                 Button btn = CreateFilterButton(tribeFilterContainer, label,
@@ -264,7 +264,7 @@ namespace TarotBattlegrounds.UI
                 else
                     tribe = (TribeType)i;
 
-                Color baseColor = TribeColors.ContainsKey(tribe) ? TribeColors[tribe] : Color.gray;
+                Color baseColor = TribeColors.ContainsKey(tribe) ? TribeColors[tribe] : Tokens.BoneDim;
 
                 // Use theme color if available
                 if (ThemeManager.ActiveTheme != null && tribe != TribeType.None)
@@ -288,18 +288,18 @@ namespace TarotBattlegrounds.UI
 
             // "All" button
             Button allBtn = CreateFilterButton(tierFilterContainer, "All",
-                new Color(0.5f, 0.5f, 0.5f), () => OnTierFilterClicked(0));
+                Tokens.BoneDim, () => OnTierFilterClicked(0));
             tierButtons.Add(allBtn);
 
             // Tier 1-6 buttons with star indicators
             Color[] tierColors = new Color[]
             {
-                new Color(0.6f, 0.6f, 0.6f),  // T1: Gray
-                new Color(0.4f, 0.7f, 0.4f),  // T2: Green
-                new Color(0.3f, 0.5f, 0.9f),  // T3: Blue
-                new Color(0.6f, 0.3f, 0.8f),  // T4: Purple
-                new Color(0.9f, 0.6f, 0.1f),  // T5: Orange
-                new Color(1.0f, 0.8f, 0.2f),  // T6: Gold
+                Tokens.BoneDim,      // T1: Gray
+                Tokens.Ember,        // T2: Green
+                Tokens.Ember,        // T3: Blue
+                Tokens.Ember,        // T4: Purple
+                Tokens.Ember,        // T5: Orange
+                Tokens.BronzeBright, // T6: Gold
             };
 
             for (int t = 1; t <= 6; t++)
@@ -326,20 +326,20 @@ namespace TarotBattlegrounds.UI
         {
             Color[] tierColors = new Color[]
             {
-                new Color(0.5f, 0.5f, 0.5f),  // All
-                new Color(0.6f, 0.6f, 0.6f),  // T1
-                new Color(0.4f, 0.7f, 0.4f),  // T2
-                new Color(0.3f, 0.5f, 0.9f),  // T3
-                new Color(0.6f, 0.3f, 0.8f),  // T4
-                new Color(0.9f, 0.6f, 0.1f),  // T5
-                new Color(1.0f, 0.8f, 0.2f),  // T6
+                Tokens.BoneDim,      // All
+                Tokens.BoneDim,      // T1
+                Tokens.Ember,        // T2
+                Tokens.Ember,        // T3
+                Tokens.Ember,        // T4
+                Tokens.Ember,        // T5
+                Tokens.BronzeBright, // T6
             };
 
             for (int i = 0; i < tierButtons.Count; i++)
             {
                 if (tierButtons[i] == null) continue;
                 bool isActive = (i == selectedTierFilter);
-                Color baseColor = (i < tierColors.Length) ? tierColors[i] : Color.gray;
+                Color baseColor = (i < tierColors.Length) ? tierColors[i] : Tokens.BoneDim;
                 ApplyFilterButtonStyle(tierButtons[i], baseColor, isActive);
             }
         }
@@ -381,9 +381,9 @@ namespace TarotBattlegrounds.UI
 
             TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
             tmp.text = label;
-            tmp.fontSize = 12f;
+            tmp.fontSize = Tokens.TextCaption;
             tmp.fontStyle = FontStyles.Bold;
-            tmp.color = Color.white;
+            tmp.color = Tokens.BoneBright;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.enableWordWrapping = false;
             tmp.overflowMode = TextOverflowModes.Ellipsis;
@@ -412,7 +412,7 @@ namespace TarotBattlegrounds.UI
             }
             else
             {
-                if (img != null) img.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+                if (img != null) img.color = Tokens.CharredWood;
                 cg.alpha = 0.4f;
             }
         }
@@ -519,7 +519,7 @@ namespace TarotBattlegrounds.UI
             {
                 if (cardObj == null) continue;
 
-                StartCoroutine(ScalePopIn(cardObj.transform, 0.2f));
+                StartCoroutine(ScalePopIn(cardObj.transform, Tokens.DurBase));
                 yield return new WaitForSeconds(cardPopDelay);
             }
 
@@ -653,7 +653,7 @@ namespace TarotBattlegrounds.UI
                 if (card.abilityEffect == Card.AbilityEffectType.GainArmor) keywords.Add($"Armor {card.abilityValue}");
 
                 if (keywords.Count > 0)
-                    abilityText += "<color=#FFD700>" + string.Join(", ", keywords) + "</color>\n";
+                    abilityText += $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BronzeBright)}>" + string.Join(", ", keywords) + "</color>\n";
 
                 // Legacy effect
                 if (card.effectType != Card.EffectType.NoEffect)
@@ -680,16 +680,16 @@ namespace TarotBattlegrounds.UI
         {
             switch (trigger)
             {
-                case AbilityTrigger.Battlecry:      return "<color=#FFD700>Battlecry</color>";
-                case AbilityTrigger.Deathrattle:     return "<color=#8B4513>Deathrattle</color>";
-                case AbilityTrigger.OnAttack:        return "<color=#FF4500>On Attack</color>";
-                case AbilityTrigger.OnDamaged:       return "<color=#DC143C>On Damaged</color>";
-                case AbilityTrigger.StartOfCombat:   return "<color=#4169E1>Start of Combat</color>";
-                case AbilityTrigger.EndOfTurn:       return "<color=#9370DB>End of Turn</color>";
-                case AbilityTrigger.OnAllyDeath:     return "<color=#696969>On Ally Death</color>";
-                case AbilityTrigger.OnAllySummoned:   return "<color=#32CD32>On Ally Summoned</color>";
-                case AbilityTrigger.OnSell:          return "<color=#DAA520>On Sell</color>";
-                case AbilityTrigger.Aura:            return "<color=#00CED1>Aura</color>";
+                case AbilityTrigger.Battlecry:      return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BronzeBright)}>Battlecry</color>";
+                case AbilityTrigger.Deathrattle:     return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Bronze)}>Deathrattle</color>";
+                case AbilityTrigger.OnAttack:        return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>On Attack</color>";
+                case AbilityTrigger.OnDamaged:       return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Blood)}>On Damaged</color>";
+                case AbilityTrigger.StartOfCombat:   return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>Start of Combat</color>";
+                case AbilityTrigger.EndOfTurn:       return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>End of Turn</color>";
+                case AbilityTrigger.OnAllyDeath:     return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BoneDim)}>On Ally Death</color>";
+                case AbilityTrigger.OnAllySummoned:   return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>On Ally Summoned</color>";
+                case AbilityTrigger.OnSell:          return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BronzeBright)}>On Sell</color>";
+                case AbilityTrigger.Aura:            return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>Aura</color>";
                 default: return trigger.ToString();
             }
         }

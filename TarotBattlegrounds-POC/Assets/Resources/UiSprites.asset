@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5824d7b7605ed463c920ab0b94819b19, type: 3}
+  m_Name: UiSprites
+  m_EditorClassIdentifier: 
+  buttonBronze: {fileID: 21300000, guid: a3a64231dc1114391ba0307e7e0bf3e9, type: 3}
+  buttonEmber: {fileID: 21300000, guid: c49e4290f84d54e529621daef8183516, type: 3}
+  buttonBronzePressed: {fileID: 21300000, guid: c8ebcd5510eb946869851a89df3f95d4, type: 3}
+  buttonBlood: {fileID: 21300000, guid: 77817ad3ee849410784e5120e07647d0, type: 3}
+  panelCharred: {fileID: 21300000, guid: 3352010e23def4ef681a21fbb73bf4ae, type: 3}
+  panelCharredBorderless: {fileID: 21300000, guid: c07ce8104e81b45b2ad28feae7e8ff6d, type: 3}
+  panelUmber: {fileID: 21300000, guid: c1bca2454e07d436eb5ef47a2c231d82, type: 3}
+  slotEmpty: {fileID: 21300000, guid: 2831bca8caa49489e91204e4f99f0aa6, type: 3}
+  slotFilled: {fileID: 21300000, guid: be116b7b38a8d4ea2a597e2f4a43e5cf, type: 3}
+  slotReady: {fileID: 21300000, guid: 9044e197f64384c128b7087afe51e3ff, type: 3}
+  underlineEmber: {fileID: 21300000, guid: c151c9220d7aa4ef08d2120f33a004ca, type: 3}
+  dividerStone: {fileID: 21300000, guid: 49a5280a6d4804912b7db82df7544e85, type: 3}

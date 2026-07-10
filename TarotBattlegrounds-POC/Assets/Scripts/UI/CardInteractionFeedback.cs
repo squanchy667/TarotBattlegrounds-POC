@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UX08: Card hover and selection polish — smooth scale-up with shadow on hover,
@@ -18,15 +19,15 @@ public class CardInteractionFeedback : MonoBehaviour,
 
     [Header("Selection Glow")]
     [SerializeField] private Image selectionGlow;
-    [SerializeField] private Color selectedColor = new Color(1f, 0.82f, 0.12f, 0.6f);
-    [SerializeField] private Color playableColor = new Color(0.3f, 0.85f, 0.3f, 0.5f);
+    [SerializeField] private Color selectedColor = Tokens.WithAlpha(Tokens.Ember, 0.6f);
+    [SerializeField] private Color playableColor = Tokens.WithAlpha(Tokens.Ember, 0.5f); // design system has no green; "ready" maps to Ember
     [SerializeField] private float glowPulseSpeed = 2f;
     [SerializeField] private float glowMinAlpha = 0.2f;
     [SerializeField] private float glowMaxAlpha = 0.7f;
 
     [Header("Frozen")]
     [SerializeField] private Image frozenOverlay;
-    [SerializeField] private Color frozenColor = new Color(0.3f, 0.55f, 1f, 0.2f);
+    [SerializeField] private Color frozenColor = Tokens.WithAlpha(Tokens.Ember, 0.2f); // no dedicated frozen/status token; interaction-highlight fallback
     [SerializeField] private float frozenShimmerSpeed = 0.8f;
 
     private RectTransform rectTransform;
@@ -192,7 +193,7 @@ public class CardInteractionFeedback : MonoBehaviour,
         {
             Color glowColor = isPlayable ? playableColor : selectedColor;
             var c = selectionGlow.color;
-            selectionGlow.color = new Color(glowColor.r, glowColor.g, glowColor.b, c.a);
+            selectionGlow.color = Tokens.WithAlpha(glowColor, c.a);
         }
     }
 

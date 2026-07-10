@@ -4,7 +4,7 @@ using TMPro;
 
 /// <summary>
 /// Owns theme state and application for GameUIManager: button/text theming, panel and
-/// background colors, and TarotButton propagation. Extracted from GameUIManager as part
+/// background art, and label copy. Extracted from GameUIManager as part
 /// of the UI god-class refactor (spec §2.2 item 1, 2026-07-04 batch).
 ///
 /// Holds `currentTheme` (exposed read-only via <see cref="CurrentTheme"/>) so other helpers
@@ -64,12 +64,9 @@ public class GameUIThemeApplier
             else
             {
                 owner.gameBackgroundImage.sprite = null;
-                owner.gameBackgroundImage.color = theme.gameBackgroundColor;
+                owner.gameBackgroundImage.color = TarotBattlegrounds.UI.Tokens.Ash;
             }
         }
-
-        // Apply theme to all TarotButton children
-        ApplyThemeToTarotButtons(theme);
 
         // Re-update display to use themed labels
         owner.hud.UpdatePlayerDisplay();
@@ -77,67 +74,27 @@ public class GameUIThemeApplier
     }
 
     /// <summary>
-    /// Propagate theme to all TarotButton components found in children.
-    /// Moved verbatim from GameUIManager.ApplyThemeToTarotButtons. GetComponentsInChildren is
-    /// inherited from Component/MonoBehaviour, so this plain class calls it through `owner`.
-    /// </summary>
-    private void ApplyThemeToTarotButtons(ThemeConfig theme)
-    {
-        TarotButton[] tarotButtons = owner.GetComponentsInChildren<TarotButton>(true);
-        foreach (TarotButton tb in tarotButtons)
-        {
-            tb.ApplyTheme(theme);
-        }
-    }
-
-    /// <summary>
-    /// Moved verbatim from GameUIManager.ApplyThemeColors.
+    /// T750: chrome/text colors come from Tokens, not the theme — themes contribute
+    /// copy (button labels) and background art only; tribe accents arrive via
+    /// TribeTheme in T754 (DESIGN.md §9). Button visuals are owned by IgniteButton.
+    /// The theme parameter remains for the label lookups above.
     /// </summary>
     private void ApplyThemeColors(ThemeConfig theme)
     {
-        // Apply primary color to buttons
-        Color buttonColor = theme.primaryColor;
-        ApplyButtonColor(owner.buyButton, buttonColor);
-        ApplyButtonColor(owner.sellButton, buttonColor);
-        ApplyButtonColor(owner.playCardButton, buttonColor);
-        ApplyButtonColor(owner.refreshButton, buttonColor);
-        ApplyButtonColor(owner.upgradeButton, buttonColor);
-        ApplyButtonColor(owner.endTurnButton, buttonColor);
-        ApplyButtonColor(owner.freezeShopButton, buttonColor);
-
-        // Apply panel background — let StyledPanel handle it if present
+        // Panel background — let StyledPanel handle it if present
         if (owner.mainStyledPanel == null && owner.mainPanelBackground != null)
-            owner.mainPanelBackground.color = theme.secondaryColor;
+            owner.mainPanelBackground.color = TarotBattlegrounds.UI.Tokens.CharredWood;
 
-        // Apply text colors
-        Color lightText = theme.textColorLight;
-        if (owner.phaseText != null) owner.phaseText.color = lightText;
-        if (owner.timerText != null) owner.timerText.color = theme.accentColor;
-        if (owner.turnText != null) owner.turnText.color = lightText;
-        if (owner.playerNameText != null) owner.playerNameText.color = lightText;
+        // Text colors by role (DESIGN.md §3): key numbers BoneBright, labels Bone,
+        // worth/cost BronzeBright.
+        if (owner.phaseText != null) owner.phaseText.color = TarotBattlegrounds.UI.Tokens.BoneBright;
+        if (owner.timerText != null) owner.timerText.color = TarotBattlegrounds.UI.Tokens.BronzeBright;
+        if (owner.turnText != null) owner.turnText.color = TarotBattlegrounds.UI.Tokens.Bone;
+        if (owner.playerNameText != null) owner.playerNameText.color = TarotBattlegrounds.UI.Tokens.BoneBright;
 
-        // Stats with semantic colors
-        if (owner.coinsText != null) owner.coinsText.color = theme.accentColor;
-        if (owner.healthText != null) owner.healthText.color = theme.positiveColor;
-        if (owner.tierText != null) owner.tierText.color = lightText;
-        if (owner.upgradeCostText != null) owner.upgradeCostText.color = theme.accentColor;
-    }
-
-    /// <summary>
-    /// Moved verbatim from GameUIManager.ApplyButtonColor.
-    /// </summary>
-    private void ApplyButtonColor(Button button, Color color)
-    {
-        if (button == null) return;
-
-        // Skip color block changes if TarotButton handles visuals
-        if (button.GetComponent<TarotButton>() != null) return;
-
-        var colors = button.colors;
-        colors.normalColor = color;
-        colors.highlightedColor = color * 1.1f;
-        colors.pressedColor = color * 0.9f;
-        colors.selectedColor = color;
-        button.colors = colors;
+        if (owner.coinsText != null) owner.coinsText.color = TarotBattlegrounds.UI.Tokens.BronzeBright;
+        if (owner.healthText != null) owner.healthText.color = TarotBattlegrounds.UI.Tokens.BoneBright;
+        if (owner.tierText != null) owner.tierText.color = TarotBattlegrounds.UI.Tokens.Bone;
+        if (owner.upgradeCostText != null) owner.upgradeCostText.color = TarotBattlegrounds.UI.Tokens.BronzeBright;
     }
 }

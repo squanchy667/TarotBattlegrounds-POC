@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Editor script to set up the multi-layered background system in Game and MainMenu scenes.
@@ -31,7 +32,7 @@ public class BackgroundSetup : EditorWindow
         RemoveOldBackgroundLayers(canvas.transform);
 
         // Create background layers as first children (behind everything)
-        GameObject bgBase = CreateFullscreenImage(canvas.transform, "BG_Base", new Color(0.05f, 0.03f, 0.10f));
+        GameObject bgBase = CreateFullscreenImage(canvas.transform, "BG_Base", Tokens.Ash);
         bgBase.transform.SetAsFirstSibling();
 
         GameObject bgGradient = CreateFullscreenImage(canvas.transform, "BG_Gradient", Color.white);
@@ -140,7 +141,7 @@ public class BackgroundSetup : EditorWindow
         main.startLifetime = new ParticleSystem.MinMaxCurve(8f, 12f);
         main.startSpeed = 8f;
         main.startSize = new ParticleSystem.MinMaxCurve(1.5f, 3f);
-        main.startColor = new Color(1f, 0.82f, 0.12f, 0.15f);
+        main.startColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.15f);
         main.gravityModifier = -0.02f;
         main.maxParticles = 80;
 

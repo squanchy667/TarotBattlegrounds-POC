@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using TarotBattlegrounds.UI;
 
 public class BoardCardUI : MonoBehaviour
 {
@@ -19,8 +20,8 @@ public class BoardCardUI : MonoBehaviour
     [SerializeField] private Button cardButton;
 
     [Header("Colors")]
-    [SerializeField] private Color normalColor = new Color(0.10f, 0.07f, 0.16f, 1f);
-    [SerializeField] private Color selectedColor = new Color(0.55f, 0.3f, 0.75f, 1f);
+    [SerializeField] private Color normalColor = Tokens.CharredWood;
+    [SerializeField] private Color selectedColor = Tokens.Ember;
 
     private Card card;
     private int index;

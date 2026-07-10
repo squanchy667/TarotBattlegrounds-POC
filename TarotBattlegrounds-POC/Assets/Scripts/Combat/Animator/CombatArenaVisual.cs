@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using TarotBattlegrounds.UI;
 
 namespace TarotBattlegrounds.Combat.Animator
 {
@@ -15,7 +16,7 @@ namespace TarotBattlegrounds.Combat.Animator
         [Header("Divider")]
         [SerializeField] private Image dividerLine;
         [SerializeField] private float dividerGlowSpeed = 1.5f;
-        [SerializeField] private Color dividerColor = new Color(0.55f, 0.3f, 0.75f, 0.6f);
+        [SerializeField] private Color dividerColor = Tokens.WithAlpha(Tokens.Bronze, 0.6f);
 
         [Header("Team Labels")]
         [SerializeField] private TMP_Text attackerLabel;
@@ -30,11 +31,11 @@ namespace TarotBattlegrounds.Combat.Animator
         [Header("Attack Trail")]
         [SerializeField] private Image attackTrailLine;
         [SerializeField] private float trailDuration = 0.3f;
-        [SerializeField] private Color trailColor = new Color(1f, 0.4f, 0.2f, 0.8f);
+        [SerializeField] private Color trailColor = Tokens.WithAlpha(Tokens.Ember, 0.8f);
 
         [Header("Arena Background")]
         [SerializeField] private Image arenaBackground;
-        [SerializeField] private Color arenaColor = new Color(0.03f, 0.02f, 0.06f, 0.9f);
+        [SerializeField] private Color arenaColor = Tokens.WithAlpha(Tokens.Ash, 0.9f);
 
         private bool isActive;
         private Coroutine dividerPulseCoroutine;

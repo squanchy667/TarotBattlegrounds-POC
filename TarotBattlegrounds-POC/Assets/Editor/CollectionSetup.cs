@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UX20: Editor setup script for the Collection Viewer UI in the MainMenu scene.
@@ -75,7 +76,7 @@ public class CollectionSetup : EditorWindow
         // Dark overlay background
         Image panelBg = collectionPanel.GetComponent<Image>();
         if (panelBg == null) panelBg = collectionPanel.AddComponent<Image>();
-        panelBg.color = new Color(0.08f, 0.06f, 0.12f, 0.97f);
+        panelBg.color = Tokens.WithAlpha(Tokens.Ash, 0.97f);
         panelBg.raycastTarget = false;
 
         // ===================== LEFT SECTION (70% for grid area) =====================
@@ -89,8 +90,8 @@ public class CollectionSetup : EditorWindow
         SetAnchors(topBar, new Vector2(0, 0.92f), Vector2.one);
 
         // Title
-        EditorUiFactory.CreateText(topBar.transform, "CollectionTitle", "Card Collection", 28,
-            FontStyles.Bold, new Color(1f, 0.78f, 0.15f), TextAlignmentOptions.MidlineLeft, richText: true, raycastTarget: false);
+        EditorUiFactory.CreateText(topBar.transform, "CollectionTitle", "Card Collection", (int)Tokens.TextH3,
+            FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.MidlineLeft, richText: true, raycastTarget: false);
 
         // Spacer to push close button right
         GameObject titleSpacer = new GameObject("TitleSpacer");
@@ -102,12 +103,12 @@ public class CollectionSetup : EditorWindow
         // Close button
         GameObject closeBtn = EditorUiFactory.CreateButton(topBar.transform, "CloseButton", "X", 45, 40,
             labelRaycastTarget: false);
-        SetButtonColor(closeBtn, new Color(0.6f, 0.15f, 0.15f));
+        SetButtonColor(closeBtn, Tokens.Blood);
         so.FindProperty("closeButton").objectReferenceValue = closeBtn.GetComponent<Button>();
 
         // Card count
-        GameObject countObj = EditorUiFactory.CreateText(topBar.transform, "CardCountText", "0 / 0 cards", 16,
-            FontStyles.Normal, new Color(0.7f, 0.7f, 0.7f), TextAlignmentOptions.MidlineRight, richText: true, raycastTarget: false);
+        GameObject countObj = EditorUiFactory.CreateText(topBar.transform, "CardCountText", "0 / 0 cards", (int)Tokens.TextCaption,
+            FontStyles.Normal, Tokens.BoneDim, TextAlignmentOptions.MidlineRight, richText: true, raycastTarget: false);
         so.FindProperty("cardCountText").objectReferenceValue = countObj.GetComponent<TMP_Text>();
         LayoutElement countLE = countObj.GetComponent<LayoutElement>();
         if (countLE == null) countLE = countObj.AddComponent<LayoutElement>();
@@ -120,8 +121,8 @@ public class CollectionSetup : EditorWindow
         SetAnchors(tribeRow, new Vector2(0, 0.85f), new Vector2(1f, 0.92f));
 
         // Label for tribe row
-        EditorUiFactory.CreateText(tribeRow.transform, "TribeLabel", "Tribe:", 14,
-            FontStyles.Bold, Color.white, TextAlignmentOptions.MidlineLeft, richText: true, raycastTarget: false);
+        EditorUiFactory.CreateText(tribeRow.transform, "TribeLabel", "Tribe:", (int)Tokens.TextCaption,
+            FontStyles.Bold, Tokens.Bone, TextAlignmentOptions.MidlineLeft, richText: true, raycastTarget: false);
 
         so.FindProperty("tribeFilterContainer").objectReferenceValue = tribeRow.transform;
 
@@ -132,8 +133,8 @@ public class CollectionSetup : EditorWindow
         SetAnchors(tierRow, new Vector2(0, 0.78f), new Vector2(1f, 0.85f));
 
         // Label for tier row
-        EditorUiFactory.CreateText(tierRow.transform, "TierLabel", "Tier:", 14,
-            FontStyles.Bold, Color.white, TextAlignmentOptions.MidlineLeft, richText: true, raycastTarget: false);
+        EditorUiFactory.CreateText(tierRow.transform, "TierLabel", "Tier:", (int)Tokens.TextCaption,
+            FontStyles.Bold, Tokens.Bone, TextAlignmentOptions.MidlineLeft, richText: true, raycastTarget: false);
 
         so.FindProperty("tierFilterContainer").objectReferenceValue = tierRow.transform;
 
@@ -153,8 +154,8 @@ public class CollectionSetup : EditorWindow
         scrollArea.transform.SetParent(leftSection.transform, false);
         RectTransform scrollRect = scrollArea.AddComponent<RectTransform>();
         SetAnchors(scrollArea, new Vector2(0, 0), new Vector2(1f, 0.78f));
-        scrollRect.offsetMin = new Vector2(15f, 15f);
-        scrollRect.offsetMax = new Vector2(-15f, -5f);
+        scrollRect.offsetMin = new Vector2(Tokens.Space2, Tokens.Space2);
+        scrollRect.offsetMax = new Vector2(-Tokens.Space2, -5f);
 
         // Viewport
         GameObject viewport = new GameObject("Viewport");
@@ -166,7 +167,7 @@ public class CollectionSetup : EditorWindow
         vpRect.offsetMax = Vector2.zero;
         viewport.AddComponent<RectMask2D>();
         Image vpImg = viewport.AddComponent<Image>();
-        vpImg.color = new Color(1f, 1f, 1f, 0.003f); // Nearly invisible for raycasting
+        vpImg.color = Tokens.WithAlpha(Tokens.Ash, 0.003f); // Nearly invisible for raycasting
         vpImg.raycastTarget = false;
 
         // Content (the grid)
@@ -217,7 +218,7 @@ public class CollectionSetup : EditorWindow
         // Dark background for detail panel
         Image detailBg = rightSection.GetComponent<Image>();
         if (detailBg == null) detailBg = rightSection.AddComponent<Image>();
-        detailBg.color = new Color(0.10f, 0.08f, 0.14f, 0.95f);
+        detailBg.color = Tokens.WithAlpha(Tokens.Umber, 0.95f);
         detailBg.raycastTarget = false;
 
         RectTransform detailPanelRect = rightSection.GetComponent<RectTransform>();
@@ -229,11 +230,11 @@ public class CollectionSetup : EditorWindow
         RectTransform dcRect = detailContent.AddComponent<RectTransform>();
         dcRect.anchorMin = Vector2.zero;
         dcRect.anchorMax = Vector2.one;
-        dcRect.offsetMin = new Vector2(15f, 15f);
-        dcRect.offsetMax = new Vector2(-15f, -15f);
+        dcRect.offsetMin = new Vector2(Tokens.Space2, Tokens.Space2);
+        dcRect.offsetMax = new Vector2(-Tokens.Space2, -Tokens.Space2);
 
         VerticalLayoutGroup detailVLG = detailContent.AddComponent<VerticalLayoutGroup>();
-        detailVLG.spacing = 15f;
+        detailVLG.spacing = Tokens.Space2;
         detailVLG.childAlignment = TextAnchor.UpperCenter;
         detailVLG.childControlWidth = true;
         detailVLG.childControlHeight = false;
@@ -242,8 +243,8 @@ public class CollectionSetup : EditorWindow
         detailVLG.padding = new RectOffset(10, 10, 20, 20);
 
         // Detail header
-        EditorUiFactory.CreateText(detailContent.transform, "DetailHeader", "Card Details", 22,
-            FontStyles.Bold, new Color(1f, 0.78f, 0.15f), TextAlignmentOptions.Center, richText: true, raycastTarget: false);
+        EditorUiFactory.CreateText(detailContent.transform, "DetailHeader", "Card Details", (int)Tokens.TextBody,
+            FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.Center, richText: true, raycastTarget: false);
 
         // Separator line
         GameObject separator = new GameObject("Separator");
@@ -251,7 +252,7 @@ public class CollectionSetup : EditorWindow
         RectTransform sepRect = separator.AddComponent<RectTransform>();
         sepRect.sizeDelta = new Vector2(0, 2);
         Image sepImg = separator.AddComponent<Image>();
-        sepImg.color = new Color(0.55f, 0.3f, 0.75f, 0.6f);
+        sepImg.color = Tokens.WithAlpha(Tokens.StoneEdge, 0.6f);
         sepImg.raycastTarget = false;
         LayoutElement sepLE = separator.AddComponent<LayoutElement>();
         sepLE.minHeight = 2f;
@@ -264,7 +265,7 @@ public class CollectionSetup : EditorWindow
         RectTransform cpRect = cardPlaceholder.AddComponent<RectTransform>();
         cpRect.sizeDelta = new Vector2(160f, 220f);
         Image cpBg = cardPlaceholder.AddComponent<Image>();
-        cpBg.color = new Color(0.15f, 0.12f, 0.2f, 0.8f);
+        cpBg.color = Tokens.WithAlpha(Tokens.CharredWood, 0.8f);
         cpBg.raycastTarget = false;
         LayoutElement cpLE = cardPlaceholder.AddComponent<LayoutElement>();
         cpLE.preferredWidth = 160f;
@@ -272,8 +273,8 @@ public class CollectionSetup : EditorWindow
 
         // Detail name text
         GameObject detailNameObj = EditorUiFactory.CreateText(detailContent.transform, "DetailName",
-            "Select a card...", 18, FontStyles.Bold,
-            new Color(1f, 0.78f, 0.15f), TextAlignmentOptions.Center, richText: true, raycastTarget: false);
+            "Select a card...", (int)Tokens.TextCaption, FontStyles.Bold,
+            Tokens.BronzeBright, TextAlignmentOptions.Center, richText: true, raycastTarget: false);
         so.FindProperty("detailName").objectReferenceValue = detailNameObj.GetComponent<TMP_Text>();
         LayoutElement dnLE = detailNameObj.GetComponent<LayoutElement>();
         if (dnLE == null) dnLE = detailNameObj.AddComponent<LayoutElement>();
@@ -281,8 +282,8 @@ public class CollectionSetup : EditorWindow
 
         // Detail abilities text
         GameObject detailAbilitiesObj = EditorUiFactory.CreateText(detailContent.transform, "DetailAbilities",
-            "", 15, FontStyles.Normal,
-            Color.white, TextAlignmentOptions.Center, richText: true, raycastTarget: false);
+            "", (int)Tokens.TextCaption, FontStyles.Normal,
+            Tokens.Bone, TextAlignmentOptions.Center, richText: true, raycastTarget: false);
         so.FindProperty("detailAbilities").objectReferenceValue = detailAbilitiesObj.GetComponent<TMP_Text>();
         LayoutElement daLE = detailAbilitiesObj.GetComponent<LayoutElement>();
         if (daLE == null) daLE = detailAbilitiesObj.AddComponent<LayoutElement>();
@@ -294,8 +295,8 @@ public class CollectionSetup : EditorWindow
 
         // Detail lore text
         GameObject detailLoreObj = EditorUiFactory.CreateText(detailContent.transform, "DetailLore",
-            "", 13, FontStyles.Italic,
-            new Color(0.65f, 0.65f, 0.65f), TextAlignmentOptions.Center, richText: true, raycastTarget: false);
+            "", (int)Tokens.TextCaption, FontStyles.Italic,
+            Tokens.BoneDim, TextAlignmentOptions.Center, richText: true, raycastTarget: false);
         so.FindProperty("detailLore").objectReferenceValue = detailLoreObj.GetComponent<TMP_Text>();
         LayoutElement dlLE = detailLoreObj.GetComponent<LayoutElement>();
         if (dlLE == null) dlLE = detailLoreObj.AddComponent<LayoutElement>();
@@ -303,8 +304,8 @@ public class CollectionSetup : EditorWindow
 
         // Selected card info (legacy)
         GameObject infoObj = EditorUiFactory.CreateText(detailContent.transform, "SelectedCardInfo",
-            "", 12, FontStyles.Normal,
-            new Color(0.6f, 0.6f, 0.6f), TextAlignmentOptions.Center, richText: true, raycastTarget: false);
+            "", (int)Tokens.TextCaption, FontStyles.Normal,
+            Tokens.BoneDim, TextAlignmentOptions.Center, richText: true, raycastTarget: false);
         so.FindProperty("selectedCardInfo").objectReferenceValue = infoObj.GetComponent<TMP_Text>();
 
         // CollectionPanel starts inactive
@@ -369,7 +370,7 @@ public class CollectionSetup : EditorWindow
             colors.highlightedColor = color * 1.2f;
             colors.pressedColor = color * 0.8f;
             colors.selectedColor = color * 1.1f;
-            colors.disabledColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+            colors.disabledColor = Tokens.WithAlpha(Tokens.BoneDim, 0.5f);
             btn.colors = colors;
         }
     }
@@ -388,7 +389,7 @@ public class CollectionSetup : EditorWindow
         rect.offsetMax = new Vector2(0, 0);
 
         Image trackImg = scrollbarObj.AddComponent<Image>();
-        trackImg.color = new Color(0.15f, 0.12f, 0.2f, 0.5f);
+        trackImg.color = Tokens.WithAlpha(Tokens.CharredWood, 0.5f);
         trackImg.raycastTarget = false;
 
         // Sliding area
@@ -407,7 +408,7 @@ public class CollectionSetup : EditorWindow
         hRect.sizeDelta = new Vector2(10f, 10f);
 
         Image handleImg = handle.AddComponent<Image>();
-        handleImg.color = new Color(0.55f, 0.3f, 0.75f, 0.7f);
+        handleImg.color = Tokens.WithAlpha(Tokens.Bronze, 0.7f);
 
         Scrollbar scrollbar = scrollbarObj.AddComponent<Scrollbar>();
         scrollbar.handleRect = hRect;
@@ -415,9 +416,9 @@ public class CollectionSetup : EditorWindow
         scrollbar.targetGraphic = handleImg;
 
         ColorBlock scrollColors = scrollbar.colors;
-        scrollColors.normalColor = new Color(0.55f, 0.3f, 0.75f, 0.7f);
-        scrollColors.highlightedColor = new Color(0.65f, 0.4f, 0.85f, 0.9f);
-        scrollColors.pressedColor = new Color(0.45f, 0.2f, 0.65f, 1f);
+        scrollColors.normalColor = Tokens.WithAlpha(Tokens.Bronze, 0.7f);
+        scrollColors.highlightedColor = Tokens.Ember;
+        scrollColors.pressedColor = Tokens.Ember * 0.8f;
         scrollbar.colors = scrollColors;
 
         return scrollbarObj;

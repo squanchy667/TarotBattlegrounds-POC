@@ -17,9 +17,9 @@ using TarotBattlegrounds.UI;
 public class CardLayoutSetup : Editor
 {
     // Badge colors matching CardDisplayUI constants
-    private static readonly Color attackBadgeColor = new Color(0.7f, 0.15f, 0.15f, 1f);
-    private static readonly Color healthBadgeColor = new Color(0.15f, 0.55f, 0.15f, 1f);
-    private static readonly Color costBadgeColor = new Color(0.2f, 0.4f, 0.8f, 1f);
+    private static readonly Color attackBadgeColor = Tokens.BloodDeep;
+    private static readonly Color healthBadgeColor = Tokens.Ember;
+    private static readonly Color costBadgeColor = Tokens.Bronze;
 
     [MenuItem("Tools/Game/Setup Card Layout")]
     public static void SetupCardLayout()
@@ -74,7 +74,7 @@ public class CardLayoutSetup : Editor
         // Name Banner: top strip, stretched horizontal, 24px height
         GameObject nameBannerObj = EditorUiFactory.CreateUIChild(display.gameObject, "NameBanner");
         Image nameBannerImage = nameBannerObj.AddComponent<Image>();
-        nameBannerImage.color = new Color(0f, 0f, 0f, 0.5f); // Semi-transparent dark
+        nameBannerImage.color = Tokens.WithAlpha(Tokens.CharredWood, 0.5f); // Semi-transparent dark
         nameBannerImage.raycastTarget = false;
         RectTransform nameBannerRect = nameBannerObj.GetComponent<RectTransform>();
         nameBannerRect.anchorMin = new Vector2(0f, 1f);
@@ -103,9 +103,9 @@ public class CardLayoutSetup : Editor
         // Ability Text inside AbilityArea
         GameObject abilityTextObj = EditorUiFactory.CreateUIChild(abilityAreaObj, "AbilityText");
         TextMeshProUGUI abilityTmp = abilityTextObj.AddComponent<TextMeshProUGUI>();
-        abilityTmp.fontSize = 11f;
+        abilityTmp.fontSize = Tokens.TextCaption;
         abilityTmp.fontStyle = FontStyles.Italic;
-        abilityTmp.color = new Color(0.7f, 0.7f, 0.7f, 1f);
+        abilityTmp.color = Tokens.BoneDim;
         abilityTmp.alignment = TextAlignmentOptions.Center;
         abilityTmp.enableWordWrapping = true;
         abilityTmp.overflowMode = TextOverflowModes.Ellipsis;
@@ -219,9 +219,9 @@ public class CardLayoutSetup : Editor
         // Value text child (centered in badge)
         GameObject valueTextObj = EditorUiFactory.CreateUIChild(badgeObj, "Value");
         TextMeshProUGUI valueTmp = valueTextObj.AddComponent<TextMeshProUGUI>();
-        valueTmp.fontSize = 22f;
+        valueTmp.fontSize = Tokens.TextBody;
         valueTmp.fontStyle = FontStyles.Bold;
-        valueTmp.color = Color.white;
+        valueTmp.color = Tokens.BoneBright;
         valueTmp.alignment = TextAlignmentOptions.Center;
         valueTmp.raycastTarget = false;
         valueTmp.enableWordWrapping = false;

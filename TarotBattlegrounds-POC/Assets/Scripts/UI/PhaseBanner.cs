@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Animated phase transition banner and turn counter badge.
@@ -22,14 +23,14 @@ public class PhaseBanner : MonoBehaviour, IThemeable
     [SerializeField] private TMP_Text turnText;
 
     [Header("Phase Colors")]
-    [SerializeField] private Color recruitColor = new Color(1f, 0.82f, 0.12f);
-    [SerializeField] private Color combatColor = new Color(0.95f, 0.25f, 0.25f);
-    [SerializeField] private Color bannerBgColor = new Color(0.05f, 0.03f, 0.10f, 0.85f);
+    [SerializeField] private Color recruitColor = Tokens.BronzeBright;
+    [SerializeField] private Color combatColor = Tokens.Blood;
+    [SerializeField] private Color bannerBgColor = Tokens.WithAlpha(Tokens.Ash, 0.85f);
 
     [Header("Timing")]
-    [SerializeField] private float slideInDuration = 0.3f;
+    [SerializeField] private float slideInDuration = Tokens.DurBase;
     [SerializeField] private float holdDuration = 1.2f;
-    [SerializeField] private float fadeOutDuration = 0.4f;
+    [SerializeField] private float fadeOutDuration = Tokens.DurSlow;
     [SerializeField] private float offscreenOffset = 800f;
 
     private Coroutine currentBanner;
@@ -92,7 +93,7 @@ public class PhaseBanner : MonoBehaviour, IThemeable
         if (bannerShadowText != null)
         {
             bannerShadowText.text = text;
-            bannerShadowText.color = new Color(0, 0, 0, 0.5f);
+            bannerShadowText.color = Tokens.WithAlpha(Tokens.Ash, 0.5f);
         }
 
         // Setup background
@@ -159,7 +160,7 @@ public class PhaseBanner : MonoBehaviour, IThemeable
         if (turnBadge == null) yield break;
 
         RectTransform badgeRect = turnBadge.rectTransform;
-        float pulseDuration = 0.3f;
+        float pulseDuration = Tokens.DurBase;
         float elapsed = 0f;
 
         while (elapsed < pulseDuration)

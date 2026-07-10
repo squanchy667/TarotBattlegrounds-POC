@@ -21,8 +21,8 @@ namespace TarotBattlegrounds.UI
         [SerializeField] private float snapSpeed = 15f;
 
         [Header("Visual Feedback")]
-        [SerializeField] private Color validDropColor = new Color(0.3f, 0.8f, 0.3f, 0.5f);
-        [SerializeField] private Color invalidDropColor = new Color(0.8f, 0.3f, 0.3f, 0.5f);
+        [SerializeField] private Color validDropColor = Tokens.WithAlpha(Tokens.Ember, 0.5f);
+        [SerializeField] private Color invalidDropColor = Tokens.WithAlpha(Tokens.Blood, 0.5f);
 
         // Drag state
         private bool isDragging;
@@ -177,9 +177,9 @@ namespace TarotBattlegrounds.UI
 
             var tmpText = textObj.AddComponent<TMPro.TextMeshProUGUI>();
             tmpText.text = $"{card.cardName}\n{card.attack}/{card.health}";
-            tmpText.fontSize = 12f;
+            tmpText.fontSize = Tokens.TextCaption;
             tmpText.alignment = TMPro.TextAlignmentOptions.Center;
-            tmpText.color = Color.white;
+            tmpText.color = Tokens.BoneBright;
         }
 
         private void DestroyDragGhost()

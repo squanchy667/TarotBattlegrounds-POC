@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UI component for displaying combat log during battles with theming support.
@@ -28,13 +29,13 @@ public class CombatLogUI : MonoBehaviour, IThemeable
     [SerializeField] private int maxLogEntries = 50;
 
     [Header("Entry Colors (overridden by theme)")]
-    [SerializeField] private Color attackColor = new Color(1f, 0.5f, 0.5f);
-    [SerializeField] private Color counterattackColor = new Color(0.5f, 0.5f, 1f);
-    [SerializeField] private Color deathColor = new Color(0.5f, 0.5f, 0.5f);
-    [SerializeField] private Color aegisColor = new Color(1f, 1f, 0.5f);
-    [SerializeField] private Color echoColor = new Color(0.5f, 1f, 0.5f);
-    [SerializeField] private Color resultColor = new Color(1f, 0.8f, 0.2f);
-    [SerializeField] private Color defaultColor = Color.white;
+    [SerializeField] private Color attackColor = Tokens.Blood;
+    [SerializeField] private Color counterattackColor = Tokens.Ember;
+    [SerializeField] private Color deathColor = Tokens.BoneDim;
+    [SerializeField] private Color aegisColor = Tokens.BronzeBright;
+    [SerializeField] private Color echoColor = Tokens.Ember;
+    [SerializeField] private Color resultColor = Tokens.BronzeBright;
+    [SerializeField] private Color defaultColor = Tokens.BoneBright;
 
     private List<GameObject> logEntries = new List<GameObject>();
     private string currentPlayer1;
@@ -197,10 +198,10 @@ public class CombatLogUI : MonoBehaviour, IThemeable
         {
             entryText.text = FormatLogEntry(entry);
             entryText.color = GetEntryColor(entry.Type);
-            entryText.fontSize = 14;
+            entryText.fontSize = Tokens.TextCaption;
             entryText.enableAutoSizing = true;
-            entryText.fontSizeMin = 12;
-            entryText.fontSizeMax = 14;
+            entryText.fontSizeMin = Tokens.TextCaption;
+            entryText.fontSizeMax = Tokens.TextCaption;
         }
         
         // Enforce max entries
@@ -230,10 +231,10 @@ public class CombatLogUI : MonoBehaviour, IThemeable
         switch (entry.Type)
         {
             case CombatLogEntry.LogType.Attack:
-                return $"{turnPrefix}{icon} <b>{entry.AttackerName}</b> attacks <b>{entry.DefenderName}</b> for <color=red>{entry.Damage}</color> dmg → {entry.RemainingHealth} HP";
+                return $"{turnPrefix}{icon} <b>{entry.AttackerName}</b> attacks <b>{entry.DefenderName}</b> for <color=#{ColorUtility.ToHtmlStringRGB(Tokens.Blood)}>{entry.Damage}</color> dmg → {entry.RemainingHealth} HP";
                 
             case CombatLogEntry.LogType.Counterattack:
-                return $"{turnPrefix}{icon} <b>{entry.DefenderName}</b> counters <b>{entry.AttackerName}</b> for <color=blue>{entry.Damage}</color> dmg → {entry.RemainingHealth} HP";
+                return $"{turnPrefix}{icon} <b>{entry.DefenderName}</b> counters <b>{entry.AttackerName}</b> for <color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>{entry.Damage}</color> dmg → {entry.RemainingHealth} HP";
                 
             case CombatLogEntry.LogType.CardDeath:
                 return $"{turnPrefix}{icon} <b>{entry.DefenderName}</b> is destroyed! ({entry.DefenderOwner})";

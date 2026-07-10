@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Editor script to set up the Match Info scoreboard panel in the Game scene.
@@ -106,13 +107,13 @@ public class MatchInfoPanelSetup : EditorWindow
         toggleRect.anchorMax = new Vector2(1, 1);
         toggleRect.pivot = new Vector2(1, 1);
         toggleRect.anchoredPosition = new Vector2(-10, -10);
-        SetButtonColor(toggleBtn, new Color(0.3f, 0.3f, 0.5f, 0.9f));
+        SetButtonColor(toggleBtn, Tokens.WithAlpha(Tokens.CharredWood, 0.9f));
 
         TMP_Text toggleText = toggleBtn.GetComponentInChildren<TextMeshProUGUI>();
         if (toggleText != null)
         {
             toggleText.fontStyle = FontStyles.Bold | FontStyles.Italic;
-            toggleText.fontSize = 28;
+            toggleText.fontSize = Tokens.TextH3;
         }
 
         // === Fullscreen dismiss overlay ===
@@ -124,7 +125,7 @@ public class MatchInfoPanelSetup : EditorWindow
         overlayRect.offsetMin = Vector2.zero;
         overlayRect.offsetMax = Vector2.zero;
         Image overlayImg = overlay.AddComponent<Image>();
-        overlayImg.color = new Color(0f, 0f, 0f, 0.5f);
+        overlayImg.color = Tokens.WithAlpha(Tokens.Ash, 0.5f);
         Button overlayBtn = overlay.AddComponent<Button>();
         ColorBlock overlayColors = overlayBtn.colors;
         overlayColors.normalColor = Color.white;
@@ -143,7 +144,7 @@ public class MatchInfoPanelSetup : EditorWindow
         panelRect.offsetMax = Vector2.zero;
 
         Image panelBg = panel.AddComponent<Image>();
-        panelBg.color = new Color(0.06f, 0.05f, 0.1f, 0.96f);
+        panelBg.color = Tokens.WithAlpha(Tokens.Umber, 0.96f);
 
         // === Scroll View inside panel ===
         GameObject scrollView = new GameObject("ScrollView");
@@ -165,7 +166,7 @@ public class MatchInfoPanelSetup : EditorWindow
         vpRect.offsetMin = Vector2.zero;
         vpRect.offsetMax = Vector2.zero;
         viewport.AddComponent<Mask>().showMaskGraphic = false;
-        viewport.AddComponent<Image>().color = Color.white;
+        viewport.AddComponent<Image>().color = Tokens.Umber;
 
         // Content
         GameObject content = new GameObject("Content");
@@ -193,51 +194,51 @@ public class MatchInfoPanelSetup : EditorWindow
 
         // === Content sections ===
         // Title
-        GameObject titleObj = EditorUiFactory.CreateText(content.transform, "TitleText", "Match Status", 42,
-            FontStyles.Bold, new Color(1f, 0.84f, 0f), TextAlignmentOptions.Center, flexibleHeight: 1f);
+        GameObject titleObj = EditorUiFactory.CreateText(content.transform, "TitleText", "Match Status", (int)Tokens.TextH2,
+            FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.Center, flexibleHeight: 1f);
 
         // Turn / Phase / Alive
-        GameObject turnObj = EditorUiFactory.CreateText(content.transform, "TurnText", "Turn 1  |  Phase: Recruit  |  Alive: 4", 30,
-            FontStyles.Normal, Color.white, TextAlignmentOptions.Center, flexibleHeight: 1f);
+        GameObject turnObj = EditorUiFactory.CreateText(content.transform, "TurnText", "Turn 1  |  Phase: Recruit  |  Alive: 4", (int)Tokens.TextH3,
+            FontStyles.Normal, Tokens.BoneBright, TextAlignmentOptions.Center, flexibleHeight: 1f);
 
         CreateSeparator(content.transform);
 
         // Section: Player Statuses
-        EditorUiFactory.CreateText(content.transform, "StatusHeader", "PLAYERS", 28,
-            FontStyles.Bold, new Color(0.6f, 0.8f, 1f), TextAlignmentOptions.Left, flexibleHeight: 1f);
+        EditorUiFactory.CreateText(content.transform, "StatusHeader", "PLAYERS", (int)Tokens.TextH3,
+            FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         GameObject statusObj = EditorUiFactory.CreateText(content.transform, "PlayerStatusText",
             "  P1 (You)  HP: 40  |  Tier 1  |  Coins: 3  |  Hand: 0  |  Board: 0/7\n" +
             "  P2 (AI)   HP: 40  |  Tier 1  |  Coins: 3  |  Hand: 0  |  Board: 0/7",
-            24, FontStyles.Normal, new Color(0.9f, 0.9f, 0.9f), TextAlignmentOptions.Left, flexibleHeight: 1f);
+            (int)Tokens.TextBody, FontStyles.Normal, Tokens.Bone, TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         CreateSeparator(content.transform);
 
         // Section: Boards
-        EditorUiFactory.CreateText(content.transform, "BoardsHeader", "BOARDS", 28,
-            FontStyles.Bold, new Color(0.6f, 1f, 0.8f), TextAlignmentOptions.Left, flexibleHeight: 1f);
+        EditorUiFactory.CreateText(content.transform, "BoardsHeader", "BOARDS", (int)Tokens.TextH3,
+            FontStyles.Bold, Tokens.Ember, TextAlignmentOptions.Left, flexibleHeight: 1f); // was green; no green in design system
 
         GameObject boardsObj = EditorUiFactory.CreateText(content.transform, "BoardsText",
             "  P1 Board: (empty)\n  P2 Board: (empty)",
-            22, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left, flexibleHeight: 1f);
+            (int)Tokens.TextBody, FontStyles.Normal, Tokens.Bone, TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         CreateSeparator(content.transform);
 
         // Section: Last Round
-        EditorUiFactory.CreateText(content.transform, "LastRoundHeader", "LAST ROUND", 28,
-            FontStyles.Bold, new Color(1f, 0.7f, 0.7f), TextAlignmentOptions.Left, flexibleHeight: 1f);
+        EditorUiFactory.CreateText(content.transform, "LastRoundHeader", "LAST ROUND", (int)Tokens.TextH3,
+            FontStyles.Bold, Tokens.Blood, TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         GameObject lastRoundObj = EditorUiFactory.CreateText(content.transform, "LastRoundText",
-            "No battles yet", 22, FontStyles.Normal, new Color(0.85f, 0.85f, 0.85f), TextAlignmentOptions.Left, flexibleHeight: 1f);
+            "No battles yet", (int)Tokens.TextBody, FontStyles.Normal, Tokens.Bone, TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         CreateSeparator(content.transform);
 
         // Section: History
-        EditorUiFactory.CreateText(content.transform, "HistoryHeader", "BATTLE HISTORY", 28,
-            FontStyles.Bold, new Color(1f, 0.85f, 0.6f), TextAlignmentOptions.Left, flexibleHeight: 1f);
+        EditorUiFactory.CreateText(content.transform, "HistoryHeader", "BATTLE HISTORY", (int)Tokens.TextH3,
+            FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         GameObject historyObj = EditorUiFactory.CreateText(content.transform, "HistoryText",
-            "", 20, FontStyles.Normal, new Color(0.75f, 0.75f, 0.75f), TextAlignmentOptions.Left, flexibleHeight: 1f);
+            "", (int)Tokens.TextCaption, FontStyles.Normal, Tokens.BoneDim, TextAlignmentOptions.Left, flexibleHeight: 1f);
 
         // === Wire serialized fields ===
         SerializedObject so = new SerializedObject(matchInfoUI);
@@ -277,7 +278,7 @@ public class MatchInfoPanelSetup : EditorWindow
             colors.highlightedColor = color * 1.2f;
             colors.pressedColor = color * 0.8f;
             colors.selectedColor = color * 1.1f;
-            colors.disabledColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+            colors.disabledColor = Tokens.WithAlpha(Tokens.BoneDim, 0.5f);
             btn.colors = colors;
         }
     }
@@ -287,7 +288,7 @@ public class MatchInfoPanelSetup : EditorWindow
         GameObject sep = new GameObject("Separator");
         sep.transform.SetParent(parent, false);
         sep.AddComponent<RectTransform>().sizeDelta = new Vector2(0, 1);
-        sep.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.12f);
+        sep.AddComponent<Image>().color = Tokens.WithAlpha(Tokens.StoneEdge, 0.12f);
         LayoutElement le = sep.AddComponent<LayoutElement>();
         le.minHeight = 1;
         le.preferredHeight = 1;

@@ -25,7 +25,7 @@ namespace TarotBattlegrounds.UI
         [SerializeField] private float cardSellDuration = 0.3f;
         [SerializeField] private float cardBuyDuration = 0.3f;
         [SerializeField] private float coinBurstDuration = 0.5f;
-        [SerializeField] private Color coinColor = new Color(1f, 0.84f, 0f, 1f); // Gold
+        [SerializeField] private Color coinColor = Tokens.BronzeBright;
         [SerializeField] private Canvas rootCanvas;
 
         private void Awake()
@@ -49,7 +49,7 @@ namespace TarotBattlegrounds.UI
         {
             float staggerDelay = 0.06f;
             float slideDistance = 200f;
-            float duration = 0.25f;
+            float duration = Tokens.DurBase;
 
             for (int i = 0; i < container.childCount; i++)
             {
@@ -187,7 +187,7 @@ namespace TarotBattlegrounds.UI
 
             // Fade out
             elapsed = 0f;
-            float fadeDuration = 0.4f;
+            float fadeDuration = Tokens.DurBase;
             while (elapsed < fadeDuration)
             {
                 elapsed += Time.deltaTime;
@@ -201,7 +201,7 @@ namespace TarotBattlegrounds.UI
         /// <summary>
         /// Generic scale punch animation for any RectTransform.
         /// </summary>
-        public void PunchScale(RectTransform target, float punchScale = 1.2f, float duration = 0.2f)
+        public void PunchScale(RectTransform target, float punchScale = 1.2f, float duration = Tokens.DurBase)
         {
             if (target != null) StartCoroutine(PunchScaleRoutine(target, punchScale, duration));
         }
@@ -371,10 +371,10 @@ namespace TarotBattlegrounds.UI
                 RectTransform glowRect = glowObj.AddComponent<RectTransform>();
                 glowRect.anchorMin = Vector2.zero;
                 glowRect.anchorMax = Vector2.one;
-                glowRect.offsetMin = new Vector2(-8f, -8f);
-                glowRect.offsetMax = new Vector2(8f, 8f);
+                glowRect.offsetMin = new Vector2(-Tokens.Space1, -Tokens.Space1);
+                glowRect.offsetMax = new Vector2(Tokens.Space1, Tokens.Space1);
                 glowImage = glowObj.AddComponent<Image>();
-                glowImage.color = new Color(1f, 0.9f, 0.4f, 0f); // Warm gold glow, starts invisible
+                glowImage.color = Tokens.WithAlpha(Tokens.BronzeBright, 0f); // Warm gold glow, starts invisible
                 glowImage.raycastTarget = false;
 
                 // Move glow behind card content
@@ -399,7 +399,7 @@ namespace TarotBattlegrounds.UI
                 if (glowImage != null)
                 {
                     float glowAlpha = 0.5f * Mathf.Sin(smoothT * Mathf.PI);
-                    glowImage.color = new Color(1f, 0.9f, 0.4f, glowAlpha);
+                    glowImage.color = Tokens.WithAlpha(Tokens.BronzeBright, glowAlpha);
                 }
 
                 yield return null;

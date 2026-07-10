@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Editor script to set up the MainMenu scene with Solo/Multiplayer panel navigation.
@@ -104,21 +105,21 @@ public class MainMenuSceneSetup : EditorWindow
         // Centered content container
         GameObject content = EditorUiFactory.CreateCenteredContainer(panel.transform, "Content", 500, 450);
         VerticalLayoutGroup vlg = content.AddComponent<VerticalLayoutGroup>();
-        vlg.spacing = 25;
+        vlg.spacing = Tokens.Space3;
         vlg.childAlignment = TextAnchor.MiddleCenter;
         vlg.childControlWidth = true;
         vlg.childControlHeight = false;
         vlg.childForceExpandWidth = true;
         vlg.childForceExpandHeight = false;
-        vlg.padding = new RectOffset(50, 50, 40, 40);
+        vlg.padding = new RectOffset(50, 50, (int)Tokens.Space4, (int)Tokens.Space4);
 
         // Title
-        EditorUiFactory.CreateText(content.transform, "TitleText", "Tarot Battlegrounds", 42,
-            FontStyles.Bold, new Color(1f, 0.84f, 0f), TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(content.transform, "TitleText", "Tarot Battlegrounds", (int)Tokens.TextH1,
+            FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.Center);
 
         // Subtitle
-        EditorUiFactory.CreateText(content.transform, "SubtitleText", "Auto Battler", 20,
-            FontStyles.Italic, new Color(0.7f, 0.7f, 0.7f), TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(content.transform, "SubtitleText", "Auto Battler", (int)Tokens.TextCaption,
+            FontStyles.Italic, Tokens.BoneDim, TextAlignmentOptions.Center);
 
         // Spacer
         GameObject spacer = new GameObject("Spacer");
@@ -128,19 +129,19 @@ public class MainMenuSceneSetup : EditorWindow
         spacerLE.minHeight = 20;
 
         // Solo button
-        GameObject soloBtn = EditorUiFactory.CreateButton(content.transform, "SoloButton", "Solo", 300, 60, labelFontSize: 22);
+        GameObject soloBtn = EditorUiFactory.CreateButton(content.transform, "SoloButton", "Solo", 300, 60, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("soloButton").objectReferenceValue = soloBtn.GetComponent<Button>();
-        SetButtonColor(soloBtn, new Color(0.2f, 0.45f, 0.2f));
+        SetButtonColor(soloBtn, Tokens.Ember);
 
         // Multiplayer button
-        GameObject mpBtn = EditorUiFactory.CreateButton(content.transform, "MultiplayerButton", "Multiplayer", 300, 60, labelFontSize: 22);
+        GameObject mpBtn = EditorUiFactory.CreateButton(content.transform, "MultiplayerButton", "Multiplayer", 300, 60, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("multiplayerButton").objectReferenceValue = mpBtn.GetComponent<Button>();
-        SetButtonColor(mpBtn, new Color(0.2f, 0.3f, 0.5f));
+        SetButtonColor(mpBtn, Tokens.Bronze);
 
         // Quit button
-        GameObject quitBtn = EditorUiFactory.CreateButton(content.transform, "QuitButton", "Quit", 300, 60, labelFontSize: 22);
+        GameObject quitBtn = EditorUiFactory.CreateButton(content.transform, "QuitButton", "Quit", 300, 60, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("quitButton").objectReferenceValue = quitBtn.GetComponent<Button>();
-        SetButtonColor(quitBtn, new Color(0.45f, 0.2f, 0.2f));
+        SetButtonColor(quitBtn, Tokens.BloodDeep);
 
         return panel;
     }
@@ -161,32 +162,32 @@ public class MainMenuSceneSetup : EditorWindow
         vlg.childControlHeight = false;
         vlg.childForceExpandWidth = true;
         vlg.childForceExpandHeight = false;
-        vlg.padding = new RectOffset(40, 40, 30, 30);
+        vlg.padding = new RectOffset((int)Tokens.Space4, (int)Tokens.Space4, 30, 30);
 
         // Title
-        EditorUiFactory.CreateText(content.transform, "SoloTitle", "Solo Game", 32,
-            FontStyles.Bold, new Color(1f, 0.84f, 0f), TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(content.transform, "SoloTitle", "Solo Game", (int)Tokens.TextH3,
+            FontStyles.Bold, Tokens.BronzeBright, TextAlignmentOptions.Center);
 
         // Player count label
-        EditorUiFactory.CreateText(content.transform, "PlayerCountLabel", "Number of Players", 20,
-            FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(content.transform, "PlayerCountLabel", "Number of Players", (int)Tokens.TextCaption,
+            FontStyles.Normal, Tokens.Bone, TextAlignmentOptions.Center);
 
         // Player count buttons row
         GameObject countRow = EditorUiFactory.CreateHorizontalRow(content.transform, "PlayerCountRow", 20, minHeight: 60f);
 
-        GameObject btn4 = EditorUiFactory.CreateButton(countRow.transform, "Players4Button", "4 Players", 150, 55, labelFontSize: 22);
+        GameObject btn4 = EditorUiFactory.CreateButton(countRow.transform, "Players4Button", "4 Players", 150, 55, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("players4Button").objectReferenceValue = btn4.GetComponent<Button>();
-        SetButtonColor(btn4, new Color(0.4f, 0.8f, 0.4f)); // Green = default selected
+        SetButtonColor(btn4, Tokens.Ember); // Default selected (Ember highlight)
 
-        GameObject btn6 = EditorUiFactory.CreateButton(countRow.transform, "Players6Button", "6 Players", 150, 55, labelFontSize: 22);
+        GameObject btn6 = EditorUiFactory.CreateButton(countRow.transform, "Players6Button", "6 Players", 150, 55, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("players6Button").objectReferenceValue = btn6.GetComponent<Button>();
 
-        GameObject btn8 = EditorUiFactory.CreateButton(countRow.transform, "Players8Button", "8 Players", 150, 55, labelFontSize: 22);
+        GameObject btn8 = EditorUiFactory.CreateButton(countRow.transform, "Players8Button", "8 Players", 150, 55, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("players8Button").objectReferenceValue = btn8.GetComponent<Button>();
 
         // Difficulty label
-        EditorUiFactory.CreateText(content.transform, "DifficultyLabel", "AI Difficulty", 20,
-            FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
+        EditorUiFactory.CreateText(content.transform, "DifficultyLabel", "AI Difficulty", (int)Tokens.TextCaption,
+            FontStyles.Normal, Tokens.Bone, TextAlignmentOptions.Center);
 
         // Difficulty dropdown
         GameObject diffDropdown = EditorUiFactory.CreateDropdown(content.transform, "DifficultyDropdown", 250, 45);
@@ -203,13 +204,13 @@ public class MainMenuSceneSetup : EditorWindow
         // Bottom buttons row
         GameObject bottomRow = EditorUiFactory.CreateHorizontalRow(content.transform, "BottomRow", 30, minHeight: 60f);
 
-        GameObject backBtn = EditorUiFactory.CreateButton(bottomRow.transform, "BackButton", "Back", 150, 55, labelFontSize: 22);
+        GameObject backBtn = EditorUiFactory.CreateButton(bottomRow.transform, "BackButton", "Back", 150, 55, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("backButton").objectReferenceValue = backBtn.GetComponent<Button>();
-        SetButtonColor(backBtn, new Color(0.45f, 0.2f, 0.2f));
+        SetButtonColor(backBtn, Tokens.BloodDeep);
 
-        GameObject playBtn = EditorUiFactory.CreateButton(bottomRow.transform, "PlayButton", "Play", 200, 55, labelFontSize: 22);
+        GameObject playBtn = EditorUiFactory.CreateButton(bottomRow.transform, "PlayButton", "Play", 200, 55, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("playButton").objectReferenceValue = playBtn.GetComponent<Button>();
-        SetButtonColor(playBtn, new Color(0.2f, 0.45f, 0.2f));
+        SetButtonColor(playBtn, Tokens.Ember);
 
         return panel;
     }
@@ -229,7 +230,7 @@ public class MainMenuSceneSetup : EditorWindow
             colors.highlightedColor = color * 1.2f;
             colors.pressedColor = color * 0.8f;
             colors.selectedColor = color * 1.1f;
-            colors.disabledColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+            colors.disabledColor = Tokens.WithAlpha(Tokens.BoneDim, 0.5f);
             btn.colors = colors;
         }
     }

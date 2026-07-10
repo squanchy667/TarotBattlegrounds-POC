@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UX10: Circular arc countdown timer with color transitions and pulse effect.
@@ -15,10 +16,10 @@ public class CircularTimer : MonoBehaviour
     [SerializeField] private Image centerCircle;      // Dark center fill
 
     [Header("Colors")]
-    [SerializeField] private Color safeColor = new Color(0.2f, 0.85f, 0.4f);      // >15s
-    [SerializeField] private Color warningColor = new Color(1f, 0.82f, 0.12f);    // 5-15s
-    [SerializeField] private Color dangerColor = new Color(0.95f, 0.25f, 0.25f);  // <5s
-    [SerializeField] private Color bgRingColor = new Color(0.2f, 0.15f, 0.3f, 0.5f);
+    [SerializeField] private Color safeColor = Tokens.Ember;      // >15s
+    [SerializeField] private Color warningColor = Tokens.BronzeBright;    // 5-15s
+    [SerializeField] private Color dangerColor = Tokens.Blood;  // <5s
+    [SerializeField] private Color bgRingColor = Tokens.WithAlpha(Tokens.StoneEdge, 0.5f);
 
     [Header("Pulse")]
     [SerializeField] private float pulseThreshold = 5f;    // Start pulsing at 5s

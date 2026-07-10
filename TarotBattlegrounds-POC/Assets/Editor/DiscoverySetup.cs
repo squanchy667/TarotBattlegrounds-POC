@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UX19: Editor script to set up the Discovery Popup visual hierarchy.
@@ -108,7 +109,7 @@ public class DiscoverySetup : EditorWindow
         backdropRect.offsetMax = Vector2.zero;
 
         Image backdropImage = backdropObj.AddComponent<Image>();
-        backdropImage.color = new Color(0f, 0f, 0f, 0.7f);
+        backdropImage.color = Tokens.WithAlpha(Tokens.Ash, 0.7f);
         backdropImage.raycastTarget = true; // Blocks clicks behind popup
 
         // === 2. Discovery Panel (the main popup container) ===
@@ -126,7 +127,7 @@ public class DiscoverySetup : EditorWindow
 
         // Panel background (dark, semi-transparent)
         Image panelBg = panelObj.AddComponent<Image>();
-        panelBg.color = new Color(0.06f, 0.04f, 0.12f, 0.95f);
+        panelBg.color = Tokens.WithAlpha(Tokens.Umber, 0.95f);
         panelBg.raycastTarget = false;
 
         // === 3. Mystical Frame (double border with glow effect) ===
@@ -140,12 +141,12 @@ public class DiscoverySetup : EditorWindow
         outerFrameRect.offsetMax = new Vector2(6f, 6f);
 
         Image outerFrameImage = outerFrameObj.AddComponent<Image>();
-        outerFrameImage.color = new Color(1f, 0.78f, 0.15f, 0.25f); // Gold glow, subtle
+        outerFrameImage.color = Tokens.WithAlpha(Tokens.BronzeBright, 0.25f); // Gold glow, subtle
         outerFrameImage.raycastTarget = false;
 
         // Add Outline for procedural border effect
         Outline outerOutline = outerFrameObj.AddComponent<Outline>();
-        outerOutline.effectColor = new Color(1f, 0.78f, 0.15f, 0.4f);
+        outerOutline.effectColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.4f);
         outerOutline.effectDistance = new Vector2(3f, -3f);
 
         // Inner border
@@ -158,12 +159,12 @@ public class DiscoverySetup : EditorWindow
         innerFrameRect.offsetMax = new Vector2(2f, 2f);
 
         Image innerFrameImage = innerFrameObj.AddComponent<Image>();
-        innerFrameImage.color = new Color(1f, 0.78f, 0.15f, 0.6f); // Brighter inner border
+        innerFrameImage.color = Tokens.WithAlpha(Tokens.BronzeBright, 0.6f); // Brighter inner border
         innerFrameImage.raycastTarget = false;
 
         // Add Outline for double-border effect
         Outline innerOutline = innerFrameObj.AddComponent<Outline>();
-        innerOutline.effectColor = new Color(1f, 0.82f, 0.12f, 0.8f);
+        innerOutline.effectColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.8f);
         innerOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
         // Corner flourishes (decorative diamond shapes at corners)
@@ -183,7 +184,7 @@ public class DiscoverySetup : EditorWindow
 
         // Banner background strip
         Image bannerBg = bannerObj.AddComponent<Image>();
-        bannerBg.color = new Color(0.08f, 0.05f, 0.15f, 0.8f);
+        bannerBg.color = Tokens.WithAlpha(Tokens.CharredWood, 0.8f);
         bannerBg.raycastTarget = false;
 
         // Banner text
@@ -197,9 +198,9 @@ public class DiscoverySetup : EditorWindow
 
         TextMeshProUGUI bannerTmp = bannerTextObj.AddComponent<TextMeshProUGUI>();
         bannerTmp.text = "DISCOVER";
-        bannerTmp.fontSize = 42;
+        bannerTmp.fontSize = Tokens.TextH1;
         bannerTmp.fontStyle = FontStyles.Bold;
-        bannerTmp.color = new Color(1f, 0.82f, 0.12f); // Gold
+        bannerTmp.color = Tokens.BronzeBright; // Gold
         bannerTmp.alignment = TextAlignmentOptions.Center;
         bannerTmp.enableWordWrapping = false;
         bannerTmp.raycastTarget = false;
@@ -218,9 +219,9 @@ public class DiscoverySetup : EditorWindow
 
         TextMeshProUGUI titleTmp = titleObj.AddComponent<TextMeshProUGUI>();
         titleTmp.text = "Triple! Choose a Card:";
-        titleTmp.fontSize = 24;
+        titleTmp.fontSize = Tokens.TextBody;
         titleTmp.fontStyle = FontStyles.Normal;
-        titleTmp.color = new Color(1f, 0.82f, 0.12f); // Gold accent
+        titleTmp.color = Tokens.BronzeBright; // Gold accent
         titleTmp.alignment = TextAlignmentOptions.Center;
         titleTmp.enableWordWrapping = false;
         titleTmp.raycastTarget = false;
@@ -266,9 +267,9 @@ public class DiscoverySetup : EditorWindow
         so.FindProperty("cardScaleSpeed").floatValue = 0.3f;
 
         // UX19 colors
-        SetColorProperty(so, "backdropColor", new Color(0f, 0f, 0f, 0.7f));
-        SetColorProperty(so, "bannerColor", new Color(1f, 0.82f, 0.12f));
-        SetColorProperty(so, "selectionFlash", new Color(1f, 1f, 1f, 0.8f));
+        SetColorProperty(so, "backdropColor", Tokens.WithAlpha(Tokens.Ash, 0.7f));
+        SetColorProperty(so, "bannerColor", Tokens.BronzeBright);
+        SetColorProperty(so, "selectionFlash", Tokens.WithAlpha(Tokens.Ember, 0.8f)); // was white flash; selection highlight → Ember
 
         so.ApplyModifiedProperties();
         EditorUtility.SetDirty(discoveryUI);
@@ -301,7 +302,7 @@ public class DiscoverySetup : EditorWindow
         rt.localRotation = Quaternion.Euler(0, 0, 45f);
 
         Image flourishImage = flourish.AddComponent<Image>();
-        flourishImage.color = new Color(1f, 0.82f, 0.12f, 0.7f); // Gold flourish
+        flourishImage.color = Tokens.WithAlpha(Tokens.BronzeBright, 0.7f); // Gold flourish
         flourishImage.raycastTarget = false;
     }
 
@@ -336,14 +337,8 @@ public class DiscoverySetup : EditorWindow
 
     private static TMP_FontAsset FindFont()
     {
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetDatabase.GUIDToAssetPath(guids[0]));
-        }
-        return font;
+        // Shared by DISCOVER banner (ideally Display) and the instruction subtitle (Body) — mixed roles, Body per Tokens fallback rule.
+        return FontRefs.Instance.Body;
     }
 }
 #endif

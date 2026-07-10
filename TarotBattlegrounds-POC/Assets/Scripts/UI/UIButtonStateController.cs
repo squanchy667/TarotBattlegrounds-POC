@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Owns button interactability state for GameUIManager: TarotButton-aware interactable
+/// Owns button interactability state for GameUIManager: IgniteButton-aware interactable
 /// toggling, the per-frame button enable/disable logic (incl. synergy-discounted buy cost),
 /// and UX13 button micro-feedback attachment. Extracted from GameUIManager as part of the UI
 /// god-class refactor (spec §2.2 item 3, 2026-07-04 batch).
@@ -20,18 +20,17 @@ public class UIButtonStateController
     }
 
     /// <summary>
-    /// Set button interactable state, using TarotButton.SetInteractable() if available
-    /// for styled disabled visuals, otherwise falling back to standard Button.interactable.
-    /// Moved verbatim from GameUIManager.SetButtonInteractable.
+    /// Set button interactable state, using IgniteButton.SetInteractable() if available
+    /// for tokenized disabled visuals, otherwise falling back to standard Button.interactable.
     /// </summary>
     public void SetButtonInteractable(Button button, bool interactable)
     {
         if (button == null) return;
 
-        TarotButton tarotButton = button.GetComponent<TarotButton>();
-        if (tarotButton != null)
+        TarotBattlegrounds.UI.IgniteButton ignite = button.GetComponent<TarotBattlegrounds.UI.IgniteButton>();
+        if (ignite != null)
         {
-            tarotButton.SetInteractable(interactable);
+            ignite.SetInteractable(interactable);
         }
         else
         {
@@ -136,18 +135,31 @@ public class UIButtonStateController
     }
 
     /// <summary>
-    /// UX13: Auto-attach ButtonMicroFeedback to all child Button components
-    /// that don't already have one, providing hover/press/ripple/shake micro-animations.
-    /// Moved verbatim from GameUIManager.AttachButtonMicroFeedback.
+    /// T750: Auto-attach IgniteButton to all child Button components that don't
+    /// already have one, binding the design-system button sprites and label
+    /// (DESIGN.md §10.5 — one interaction component everywhere, no scaling).
+    /// Replaces the UX13 ButtonMicroFeedback attachment.
     /// </summary>
-    public void AttachButtonMicroFeedback()
+    public void AttachIgniteButtons()
     {
+        var sprites = TarotBattlegrounds.UI.UiSprites.Instance;
         Button[] allButtons = owner.GetComponentsInChildren<Button>(true);
         foreach (Button btn in allButtons)
         {
-            if (btn.GetComponent<ButtonMicroFeedback>() == null)
+            if (btn.GetComponent<TarotBattlegrounds.UI.IgniteButton>() != null) continue;
+
+            var ignite = btn.gameObject.AddComponent<TarotBattlegrounds.UI.IgniteButton>();
+            var image = btn.GetComponent<UnityEngine.UI.Image>();
+            var label = btn.GetComponentInChildren<TMPro.TMP_Text>(true);
+            if (sprites != null && image != null)
             {
-                btn.gameObject.AddComponent<ButtonMicroFeedback>();
+                TarotBattlegrounds.UI.UiSprites.ApplySliced(image, sprites.ButtonBronze);
+                ignite.Bind(image, sprites.ButtonBronze, sprites.ButtonEmber,
+                    sprites.ButtonBronzePressed, label);
+            }
+            else
+            {
+                ignite.Bind(null, null, null, null, label);
             }
         }
     }

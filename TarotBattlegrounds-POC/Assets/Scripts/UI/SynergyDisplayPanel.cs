@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Compact side panel showing tribe synergy progress with filled/unfilled pip indicators
@@ -19,10 +20,10 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
     [SerializeField] private GameObject synergyRowPrefab;
 
     [Header("Colors")]
-    [SerializeField] private Color activeGlow = new Color(1f, 1f, 1f, 0.15f);
-    [SerializeField] private Color inactiveDim = new Color(0.3f, 0.3f, 0.3f, 0.5f);
-    [SerializeField] private Color pipFilled = new Color(1f, 1f, 1f);
-    [SerializeField] private Color pipEmpty = new Color(0.3f, 0.3f, 0.3f);
+    [SerializeField] private Color activeGlow = Tokens.WithAlpha(Tokens.Ember, 0.15f);
+    [SerializeField] private Color inactiveDim = Tokens.WithAlpha(Tokens.BoneDim, 0.5f);
+    [SerializeField] private Color pipFilled = Tokens.BoneBright;
+    [SerializeField] private Color pipEmpty = Tokens.BoneDim;
 
     [Header("Settings")]
     [SerializeField] private float rowHeight = 28f;
@@ -210,8 +211,8 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
         textRect.sizeDelta = new Vector2(36f, rowHeight);
         row.countText = textObj.AddComponent<TextMeshProUGUI>();
         row.countText.text = "0";
-        row.countText.fontSize = 14;
-        row.countText.color = new Color(0.7f, 0.7f, 0.7f);
+        row.countText.fontSize = Tokens.TextCaption;
+        row.countText.color = Tokens.BoneDim;
         row.countText.alignment = TextAlignmentOptions.MidlineLeft;
         row.countText.enableWordWrapping = false;
         row.countText.raycastTarget = false;

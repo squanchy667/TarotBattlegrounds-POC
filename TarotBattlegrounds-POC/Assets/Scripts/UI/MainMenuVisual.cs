@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UX17: Handles menu-specific visual enhancements for the MainMenu scene.
@@ -30,11 +31,8 @@ public class MainMenuVisual : ThemeableUI
     [SerializeField] private List<Button> playerCountButtons = new List<Button>();
     [SerializeField] private List<TMP_Text> playerCountLabels = new List<TMP_Text>();
 
-    [Header("Selector Colors (overridden by theme)")]
-    [SerializeField] private Color selectedColor = new Color(1f, 0.78f, 0.15f);
-    [SerializeField] private Color unselectedColor = new Color(0.25f, 0.22f, 0.35f);
-    [SerializeField] private Color selectedTextColor = Color.white;
-    [SerializeField] private Color unselectedTextColor = new Color(0.6f, 0.6f, 0.65f);
+    // Selector colors come from Tokens (T750) — selection is an ignited state:
+    // selected Ember/BoneBright, unselected surface/BoneDim. No serialized colors.
 
     private RectTransform titleRect;
     private Vector2 titleBasePosition;
@@ -109,6 +107,11 @@ public class MainMenuVisual : ThemeableUI
     private void AnimateTitleFloat()
     {
         if (titleRect == null || !titleBasePositionCaptured) return;
+        if (UiMotion.ReduceMotion)
+        {
+            titleRect.anchoredPosition = titleBasePosition;
+            return;
+        }
 
         float yOffset = Mathf.Sin(Time.unscaledTime * floatSpeed) * floatAmplitude;
         titleRect.anchoredPosition = titleBasePosition + new Vector2(0f, yOffset);
@@ -140,7 +143,7 @@ public class MainMenuVisual : ThemeableUI
 
             if (i < difficultyLabels.Count && difficultyLabels[i] != null)
             {
-                difficultyLabels[i].color = isSelected ? selectedTextColor : unselectedTextColor;
+                difficultyLabels[i].color = isSelected ? Tokens.BoneBright : Tokens.BoneDim;
             }
         }
     }
@@ -168,7 +171,7 @@ public class MainMenuVisual : ThemeableUI
 
             if (i < playerCountLabels.Count && playerCountLabels[i] != null)
             {
-                playerCountLabels[i].color = isSelected ? selectedTextColor : unselectedTextColor;
+                playerCountLabels[i].color = isSelected ? Tokens.BoneBright : Tokens.BoneDim;
             }
         }
     }
@@ -183,67 +186,42 @@ public class MainMenuVisual : ThemeableUI
     {
         if (button == null) return;
 
-        // Check for TarotButton first
-        TarotButton tarotBtn = button.GetComponent<TarotButton>();
-        if (tarotBtn != null)
+        // Selection is an ignited state — IgniteButton owns the visuals.
+        IgniteButton ignite = button.GetComponent<IgniteButton>();
+        if (ignite != null)
         {
-            tarotBtn.SetInteractable(true);
-            tarotBtn.SetVariant(isSelected ? ButtonVariant.Primary : ButtonVariant.Secondary);
+            ignite.Selected = isSelected;
             return;
         }
 
-        // Fallback: style the button Image directly
+        // Fallback for buttons not yet carrying IgniteButton: tokenized tint only.
         Image img = button.GetComponent<Image>();
         if (img != null)
         {
-            img.color = isSelected ? selectedColor : unselectedColor;
+            img.color = isSelected ? Tokens.Ember : Tokens.CharredWood;
         }
-
-        ColorBlock colors = button.colors;
-        Color baseColor = isSelected ? selectedColor : unselectedColor;
-        colors.normalColor = baseColor;
-        colors.highlightedColor = baseColor * 1.15f;
-        colors.pressedColor = baseColor * 0.8f;
-        colors.selectedColor = baseColor * 1.1f;
-        button.colors = colors;
     }
 
     // ========== THEME ==========
 
     /// <summary>
-    /// Apply theme colors to selector buttons and title.
+    /// T750: menu chrome/text colors come from Tokens, not the theme (DESIGN.md §8:
+    /// title is BoneBright; selection is Ember). Themes contribute art/copy only.
     /// </summary>
     public override void ApplyTheme(ThemeConfig theme)
     {
         if (theme == null) return;
 
-        // Update selector colors from theme
-        selectedColor = theme.accentColor;
-        unselectedColor = new Color(
-            theme.secondaryColor.r + 0.1f,
-            theme.secondaryColor.g + 0.1f,
-            theme.secondaryColor.b + 0.12f
-        );
-        selectedTextColor = theme.textColorLight;
-        unselectedTextColor = new Color(
-            theme.textColorLight.r * 0.6f,
-            theme.textColorLight.g * 0.6f,
-            theme.textColorLight.b * 0.65f
-        );
-
-        // Apply title color (gold/accent)
         if (titleText != null)
         {
-            titleText.color = theme.accentColor;
+            titleText.color = Tokens.BoneBright;
         }
 
-        // Apply fallback gradient color
         if (fallbackGradient != null && backgroundController == null)
         {
-            fallbackGradient.color = theme.gameBackgroundColor;
+            fallbackGradient.color = Tokens.Ash;
         }
 
-        // Refresh selector visuals with new colors
         UpdateDifficultyVisuals();
         UpdatePlayerCountVisuals();
     }

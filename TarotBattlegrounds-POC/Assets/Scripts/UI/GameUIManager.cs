@@ -131,7 +131,7 @@ public class GameUIManager : MonoBehaviour, IThemeable
     private void Start()
     {
         SetupButtons();
-        buttonState.AttachButtonMicroFeedback();
+        buttonState.AttachIgniteButtons();
 
 #if PHOTON_UNITY_NETWORKING
         // In online mode, lock to the local player's slot and hide switch button

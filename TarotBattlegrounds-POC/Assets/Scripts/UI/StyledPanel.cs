@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Reusable styled panel component that adds semi-transparent, rounded-corner
@@ -23,9 +24,9 @@ public class StyledPanel : MonoBehaviour, IThemeable
     [SerializeField] private float headerHeight = 32f;
 
     [Header("Colors (overridden by theme)")]
-    [SerializeField] private Color backgroundColor = new Color(0.08f, 0.05f, 0.14f, 0.7f);
-    [SerializeField] private Color borderColor = new Color(0.55f, 0.3f, 0.75f, 0.3f);
-    [SerializeField] private Color headerColor = new Color(0.12f, 0.08f, 0.20f, 0.8f);
+    [SerializeField] private Color backgroundColor = Tokens.WithAlpha(Tokens.Ash, 0.7f);
+    [SerializeField] private Color borderColor = Tokens.WithAlpha(Tokens.StoneEdge, 0.3f);
+    [SerializeField] private Color headerColor = Tokens.WithAlpha(Tokens.Umber, 0.8f);
 
     // Texture resolution for procedural generation
     private const int TextureSize = 256;

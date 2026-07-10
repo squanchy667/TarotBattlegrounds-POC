@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UX10: Editor utility to create a fully-wired CircularTimer prefab hierarchy.
@@ -55,7 +56,7 @@ public class CircularTimerSetup : Editor
         arcBgImage.fillOrigin = (int)Image.Origin360.Top;
         arcBgImage.fillClockwise = true;
         arcBgImage.fillAmount = 1f;
-        arcBgImage.color = new Color(0.2f, 0.15f, 0.3f, 0.5f);
+        arcBgImage.color = Tokens.WithAlpha(Tokens.CharredWood, 0.5f);
         arcBgImage.raycastTarget = false;
 
         // --- ArcFill ---
@@ -75,7 +76,7 @@ public class CircularTimerSetup : Editor
         arcFillImage.fillOrigin = (int)Image.Origin360.Top;
         arcFillImage.fillClockwise = true;
         arcFillImage.fillAmount = 1f;
-        arcFillImage.color = new Color(0.2f, 0.85f, 0.4f);
+        arcFillImage.color = Tokens.Ember;
         arcFillImage.raycastTarget = false;
 
         // --- CenterCircle ---
@@ -90,7 +91,7 @@ public class CircularTimerSetup : Editor
 
         Image centerImage = centerObj.AddComponent<Image>();
         centerImage.sprite = circleSprite;
-        centerImage.color = new Color(0.1f, 0.08f, 0.15f, 0.95f);
+        centerImage.color = Tokens.WithAlpha(Tokens.Ash, 0.95f);
         centerImage.raycastTarget = false;
 
         // --- TimeText ---
@@ -105,10 +106,10 @@ public class CircularTimerSetup : Editor
 
         TextMeshProUGUI tmpText = textObj.AddComponent<TextMeshProUGUI>();
         tmpText.text = "35";
-        tmpText.fontSize = 28;
+        tmpText.fontSize = Tokens.TextH3;
         tmpText.fontStyle = FontStyles.Bold;
         tmpText.alignment = TextAlignmentOptions.Center;
-        tmpText.color = new Color(0.2f, 0.85f, 0.4f);
+        tmpText.color = Tokens.Ember;
         tmpText.raycastTarget = false;
 
         // --- Wire SerializedFields ---

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using TarotBattlegrounds.Combat.Replay;
 using TarotBattlegrounds.Combat.VFX;
 using TarotBattlegrounds.Combat.Audio;
+using TarotBattlegrounds.UI;
 
 namespace TarotBattlegrounds.Combat.Animator
 {
@@ -562,12 +563,12 @@ namespace TarotBattlegrounds.Combat.Animator
                 if (result.winnerName == "Tie")
                 {
                     resultText.text = "TIE!";
-                    resultText.color = Color.white;
+                    resultText.color = Tokens.BoneBright;
                 }
                 else
                 {
                     resultText.text = $"{result.winnerName} WINS!\n{result.damageDealt} damage";
-                    resultText.color = new Color(1f, 0.8f, 0.2f);
+                    resultText.color = Tokens.BronzeBright;
                 }
             }
 

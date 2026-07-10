@@ -46,15 +46,16 @@ namespace TarotBattlegrounds.UI
         // Cached tier gem textures per tier
         private static Dictionary<int, Texture2D> _cachedGemTextures = new Dictionary<int, Texture2D>();
 
-        // Tier-based rarity colors
+        // Tier-based rarity colors — sanctioned per-tier token mapping (t1..t5); tier 6 reuses
+        // EtherViolet pending design confirmation (see drift notes).
         private static readonly Color[] TierFrameColors = new Color[]
         {
-            new Color(0.55f, 0.55f, 0.60f, 1f),   // Tier 1: Cool gray (Common)
-            new Color(0.15f, 0.75f, 0.30f, 1f),   // Tier 2: Rich green (Uncommon)
-            new Color(0.20f, 0.45f, 0.95f, 1f),   // Tier 3: Vivid blue (Rare)
-            new Color(0.65f, 0.18f, 0.85f, 1f),   // Tier 4: Royal purple (Epic)
-            new Color(1.0f, 0.55f, 0.05f, 1f),    // Tier 5: Blazing orange (Legendary)
-            new Color(1.0f, 0.82f, 0.10f, 1f)     // Tier 6: Legendary gold (Mythic)
+            Tokens.StoneEdge,     // Tier 1 (Common)
+            Tokens.Bronze,        // Tier 2 (Uncommon)
+            Tokens.BronzeBright,  // Tier 3 (Rare)
+            Tokens.EtherBlue,     // Tier 4 (Epic)
+            Tokens.EtherViolet,   // Tier 5 (Legendary)
+            Tokens.EtherViolet    // Tier 6 (Mythic) — reused, unconfirmed
         };
 
         // Tribe background tints (subtle, darkened)
@@ -481,7 +482,7 @@ namespace TarotBattlegrounds.UI
                     // 15% max darkening
                     float alpha = shadowStrength * 0.15f;
 
-                    pixels[y * size + x] = new Color(0f, 0f, 0f, alpha);
+                    pixels[y * size + x] = Tokens.WithAlpha(Tokens.Ash, alpha);
                 }
             }
 
@@ -507,7 +508,7 @@ namespace TarotBattlegrounds.UI
             tex.filterMode = FilterMode.Bilinear;
             tex.wrapMode = TextureWrapMode.Clamp;
 
-            Color goldenColor = new Color(1f, 0.85f, 0f);
+            Color goldenColor = Tokens.BronzeBright;
             Color[] pixels = new Color[size * size];
             float edgeWidth = size * 0.3f;
 
@@ -532,7 +533,7 @@ namespace TarotBattlegrounds.UI
                     // Edge alpha: 0.35 at edges, 0.10 in center
                     float alpha = Mathf.Lerp(0.10f, 0.35f, edgeGlow);
 
-                    pixels[y * size + x] = new Color(goldenColor.r, goldenColor.g, goldenColor.b, alpha);
+                    pixels[y * size + x] = Tokens.WithAlpha(goldenColor, alpha);
                 }
             }
 

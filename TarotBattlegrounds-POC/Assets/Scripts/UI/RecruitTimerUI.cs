@@ -17,9 +17,9 @@ namespace TarotBattlegrounds.UI
         [SerializeField] private Image timerBackground;
 
         [Header("Colors")]
-        [SerializeField] private Color normalColor = new Color(0.3f, 0.8f, 0.3f, 1f);
-        [SerializeField] private Color warningColor = new Color(0.9f, 0.8f, 0.2f, 1f);
-        [SerializeField] private Color urgentColor = new Color(0.9f, 0.2f, 0.2f, 1f);
+        [SerializeField] private Color normalColor = Tokens.Ember;
+        [SerializeField] private Color warningColor = Tokens.BronzeBright;
+        [SerializeField] private Color urgentColor = Tokens.Blood;
 
         [Header("Thresholds")]
         [SerializeField] private float warningThreshold = 10f;

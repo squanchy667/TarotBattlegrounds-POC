@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Editor script that auto-creates and wires all Phase P UI elements in the Game scene.
@@ -90,7 +91,7 @@ public class PhasePUISetup : EditorWindow
         rect.offsetMax = Vector2.zero;
 
         Image img = bgObj.AddComponent<Image>();
-        img.color = new Color(0.15f, 0.12f, 0.18f, 1f);
+        img.color = Tokens.Ash;
         img.raycastTarget = false;
 
         WireManagerField(manager, "gameBackgroundImage", img);
@@ -244,7 +245,7 @@ public class PhasePUISetup : EditorWindow
         panelRect.offsetMax = Vector2.zero;
 
         Image panelImg = panel.AddComponent<Image>();
-        panelImg.color = new Color(0f, 0f, 0f, 0.7f);
+        panelImg.color = Tokens.WithAlpha(Tokens.Ash, 0.7f);
 
         so.FindProperty("discoveryPanel").objectReferenceValue = panel;
 
@@ -259,10 +260,10 @@ public class PhasePUISetup : EditorWindow
         contentRect.sizeDelta = new Vector2(700, 400);
 
         Image contentBg = content.AddComponent<Image>();
-        contentBg.color = new Color(0.15f, 0.15f, 0.2f, 1f);
+        contentBg.color = Tokens.CharredWood;
 
         VerticalLayoutGroup contentVLG = content.AddComponent<VerticalLayoutGroup>();
-        contentVLG.padding = new RectOffset(25, 25, 25, 25);
+        contentVLG.padding = new RectOffset((int)Tokens.Space3, (int)Tokens.Space3, (int)Tokens.Space3, (int)Tokens.Space3);
         contentVLG.spacing = 20;
         contentVLG.childAlignment = TextAnchor.UpperCenter;
         contentVLG.childControlWidth = true;
@@ -272,7 +273,7 @@ public class PhasePUISetup : EditorWindow
 
         // TitleText
         GameObject titleObj = CreateTextObject(content.transform, "TitleText",
-            "Triple! Choose a Card:", 28, FontStyles.Bold, new Color(1f, 0.84f, 0f));
+            "Triple! Choose a Card:", (int)Tokens.TextH3, FontStyles.Bold, Tokens.BronzeBright);
         TMP_Text titleTMP = titleObj.GetComponent<TMP_Text>();
         titleTMP.alignment = TextAlignmentOptions.Center;
         so.FindProperty("titleText").objectReferenceValue = titleTMP;
@@ -348,7 +349,7 @@ public class PhasePUISetup : EditorWindow
         panelRect.offsetMax = Vector2.zero;
 
         Image panelImg = panel.AddComponent<Image>();
-        panelImg.color = new Color(0f, 0f, 0f, 0.85f);
+        panelImg.color = Tokens.WithAlpha(Tokens.Ash, 0.85f);
 
         so.FindProperty("gameOverPanel").objectReferenceValue = panel;
 
@@ -363,7 +364,7 @@ public class PhasePUISetup : EditorWindow
         contentRect.sizeDelta = new Vector2(500, 450);
 
         Image contentBg = content.AddComponent<Image>();
-        contentBg.color = new Color(0.15f, 0.15f, 0.2f, 1f);
+        contentBg.color = Tokens.CharredWood;
 
         VerticalLayoutGroup contentVLG = content.AddComponent<VerticalLayoutGroup>();
         contentVLG.padding = new RectOffset(30, 30, 30, 30);
@@ -376,21 +377,21 @@ public class PhasePUISetup : EditorWindow
 
         // TitleText — "Game Over", 36pt bold gold
         GameObject titleObj = CreateTextObject(content.transform, "TitleText",
-            "Game Over", 36, FontStyles.Bold, new Color(1f, 0.84f, 0f));
+            "Game Over", (int)Tokens.TextH2, FontStyles.Bold, Tokens.BronzeBright);
         TMP_Text titleTMP = titleObj.GetComponent<TMP_Text>();
         titleTMP.alignment = TextAlignmentOptions.Center;
         so.FindProperty("titleText").objectReferenceValue = titleTMP;
 
         // PlacementText — "Victory!", 28pt bold white
         GameObject placementObj = CreateTextObject(content.transform, "PlacementText",
-            "Victory!", 28, FontStyles.Bold, Color.white);
+            "Victory!", (int)Tokens.TextH3, FontStyles.Bold, Tokens.BoneBright);
         TMP_Text placementTMP = placementObj.GetComponent<TMP_Text>();
         placementTMP.alignment = TextAlignmentOptions.Center;
         so.FindProperty("placementText").objectReferenceValue = placementTMP;
 
         // StandingsText — 18pt, with LayoutElement(minHeight=100)
         GameObject standingsObj = CreateTextObject(content.transform, "StandingsText",
-            "Standings...", 18, FontStyles.Normal, Color.white);
+            "Standings...", (int)Tokens.TextCaption, FontStyles.Normal, Tokens.Bone);
         TMP_Text standingsTMP = standingsObj.GetComponent<TMP_Text>();
         standingsTMP.alignment = TextAlignmentOptions.Center;
         LayoutElement standingsLE = standingsObj.AddComponent<LayoutElement>();
@@ -481,19 +482,8 @@ public class PhasePUISetup : EditorWindow
         tmp.overflowMode = TextOverflowModes.Overflow;
         tmp.richText = true;
 
-        // Try to find a font asset (same pattern as TooltipPrefabGenerator)
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
-            }
-        }
-        if (font != null)
-            tmp.font = font;
+        // Shared across mixed roles (screen titles, announcements, body list text) — Body per Tokens fallback rule.
+        tmp.font = FontRefs.Instance.Body;
 
         return obj;
     }
@@ -512,16 +502,16 @@ public class PhasePUISetup : EditorWindow
         // Image background (matching existing button pattern)
         Image img = btnObj.AddComponent<Image>();
         img.type = Image.Type.Sliced;
-        img.color = Color.white;
+        img.color = Tokens.CharredWood;
 
         // Button component with standard color transitions
         Button btn = btnObj.AddComponent<Button>();
         ColorBlock colors = btn.colors;
-        colors.normalColor = Color.white;
-        colors.highlightedColor = new Color(0.96f, 0.96f, 0.96f, 1f);
-        colors.pressedColor = new Color(0.78f, 0.78f, 0.78f, 1f);
-        colors.selectedColor = Color.white;
-        colors.disabledColor = new Color(0.78f, 0.78f, 0.78f, 0.5f);
+        colors.normalColor = Tokens.CharredWood;
+        colors.highlightedColor = Tokens.Ember;
+        colors.pressedColor = Tokens.Ember * 0.8f;
+        colors.selectedColor = Tokens.Ember;
+        colors.disabledColor = Tokens.WithAlpha(Tokens.BoneDim, 0.5f);
         btn.colors = colors;
 
         // LayoutElement matching existing buttons
@@ -530,8 +520,8 @@ public class PhasePUISetup : EditorWindow
         le.preferredWidth = 120;
 
         // Child text
-        GameObject textObj = CreateTextObject(btnObj.transform, "Text (TMP)", label, 16,
-            FontStyles.Normal, new Color(0.2f, 0.2f, 0.2f, 1f));
+        GameObject textObj = CreateTextObject(btnObj.transform, "Text (TMP)", label, (int)Tokens.TextCaption,
+            FontStyles.Normal, Tokens.Bone);
         TMP_Text tmpText = textObj.GetComponent<TMP_Text>();
         tmpText.alignment = TextAlignmentOptions.Center;
         tmpText.enableWordWrapping = false;

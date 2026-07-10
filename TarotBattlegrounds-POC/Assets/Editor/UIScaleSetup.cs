@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Editor script to scale up all game UI elements for better readability.
@@ -24,31 +25,31 @@ public class UIScaleSetup : EditorWindow
     const float CARD_HEIGHT = 210f;
 
     // Card font sizes
-    const float CARD_NAME_SIZE = 16f;
-    const float CARD_STATS_SIZE = 22f;   // ATK / HP — big and bold
-    const float CARD_TIER_SIZE = 14f;
-    const float CARD_TRIBE_SIZE = 13f;
-    const float CARD_COST_SIZE = 18f;
+    const float CARD_NAME_SIZE = Tokens.TextCaption;
+    const float CARD_STATS_SIZE = Tokens.TextBody;   // ATK / HP — big and bold
+    const float CARD_TIER_SIZE = Tokens.TextCaption;
+    const float CARD_TRIBE_SIZE = Tokens.TextCaption;
+    const float CARD_COST_SIZE = Tokens.TextCaption;
 
     // Action button dimensions
     const float BUTTON_MIN_WIDTH = 140f;
     const float BUTTON_PREF_WIDTH = 160f;
     const float BUTTON_HEIGHT = 55f;
-    const float BUTTON_TEXT_SIZE = 20f;
+    const float BUTTON_TEXT_SIZE = Tokens.TextLabel;
 
     // Scene HUD font sizes
-    const float PHASE_TEXT_SIZE = 28f;
-    const float TIMER_TEXT_SIZE = 34f;
-    const float TURN_TEXT_SIZE = 24f;
-    const float PLAYER_NAME_SIZE = 24f;
-    const float COINS_TEXT_SIZE = 22f;
-    const float TIER_TEXT_SIZE = 20f;
-    const float UPGRADE_TEXT_SIZE = 20f;
-    const float HEALTH_TEXT_SIZE = 22f;
+    const float PHASE_TEXT_SIZE = Tokens.TextH3;
+    const float TIMER_TEXT_SIZE = Tokens.TextH2;
+    const float TURN_TEXT_SIZE = Tokens.TextBody;
+    const float PLAYER_NAME_SIZE = Tokens.TextBody;
+    const float COINS_TEXT_SIZE = Tokens.TextBody;
+    const float TIER_TEXT_SIZE = Tokens.TextCaption;
+    const float UPGRADE_TEXT_SIZE = Tokens.TextCaption;
+    const float HEALTH_TEXT_SIZE = Tokens.TextBody;
 
     // Panel title / count font sizes
-    const float PANEL_TITLE_SIZE = 22f;
-    const float PANEL_COUNT_SIZE = 16f;
+    const float PANEL_TITLE_SIZE = Tokens.TextBody;
+    const float PANEL_COUNT_SIZE = Tokens.TextCaption;
 
     // Layout spacing
     const float CARD_CONTAINER_SPACING = 12f;
@@ -148,7 +149,7 @@ public class UIScaleSetup : EditorWindow
             {
                 if (text.fontSize < 14f)
                 {
-                    text.fontSize = 16f;
+                    text.fontSize = Tokens.TextCaption;
                     changes++;
                 }
             }

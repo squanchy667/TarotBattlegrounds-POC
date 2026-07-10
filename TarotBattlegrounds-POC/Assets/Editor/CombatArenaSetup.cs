@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
 using TarotBattlegrounds.Combat.Animator;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UX16: Editor script to set up Combat Arena Visual elements in the Game scene.
@@ -99,7 +100,7 @@ public class CombatArenaSetup : EditorWindow
 
         CombatArenaVisual arenaVisual = root.AddComponent<CombatArenaVisual>();
 
-        TMP_FontAsset font = FindFont();
+        TMP_FontAsset font = FontRefs.Instance.Body;
 
         // === 1. Arena Background (dark overlay) ===
         GameObject bgObj = new GameObject("ArenaBackground");
@@ -111,7 +112,7 @@ public class CombatArenaSetup : EditorWindow
         bgRect.offsetMax = Vector2.zero;
 
         Image bgImage = bgObj.AddComponent<Image>();
-        bgImage.color = new Color(0.03f, 0.02f, 0.06f, 0.9f);
+        bgImage.color = Tokens.WithAlpha(Tokens.Ash, 0.9f);
         bgImage.raycastTarget = false;
         bgObj.SetActive(false); // Start hidden
 
@@ -125,7 +126,7 @@ public class CombatArenaSetup : EditorWindow
         attackerLabelBgRect.offsetMax = Vector2.zero;
 
         Image attackerBgImage = attackerLabelBgObj.AddComponent<Image>();
-        attackerBgImage.color = new Color(0.15f, 0.35f, 0.65f, 0.5f); // Blue tint for attacker
+        attackerBgImage.color = Tokens.WithAlpha(Tokens.Ember, 0.5f); // Attacker board highlight
         attackerBgImage.raycastTarget = false;
         attackerLabelBgObj.SetActive(false);
 
@@ -139,9 +140,9 @@ public class CombatArenaSetup : EditorWindow
 
         TextMeshProUGUI attackerTmp = attackerLabelObj.AddComponent<TextMeshProUGUI>();
         attackerTmp.text = "YOUR BOARD";
-        attackerTmp.fontSize = 16;
+        attackerTmp.fontSize = Tokens.TextCaption;
         attackerTmp.fontStyle = FontStyles.Bold;
-        attackerTmp.color = new Color(0.7f, 0.85f, 1f);
+        attackerTmp.color = Tokens.BoneBright;
         attackerTmp.alignment = TextAlignmentOptions.Center;
         attackerTmp.enableWordWrapping = false;
         attackerTmp.raycastTarget = false;
@@ -158,7 +159,7 @@ public class CombatArenaSetup : EditorWindow
         defenderLabelBgRect.offsetMax = Vector2.zero;
 
         Image defenderBgImage = defenderLabelBgObj.AddComponent<Image>();
-        defenderBgImage.color = new Color(0.65f, 0.2f, 0.2f, 0.5f); // Red tint for defender
+        defenderBgImage.color = Tokens.WithAlpha(Tokens.BloodDeep, 0.5f); // Opponent board highlight
         defenderBgImage.raycastTarget = false;
         defenderLabelBgObj.SetActive(false);
 
@@ -172,9 +173,9 @@ public class CombatArenaSetup : EditorWindow
 
         TextMeshProUGUI defenderTmp = defenderLabelObj.AddComponent<TextMeshProUGUI>();
         defenderTmp.text = "OPPONENT";
-        defenderTmp.fontSize = 16;
+        defenderTmp.fontSize = Tokens.TextCaption;
         defenderTmp.fontStyle = FontStyles.Bold;
-        defenderTmp.color = new Color(1f, 0.7f, 0.7f);
+        defenderTmp.color = Tokens.BoneBright;
         defenderTmp.alignment = TextAlignmentOptions.Center;
         defenderTmp.enableWordWrapping = false;
         defenderTmp.raycastTarget = false;
@@ -192,7 +193,7 @@ public class CombatArenaSetup : EditorWindow
         dividerRect.anchoredPosition = Vector2.zero;
 
         Image dividerImage = dividerObj.AddComponent<Image>();
-        dividerImage.color = new Color(0.55f, 0.3f, 0.75f, 0.6f);
+        dividerImage.color = Tokens.WithAlpha(Tokens.BronzeBright, 0.6f);
         dividerImage.raycastTarget = false;
         dividerObj.SetActive(false);
 
@@ -222,8 +223,8 @@ public class CombatArenaSetup : EditorWindow
 
             TextMeshProUGUI slotTmp = slotObj.AddComponent<TextMeshProUGUI>();
             slotTmp.text = (i + 1).ToString();
-            slotTmp.fontSize = 10;
-            slotTmp.color = new Color(1f, 1f, 1f, 0.25f); // Subtle
+            slotTmp.fontSize = Tokens.TextCaption;
+            slotTmp.color = Tokens.WithAlpha(Tokens.BoneDim, 0.25f); // Subtle
             slotTmp.alignment = TextAlignmentOptions.Center;
             slotTmp.enableWordWrapping = false;
             slotTmp.raycastTarget = false;
@@ -258,8 +259,8 @@ public class CombatArenaSetup : EditorWindow
 
             TextMeshProUGUI slotTmp = slotObj.AddComponent<TextMeshProUGUI>();
             slotTmp.text = (i + 1).ToString();
-            slotTmp.fontSize = 10;
-            slotTmp.color = new Color(1f, 1f, 1f, 0.25f); // Subtle
+            slotTmp.fontSize = Tokens.TextCaption;
+            slotTmp.color = Tokens.WithAlpha(Tokens.BoneDim, 0.25f); // Subtle
             slotTmp.alignment = TextAlignmentOptions.Center;
             slotTmp.enableWordWrapping = false;
             slotTmp.raycastTarget = false;
@@ -277,7 +278,7 @@ public class CombatArenaSetup : EditorWindow
         trailRect.anchoredPosition = Vector2.zero;
 
         Image trailImage = trailObj.AddComponent<Image>();
-        trailImage.color = new Color(1f, 0.4f, 0.2f, 0.8f);
+        trailImage.color = Tokens.WithAlpha(Tokens.Ember, 0.8f);
         trailImage.raycastTarget = false;
         trailObj.SetActive(false);
 
@@ -325,18 +326,6 @@ public class CombatArenaSetup : EditorWindow
         Undo.RegisterCreatedObjectUndo(root, "Create CombatArenaRoot");
 
         return root;
-    }
-
-    private static TMP_FontAsset FindFont()
-    {
-        TMP_FontAsset font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        if (font == null)
-        {
-            string[] guids = AssetDatabase.FindAssets("t:TMP_FontAsset");
-            if (guids.Length > 0)
-                font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetDatabase.GUIDToAssetPath(guids[0]));
-        }
-        return font;
     }
 }
 #endif

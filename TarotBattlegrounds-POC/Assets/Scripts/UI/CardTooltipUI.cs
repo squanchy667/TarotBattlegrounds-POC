@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Singleton tooltip panel that displays detailed card information on hover.
@@ -31,10 +32,10 @@ public class CardTooltipUI : MonoBehaviour
     [SerializeField] private TMP_Text legacyEffectText;
 
     [Header("Settings")]
-    [SerializeField] private Vector2 offset = new Vector2(25f, -25f);
-    [SerializeField] private float showDelay = 0.3f;
+    [SerializeField] private Vector2 offset = new Vector2(Tokens.Space3, -Tokens.Space3);
+    [SerializeField] private float showDelay = Tokens.LongPressTime;
     [SerializeField] private float tooltipWidth = 300f;
-    [SerializeField] private float edgePadding = 15f;
+    [SerializeField] private float edgePadding = Tokens.Space2;
 
     [Header("T728 — Tap-and-hold / fixed anchor")]
     [Tooltip("When shown via tap-and-hold (touch), anchor the tooltip here instead of following the cursor. If null, defaults to screen top-center. showDelay doubles as the hold threshold.")]
@@ -160,13 +161,13 @@ public class CardTooltipUI : MonoBehaviour
 
         // Stats with icons/colors
         if (statsText != null)
-            statsText.text = $"<color=#FF6B6B>ATK: {card.attack}</color>  |  <color=#6BCB77>HP: {card.health}</color>";
+            statsText.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Blood)}>ATK: {card.attack}</color>  |  <color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>HP: {card.health}</color>";
 
         // Tier with star indicator
         if (tierText != null)
         {
             string stars = new string('*', card.tier);
-            tierText.text = $"<color=#FFD93D>Tier {card.tier}</color> {stars}";
+            tierText.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BronzeBright)}>Tier {card.tier}</color> {stars}";
         }
 
         // Tribes with colored badges
@@ -174,9 +175,9 @@ public class CardTooltipUI : MonoBehaviour
         {
             string tribeStr = GetTribesString(card);
             if (string.IsNullOrEmpty(tribeStr))
-                tribesText.text = "<color=#888888>No Tribe</color>";
+                tribesText.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BoneDim)}>No Tribe</color>";
             else
-                tribesText.text = $"<color=#4ECDC4>{tribeStr}</color>";
+                tribesText.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Bone)}>{tribeStr}</color>";
         }
 
         // New Ability System
@@ -196,7 +197,7 @@ public class CardTooltipUI : MonoBehaviour
             {
                 string desc = card.ability;
                 if (!string.IsNullOrEmpty(desc))
-                    abilityDescriptionText.text = $"<color=#CCCCCC><size=85%>\"{desc}\"</size></color>";
+                    abilityDescriptionText.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BoneDim)}><size=85%>\"{desc}\"</size></color>";
                 else
                     abilityDescriptionText.text = "";
             }
@@ -237,17 +238,17 @@ public class CardTooltipUI : MonoBehaviour
     {
         switch (trigger)
         {
-            case AbilityTrigger.Battlecry: return "<color=#FFD700>BATTLECRY</color>";
-            case AbilityTrigger.Deathrattle: return "<color=#8B4513>DEATHRATTLE</color>";
-            case AbilityTrigger.OnAttack: return "<color=#FF4500>ON ATTACK</color>";
-            case AbilityTrigger.OnDamaged: return "<color=#DC143C>ON DAMAGED</color>";
-            case AbilityTrigger.StartOfCombat: return "<color=#4169E1>START OF COMBAT</color>";
-            case AbilityTrigger.EndOfTurn: return "<color=#9370DB>END OF TURN</color>";
+            case AbilityTrigger.Battlecry: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BronzeBright)}>BATTLECRY</color>";
+            case AbilityTrigger.Deathrattle: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Blood)}>DEATHRATTLE</color>";
+            case AbilityTrigger.OnAttack: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>ON ATTACK</color>";
+            case AbilityTrigger.OnDamaged: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Blood)}>ON DAMAGED</color>";
+            case AbilityTrigger.StartOfCombat: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>START OF COMBAT</color>";
+            case AbilityTrigger.EndOfTurn: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>END OF TURN</color>";
             // T406: Phase II triggers
-            case AbilityTrigger.OnAllyDeath: return "<color=#696969>ON ALLY DEATH</color>";
-            case AbilityTrigger.OnAllySummoned: return "<color=#32CD32>ON ALLY SUMMONED</color>";
-            case AbilityTrigger.OnSell: return "<color=#DAA520>ON SELL</color>";
-            case AbilityTrigger.Aura: return "<color=#00CED1>AURA</color>";
+            case AbilityTrigger.OnAllyDeath: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BoneDim)}>ON ALLY DEATH</color>";
+            case AbilityTrigger.OnAllySummoned: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>ON ALLY SUMMONED</color>";
+            case AbilityTrigger.OnSell: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BronzeBright)}>ON SELL</color>";
+            case AbilityTrigger.Aura: return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>AURA</color>";
             default: return trigger.ToString();
         }
     }
@@ -303,15 +304,15 @@ public class CardTooltipUI : MonoBehaviour
         switch (card.effectType)
         {
             case Card.EffectType.Guardian:
-                return "<color=#4169E1>GUARDIAN</color>\nMust be attacked first";
+                return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>GUARDIAN</color>\nMust be attacked first";
             case Card.EffectType.Aegis:
-                return "<color=#FFD700>AEGIS</color>\nBlocks one attack";
+                return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BronzeBright)}>AEGIS</color>\nBlocks one attack";
             case Card.EffectType.Echo:
-                return $"<color=#9370DB>ECHO</color>\n{card.effectParameter}";
+                return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>ECHO</color>\n{card.effectParameter}";
             case Card.EffectType.Summoning:
-                return $"<color=#32CD32>SUMMONING</color>\n{card.effectParameter}";
+                return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Ember)}>SUMMONING</color>\n{card.effectParameter}";
             case Card.EffectType.LastReading:
-                return $"<color=#FF69B4>LAST READING</color>\n{card.effectParameter}";
+                return $"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.Blood)}>LAST READING</color>\n{card.effectParameter}";
             default:
                 return "";
         }

@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using System;
 using System.Collections;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UX14: Individual floating combat number.
@@ -22,16 +23,16 @@ public class FloatingNumber : MonoBehaviour
     [SerializeField] private float startScale = 0.5f;
     [SerializeField] private float overshootScale = 1.2f;
     [SerializeField] private float settleScale = 1.0f;
-    [SerializeField] private int fontSize = 24;
+    [SerializeField] private int fontSize = (int)Tokens.TextBody;
 
     /// <summary>
     /// Predefined color constants for combat number types.
     /// </summary>
-    public static readonly Color DamageColor = new Color(0.95f, 0.25f, 0.25f, 1f);
-    public static readonly Color HealColor = new Color(0.2f, 0.85f, 0.4f, 1f);
-    public static readonly Color BuffColor = new Color(1f, 0.82f, 0.12f, 1f);
-    public static readonly Color AegisColor = new Color(0.3f, 0.8f, 1f, 1f);
-    public static readonly Color DeathColor = new Color(0.7f, 0.1f, 0.1f, 1f);
+    public static readonly Color DamageColor = Tokens.Blood;
+    public static readonly Color HealColor = Tokens.BronzeBright;
+    public static readonly Color BuffColor = Tokens.BronzeBright;
+    public static readonly Color AegisColor = Tokens.EtherBlue;
+    public static readonly Color DeathColor = Tokens.Blood;
 
     /// <summary>
     /// Callback invoked when this floating number finishes its animation.
@@ -200,7 +201,7 @@ public class FloatingNumber : MonoBehaviour
         textRt.offsetMax = Vector2.zero;
 
         TextMeshProUGUI tmpText = textObj.AddComponent<TextMeshProUGUI>();
-        tmpText.fontSize = 24;
+        tmpText.fontSize = Tokens.TextBody;
         tmpText.fontStyle = FontStyles.Bold;
         tmpText.alignment = TextAlignmentOptions.Center;
         tmpText.enableWordWrapping = false;

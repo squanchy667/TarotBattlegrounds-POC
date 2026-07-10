@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// T731: First-time user experience (FTUE) coach tips.
@@ -219,7 +220,7 @@ public class FTUEManager : MonoBehaviour
         panelRect.pivot = new Vector2(0.5f, 1f);
         panelRect.anchoredPosition = new Vector2(0f, -80f);
         panelRect.sizeDelta = new Vector2(820f, 156f);
-        panel.GetComponent<Image>().color = new Color(0.08f, 0.09f, 0.14f, 0.94f);
+        panel.GetComponent<Image>().color = Tokens.WithAlpha(Tokens.Ash, 0.94f);
         toastGroup = panel.GetComponent<CanvasGroup>();
 
         var labelGo = new GameObject("Label", typeof(TextMeshProUGUI));
@@ -227,13 +228,13 @@ public class FTUEManager : MonoBehaviour
         toastLabel = labelGo.GetComponent<TextMeshProUGUI>();
         toastLabel.alignment = TextAlignmentOptions.Center;
         toastLabel.enableWordWrapping = true;
-        toastLabel.fontSize = 30f;
-        toastLabel.color = Color.white;
+        toastLabel.fontSize = Tokens.TextH3;
+        toastLabel.color = Tokens.BoneBright;
         var labelRect = toastLabel.rectTransform;
         labelRect.anchorMin = new Vector2(0f, 0.32f);
         labelRect.anchorMax = new Vector2(1f, 1f);
-        labelRect.offsetMin = new Vector2(24f, 4f);
-        labelRect.offsetMax = new Vector2(-24f, -10f);
+        labelRect.offsetMin = new Vector2(Tokens.Space3, 4f);
+        labelRect.offsetMax = new Vector2(-Tokens.Space3, -10f);
 
         var btnGo = new GameObject("GotItButton", typeof(Image), typeof(Button));
         btnGo.transform.SetParent(panel.transform, false);
@@ -242,7 +243,7 @@ public class FTUEManager : MonoBehaviour
         btnRect.pivot = new Vector2(0.5f, 0f);
         btnRect.anchoredPosition = new Vector2(0f, 12f);
         btnRect.sizeDelta = new Vector2(180f, 44f);
-        btnGo.GetComponent<Image>().color = new Color(0.35f, 0.78f, 0.42f, 1f);
+        btnGo.GetComponent<Image>().color = Tokens.Ember;
         btnGo.GetComponent<Button>().onClick.AddListener(Dismiss);
 
         var btnLabelGo = new GameObject("Text", typeof(TextMeshProUGUI));
@@ -250,8 +251,8 @@ public class FTUEManager : MonoBehaviour
         var btnLabel = btnLabelGo.GetComponent<TextMeshProUGUI>();
         btnLabel.text = "Got it";
         btnLabel.alignment = TextAlignmentOptions.Center;
-        btnLabel.fontSize = 24f;
-        btnLabel.color = Color.white;
+        btnLabel.fontSize = Tokens.TextLabel;
+        btnLabel.color = Tokens.BoneBright;
         var btnLabelRect = btnLabel.rectTransform;
         btnLabelRect.anchorMin = Vector2.zero; btnLabelRect.anchorMax = Vector2.one;
         btnLabelRect.offsetMin = Vector2.zero; btnLabelRect.offsetMax = Vector2.zero;

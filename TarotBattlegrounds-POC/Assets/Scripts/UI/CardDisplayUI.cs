@@ -39,10 +39,10 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
     [SerializeField] private RectTransform statBar;        // Bottom bar
 
     [Header("UX06: Typography")]
-    [SerializeField] private float nameSize = 16f;
-    [SerializeField] private float statSize = 22f;
-    [SerializeField] private float costSize = 18f;
-    [SerializeField] private float abilitySize = 11f;
+    [SerializeField] private float nameSize = Tokens.TextBody;
+    [SerializeField] private float statSize = Tokens.TextBody;
+    [SerializeField] private float costSize = Tokens.TextCaption;
+    [SerializeField] private float abilitySize = Tokens.TextCaption;
     [SerializeField] private TMP_Text abilityText;
 
     [Header("UX06: Stat Badge Components")]
@@ -51,15 +51,15 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
     [SerializeField] private StatBadge costStatBadge;
 
     // UX06: Badge color constants
-    private static readonly Color attackBadgeColor = new Color(0.7f, 0.15f, 0.15f, 1f);
-    private static readonly Color healthBadgeColor = new Color(0.15f, 0.55f, 0.15f, 1f);
-    private static readonly Color costBadgeColor = new Color(0.2f, 0.4f, 0.8f, 1f);
+    private static readonly Color attackBadgeColor = Tokens.Blood;
+    private static readonly Color healthBadgeColor = Tokens.Ember; // design system has no green; positive/health maps to Ember
+    private static readonly Color costBadgeColor = Tokens.BronzeBright;
 
     [Header("Selection Colors (from theme if available)")]
-    [SerializeField] private Color normalColor = new Color(0.10f, 0.07f, 0.16f, 1f);
-    [SerializeField] private Color selectedColor = new Color(0.55f, 0.3f, 0.75f, 1f);
+    [SerializeField] private Color normalColor = Tokens.CharredWood;
+    [SerializeField] private Color selectedColor = Tokens.Ember;
 
-    private static readonly Color frozenBorderColor = new Color(0.3f, 0.55f, 1.0f, 1f);
+    private static readonly Color frozenBorderColor = Tokens.Ember; // no dedicated frozen/status token; interaction-highlight fallback
 
     private Card card;
     private int index;
@@ -156,14 +156,14 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
 
         // UX06: Apply ability text color (muted light gray)
         if (abilityText != null)
-            abilityText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
+            abilityText.color = Tokens.BoneDim;
 
         // UX06: Apply name banner background if present
         if (nameBanner != null)
         {
             Image bannerImage = nameBanner.GetComponent<Image>();
             if (bannerImage != null)
-                bannerImage.color = new Color(0f, 0f, 0f, 0.5f);
+                bannerImage.color = Tokens.WithAlpha(Tokens.Ash, 0.5f);
         }
 
         // Re-apply visual state to update colors
@@ -229,11 +229,11 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
     }
 
     [Header("Minimum Font Sizes")]
-    [SerializeField] private float minNameFontSize = 14f;
-    [SerializeField] private float minStatsFontSize = 18f;
-    [SerializeField] private float minTierFontSize = 12f;
-    [SerializeField] private float minTribeFontSize = 11f;
-    [SerializeField] private float minCostFontSize = 14f;
+    [SerializeField] private float minNameFontSize = Tokens.TextCaption;
+    [SerializeField] private float minStatsFontSize = Tokens.TextCaption;
+    [SerializeField] private float minTierFontSize = Tokens.TextCaption;
+    [SerializeField] private float minTribeFontSize = Tokens.TextCaption;
+    [SerializeField] private float minCostFontSize = Tokens.TextCaption;
 
     private void EnforceMinFontSizes()
     {
@@ -296,12 +296,12 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
             abilityText.fontSize = abilitySize;
             abilityText.fontStyle = TMPro.FontStyles.Italic;
             abilityText.alignment = TMPro.TextAlignmentOptions.Center;
-            abilityText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
+            abilityText.color = Tokens.BoneDim;
         }
 
         if (tribeText != null)
         {
-            tribeText.fontSize = Mathf.Max(12f, minTribeFontSize);
+            tribeText.fontSize = Mathf.Max(Tokens.TextCaption, minTribeFontSize);
             tribeText.fontStyle = TMPro.FontStyles.Bold;
             tribeText.alignment = TMPro.TextAlignmentOptions.Center;
         }
@@ -355,7 +355,7 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
             }
             else
             {
-                cardArtwork.color = new Color(0.3f, 0.3f, 0.3f, 1f); // Gray placeholder
+                cardArtwork.color = Tokens.StoneEdge; // Gray placeholder — nearest neutral surface token
             }
         }
 

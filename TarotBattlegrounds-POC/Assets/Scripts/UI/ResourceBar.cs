@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Styled resource bar displaying coin, health, and tier info with procedural icons.
@@ -26,13 +27,13 @@ public class ResourceBar : MonoBehaviour, IThemeable
     [SerializeField] private Image tierContainer;
 
     [Header("Colors")]
-    [SerializeField] private Color coinColor = new Color(1f, 0.82f, 0.12f);
-    [SerializeField] private Color healthColor = new Color(0.9f, 0.2f, 0.25f);
-    [SerializeField] private Color tierColor = new Color(0.55f, 0.3f, 0.75f);
-    [SerializeField] private Color containerColor = new Color(0.08f, 0.05f, 0.14f, 0.8f);
+    [SerializeField] private Color coinColor = Tokens.BronzeBright;
+    [SerializeField] private Color healthColor = Tokens.Blood;
+    [SerializeField] private Color tierColor = Tokens.Bronze;
+    [SerializeField] private Color containerColor = Tokens.WithAlpha(Tokens.Ash, 0.8f);
 
     [Header("Animation")]
-    [SerializeField] private float flashDuration = 0.3f;
+    [SerializeField] private float flashDuration = Tokens.DurBase;
     [SerializeField] private float punchScale = 1.2f;
 
     private int lastCoinValue = -1;
@@ -134,13 +135,13 @@ public class ResourceBar : MonoBehaviour, IThemeable
                 {
                     // Outer fill - bright gold
                     float outerAlpha = Mathf.Clamp01((outerRadius - dist) * 2f);
-                    pixel = new Color(1f, 0.82f, 0.12f, outerAlpha);
+                    pixel = Tokens.WithAlpha(Tokens.BronzeBright, outerAlpha);
 
                     // Inner ring detail - darker gold
                     if (dist >= innerRingInner && dist <= innerRingOuter)
                     {
                         float ringAlpha = 1f - Mathf.Abs(dist - (innerRingInner + innerRingOuter) / 2f) / ((innerRingOuter - innerRingInner) / 2f);
-                        Color ringColor = new Color(0.8f, 0.6f, 0.05f, ringAlpha * outerAlpha);
+                        Color ringColor = Tokens.WithAlpha(Tokens.Bronze, ringAlpha * outerAlpha);
                         pixel = Color.Lerp(pixel, ringColor, ringAlpha * 0.6f);
                     }
 
@@ -149,7 +150,7 @@ public class ResourceBar : MonoBehaviour, IThemeable
                     {
                         float highlightAngle = Mathf.Atan2(dy, dx);
                         float highlight = Mathf.Clamp01((-highlightAngle - 0.5f) * 0.3f);
-                        pixel = Color.Lerp(pixel, new Color(1f, 0.95f, 0.6f, outerAlpha), highlight * 0.4f);
+                        pixel = Color.Lerp(pixel, Tokens.WithAlpha(Tokens.BoneBright, outerAlpha), highlight * 0.4f);
                     }
                 }
 
@@ -220,12 +221,12 @@ public class ResourceBar : MonoBehaviour, IThemeable
                 {
                     float alpha = Mathf.Clamp01(1.0f - d);
                     // Base red
-                    pixel = new Color(0.9f, 0.2f, 0.25f, alpha);
+                    pixel = Tokens.WithAlpha(Tokens.Blood, alpha);
 
                     // Highlight on upper-left
                     float highlightDist = Mathf.Sqrt((px - leftCx + 2f) * (px - leftCx + 2f) + (py - circleCy - 2f) * (py - circleCy - 2f));
                     float highlight = Mathf.Clamp01(1f - highlightDist / (circleRadius * 1.2f));
-                    pixel = Color.Lerp(pixel, new Color(1f, 0.5f, 0.55f, alpha), highlight * 0.4f);
+                    pixel = Color.Lerp(pixel, Tokens.WithAlpha(Tokens.BoneBright, alpha), highlight * 0.4f);
                 }
 
                 pixels[y * size + x] = pixel;
@@ -270,19 +271,19 @@ public class ResourceBar : MonoBehaviour, IThemeable
                     float alpha = Mathf.Clamp01(1.0f - d);
 
                     // Base purple
-                    pixel = new Color(0.55f, 0.3f, 0.75f, alpha);
+                    pixel = Tokens.WithAlpha(Tokens.Bronze, alpha);
 
                     // Inner border detail
                     float innerD = (Mathf.Abs(px) + Mathf.Abs(py) - 0.75f) * Mathf.Min(halfWidth, halfHeight);
                     if (Mathf.Abs(innerD) < 1.5f)
                     {
                         float borderAlpha = 1f - Mathf.Abs(innerD) / 1.5f;
-                        pixel = Color.Lerp(pixel, new Color(0.75f, 0.5f, 0.95f, alpha), borderAlpha * 0.5f);
+                        pixel = Color.Lerp(pixel, Tokens.WithAlpha(Tokens.BronzeBright, alpha), borderAlpha * 0.5f);
                     }
 
                     // Top highlight
                     float highlight = Mathf.Clamp01((py + 0.5f) * 0.8f);
-                    pixel = Color.Lerp(pixel, new Color(0.7f, 0.45f, 0.9f, alpha), highlight * 0.3f);
+                    pixel = Color.Lerp(pixel, Tokens.WithAlpha(Tokens.BronzeBright, alpha), highlight * 0.3f);
                 }
 
                 pixels[y * size + x] = pixel;
@@ -327,7 +328,7 @@ public class ResourceBar : MonoBehaviour, IThemeable
 
         if (current != lastHealthValue && lastHealthValue >= 0)
         {
-            Color flashColor = current < lastHealthValue ? healthColor : new Color(0.2f, 0.85f, 0.4f);
+            Color flashColor = current < lastHealthValue ? healthColor : Tokens.Ember;
 
             if (healthFlashCoroutine != null)
                 StopCoroutine(healthFlashCoroutine);

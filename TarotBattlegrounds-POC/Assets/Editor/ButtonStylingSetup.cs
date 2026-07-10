@@ -4,10 +4,13 @@ using UnityEngine.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using TMPro;
+using TarotBattlegrounds.UI;
 
 /// <summary>
-/// Editor script that finds all Button components in the scene and adds/wires
-/// TarotButton components with appropriate child hierarchy and variant assignment.
+/// T750: migrates every Button in the active scene to the design-system chrome —
+/// removes legacy TarotButton/ButtonMicroFeedback styling, attaches IgniteButton,
+/// and binds the notched kit sprites (idle bronze / ignited ember / press flash;
+/// danger buttons idle blood). DESIGN.md §10.5: one interaction component, no scaling.
 /// Run via menu: Tools/Game/Setup Styled Buttons
 /// </summary>
 public class ButtonStylingSetup : EditorWindow
@@ -15,246 +18,119 @@ public class ButtonStylingSetup : EditorWindow
     [MenuItem("Tools/Game/Setup Styled Buttons")]
     public static void SetupStyledButtons()
     {
-        // Find all Button components in the active scene
+        string report = MigrateActiveScene();
+        EditorUtility.DisplayDialog("Setup Styled Buttons", report, "OK");
+    }
+
+    /// <summary>
+    /// Dialog-free core (also invoked programmatically, e.g. over MCP where a
+    /// modal would hang the editor). Returns the migration report.
+    /// </summary>
+    public static string MigrateActiveScene()
+    {
+        UiSprites sprites = UiSprites.Instance;
+        if (sprites == null || sprites.ButtonBronze == null)
+            return "ABORT: Resources/UiSprites.asset is missing or unwired.";
+
         Button[] allButtons = FindObjectsOfType<Button>(true);
-
         if (allButtons.Length == 0)
-        {
-            EditorUtility.DisplayDialog("Setup Styled Buttons",
-                "No Button components found in the current scene.\nPlease open the Game or MainMenu scene first.",
-                "OK");
-            return;
-        }
+            return "No Button components found in the current scene.";
 
-        int buttonsProcessed = 0;
-        int buttonsSkipped = 0;
+        int migrated = 0;
+        int undersized = 0;
+        var undersizedNames = new System.Text.StringBuilder();
 
         foreach (Button button in allButtons)
         {
-            // Register undo for the button's GameObject
             Undo.RegisterCompleteObjectUndo(button.gameObject, "Setup Styled Buttons");
+            MigrateButton(button, sprites);
+            migrated++;
 
-            // Add TarotButton if missing
-            TarotButton tarotButton = button.GetComponent<TarotButton>();
-            if (tarotButton == null)
+            // §11: every tappable ≥ MinTouchTarget. Report — sizing is fixed in the
+            // per-screen restyle phases, not silently here.
+            Rect r = ((RectTransform)button.transform).rect;
+            if (r.width < Tokens.MinTouchTarget || r.height < Tokens.MinTouchTarget)
             {
-                tarotButton = Undo.AddComponent<TarotButton>(button.gameObject);
+                undersized++;
+                undersizedNames.AppendLine(
+                    $"  {button.gameObject.name}: {r.width:F0}x{r.height:F0}");
             }
-
-            // Create child hierarchy if needed
-            bool created = SetupButtonHierarchy(button, tarotButton);
-
-            // Assign variant based on button name/purpose
-            AssignVariant(button, tarotButton);
-
-            if (created)
-                buttonsProcessed++;
-            else
-                buttonsSkipped++;
         }
 
-        // Mark scene as dirty so changes are saved
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
 
-        EditorUtility.DisplayDialog("Setup Styled Buttons",
-            $"Processed {allButtons.Length} buttons.\n" +
-            $"  Created hierarchy: {buttonsProcessed}\n" +
-            $"  Already set up: {buttonsSkipped}",
-            "OK");
-
-        Debug.Log($"[ButtonStylingSetup] Processed {allButtons.Length} buttons " +
-                  $"({buttonsProcessed} new, {buttonsSkipped} existing)");
+        string report = $"Migrated {migrated} buttons to IgniteButton.";
+        if (undersized > 0)
+            report += $"\n{undersized} below {Tokens.MinTouchTarget}px touch target:\n{undersizedNames}";
+        Debug.Log($"[ButtonStylingSetup] {report}");
+        return report;
     }
 
-    /// <summary>
-    /// Creates the child hierarchy for a button:
-    ///   - "ButtonBG" (Image, gradient background, stretched)
-    ///   - "ButtonBorder" (Image, rounded-rect outline)
-    ///   - "ButtonLabel" (TMP_Text, uses existing text or creates new)
-    /// Wires references into the TarotButton via SerializedObject.
-    /// Returns true if any new objects were created.
-    /// </summary>
-    private static bool SetupButtonHierarchy(Button button, TarotButton tarotButton)
+    private static void MigrateButton(Button button, UiSprites sprites)
     {
-        Transform buttonTransform = button.transform;
-        bool anyCreated = false;
+        GameObject go = button.gameObject;
+        Transform t = button.transform;
 
-        // === ButtonBG ===
-        Transform bgTransform = buttonTransform.Find("ButtonBG");
-        Image bgImage;
-        if (bgTransform == null)
+        // Drop legacy styling components — by type name so this tool keeps compiling
+        // after the legacy classes are deleted; then clear any missing-script slots.
+        foreach (var mb in go.GetComponents<MonoBehaviour>())
         {
-            GameObject bgObj = new GameObject("ButtonBG");
-            Undo.RegisterCreatedObjectUndo(bgObj, "Create ButtonBG");
-            bgObj.transform.SetParent(buttonTransform, false);
-            bgObj.transform.SetAsFirstSibling(); // Behind everything else
-
-            // RectTransform — stretch to fill
-            RectTransform bgRect = bgObj.AddComponent<RectTransform>();
-            bgRect.anchorMin = Vector2.zero;
-            bgRect.anchorMax = Vector2.one;
-            bgRect.offsetMin = Vector2.zero;
-            bgRect.offsetMax = Vector2.zero;
-
-            bgImage = bgObj.AddComponent<Image>();
-            bgImage.raycastTarget = true;
-            anyCreated = true;
+            if (mb == null) continue;
+            string typeName = mb.GetType().Name;
+            if (typeName == "TarotButton" || typeName == "ButtonMicroFeedback")
+                Undo.DestroyObjectImmediate(mb);
         }
-        else
+        GameObjectUtility.RemoveMonoBehavioursWithMissingScript(go);
+
+        // Drop legacy overlay children (gradient BG copy / translucent border fill).
+        Transform border = t.Find("ButtonBorder");
+        if (border != null) Undo.DestroyObjectImmediate(border.gameObject);
+        Transform ripple = t.Find("RippleEffect");
+        if (ripple != null) Undo.DestroyObjectImmediate(ripple.gameObject);
+
+        // Background image: prefer a "ButtonBG" child if the legacy hierarchy made one,
+        // else the button's own Image.
+        Image bg = null;
+        Transform bgChild = t.Find("ButtonBG");
+        if (bgChild != null) bg = bgChild.GetComponent<Image>();
+        if (bg == null) bg = go.GetComponent<Image>();
+
+        bool danger = IsDanger(go.name);
+        Sprite idle = danger ? sprites.ButtonBlood : sprites.ButtonBronze;
+        if (bg != null)
         {
-            bgImage = bgTransform.GetComponent<Image>();
-            if (bgImage == null)
-                bgImage = bgTransform.gameObject.AddComponent<Image>();
-            bgImage.raycastTarget = true;
-        }
-
-        // === ButtonBorder ===
-        Transform borderTransform = buttonTransform.Find("ButtonBorder");
-        Image borderImage;
-        if (borderTransform == null)
-        {
-            GameObject borderObj = new GameObject("ButtonBorder");
-            Undo.RegisterCreatedObjectUndo(borderObj, "Create ButtonBorder");
-            borderObj.transform.SetParent(buttonTransform, false);
-
-            // RectTransform — stretch to fill
-            RectTransform borderRect = borderObj.AddComponent<RectTransform>();
-            borderRect.anchorMin = Vector2.zero;
-            borderRect.anchorMax = Vector2.one;
-            borderRect.offsetMin = Vector2.zero;
-            borderRect.offsetMax = Vector2.zero;
-
-            borderImage = borderObj.AddComponent<Image>();
-            borderImage.raycastTarget = true;
-
-            // Set as outline-like: thin border effect via color with slight transparency
-            borderImage.color = new Color(1f, 0.9f, 0.4f, 0.4f);
-            anyCreated = true;
-        }
-        else
-        {
-            borderImage = borderTransform.GetComponent<Image>();
-            if (borderImage == null)
-                borderImage = borderTransform.gameObject.AddComponent<Image>();
-            borderImage.raycastTarget = true;
+            UiSprites.ApplySliced(bg, idle);
+            bg.raycastTarget = true;
         }
 
-        // === ButtonLabel ===
-        Transform labelTransform = buttonTransform.Find("ButtonLabel");
-        TMP_Text labelText;
+        TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
 
-        if (labelTransform == null)
-        {
-            // Check if there's an existing TMP_Text child we can reuse
-            TMP_Text existingText = button.GetComponentInChildren<TMP_Text>();
-            if (existingText != null && existingText.gameObject.name != "ButtonBG" &&
-                existingText.gameObject.name != "ButtonBorder")
-            {
-                // Rename existing text to ButtonLabel for consistency
-                existingText.gameObject.name = "ButtonLabel";
-                labelText = existingText;
-            }
-            else
-            {
-                // Create new label
-                GameObject labelObj = new GameObject("ButtonLabel");
-                Undo.RegisterCreatedObjectUndo(labelObj, "Create ButtonLabel");
-                labelObj.transform.SetParent(buttonTransform, false);
+        var ignite = go.GetComponent<IgniteButton>();
+        if (ignite == null) ignite = Undo.AddComponent<IgniteButton>(go);
 
-                // RectTransform — stretch to fill with some padding
-                RectTransform labelRect = labelObj.AddComponent<RectTransform>();
-                labelRect.anchorMin = Vector2.zero;
-                labelRect.anchorMax = Vector2.one;
-                labelRect.offsetMin = new Vector2(8f, 4f);
-                labelRect.offsetMax = new Vector2(-8f, -4f);
-
-                labelText = labelObj.AddComponent<TextMeshProUGUI>();
-                labelText.text = button.gameObject.name;
-                labelText.alignment = TextAlignmentOptions.Center;
-                labelText.fontSize = 16;
-                labelText.color = Color.white;
-                labelText.raycastTarget = false; // Label doesn't need raycast
-                anyCreated = true;
-            }
-        }
-        else
-        {
-            labelText = labelTransform.GetComponent<TMP_Text>();
-            if (labelText == null)
-            {
-                labelText = labelTransform.gameObject.AddComponent<TextMeshProUGUI>();
-                labelText.text = button.gameObject.name;
-                labelText.alignment = TextAlignmentOptions.Center;
-                labelText.fontSize = 16;
-                labelText.color = Color.white;
-            }
-        }
-
-        // Ensure label is on top (last sibling)
-        if (labelText != null)
-        {
-            labelText.transform.SetAsLastSibling();
-            labelText.raycastTarget = false;
-        }
-
-        // === Wire references via SerializedObject ===
-        SerializedObject so = new SerializedObject(tarotButton);
-
-        SerializedProperty bgProp = so.FindProperty("buttonBackground");
-        if (bgProp != null) bgProp.objectReferenceValue = bgImage;
-
-        SerializedProperty borderProp = so.FindProperty("buttonBorder");
-        if (borderProp != null) borderProp.objectReferenceValue = borderImage;
-
-        SerializedProperty labelProp = so.FindProperty("buttonLabel");
-        if (labelProp != null) labelProp.objectReferenceValue = labelText;
-
+        var so = new SerializedObject(ignite);
+        so.FindProperty("background").objectReferenceValue = bg;
+        so.FindProperty("idleSprite").objectReferenceValue = idle;
+        so.FindProperty("ignitedSprite").objectReferenceValue = sprites.ButtonEmber;
+        so.FindProperty("pressedSprite").objectReferenceValue = sprites.ButtonBronzePressed;
+        so.FindProperty("label").objectReferenceValue = label;
+        so.FindProperty("idleTone").enumValueIndex = (int)IgniteButton.LabelTone.Bone;
         so.ApplyModifiedProperties();
 
-        return anyCreated;
+        button.transition = Selectable.Transition.None;
+        if (label != null)
+        {
+            label.color = Tokens.Bone;
+            if (FontRefs.Instance != null && FontRefs.Instance.Label != null)
+                label.font = FontRefs.Instance.Label;
+        }
     }
 
-    /// <summary>
-    /// Assign a ButtonVariant based on the button's name or its parent's purpose.
-    /// </summary>
-    private static void AssignVariant(Button button, TarotButton tarotButton)
+    private static bool IsDanger(string buttonName)
     {
-        string name = button.gameObject.name.ToLower();
-
-        ButtonVariant assignedVariant;
-
-        if (name.Contains("buy") || name.Contains("play") || name.Contains("upgrade"))
-        {
-            assignedVariant = ButtonVariant.Primary;
-        }
-        else if (name.Contains("sell") || name.Contains("refresh") || name.Contains("reroll") ||
-                 name.Contains("freeze"))
-        {
-            assignedVariant = ButtonVariant.Secondary;
-        }
-        else if (name.Contains("endturn") || name.Contains("end_turn") || name.Contains("end turn"))
-        {
-            assignedVariant = ButtonVariant.Success;
-        }
-        else if (name.Contains("danger") || name.Contains("delete") || name.Contains("quit") ||
-                 name.Contains("exit") || name.Contains("cancel"))
-        {
-            assignedVariant = ButtonVariant.Danger;
-        }
-        else
-        {
-            // Default to Primary for unrecognized buttons
-            assignedVariant = ButtonVariant.Primary;
-        }
-
-        // Set via SerializedObject for proper Undo support
-        SerializedObject so = new SerializedObject(tarotButton);
-        SerializedProperty variantProp = so.FindProperty("variant");
-        if (variantProp != null)
-        {
-            variantProp.enumValueIndex = (int)assignedVariant;
-        }
-        so.ApplyModifiedProperties();
+        string name = buttonName.ToLower();
+        return name.Contains("danger") || name.Contains("delete") || name.Contains("quit")
+            || name.Contains("exit") || name.Contains("cancel");
     }
 }
 #endif

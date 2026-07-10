@@ -27,11 +27,11 @@ namespace TarotBattlegrounds.UI
         [Header("Sparkles")]
         [SerializeField] private ParticleSystem sparkleParticles;
         [SerializeField] private int sparkleCount = 8;
-        [SerializeField] private Color sparkleColor = new Color(1f, 0.9f, 0.3f, 0.8f);
+        [SerializeField] private Color sparkleColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.8f);
 
         [Header("Gold Overlay")]
         [SerializeField] private Image goldOverlay;
-        [SerializeField] private Color goldTint = new Color(1f, 0.82f, 0.12f, 0.15f);
+        [SerializeField] private Color goldTint = Tokens.WithAlpha(Tokens.BronzeBright, 0.15f);
 
         private bool isActive = false;
         private RectTransform rectTransform;
@@ -111,7 +111,7 @@ namespace TarotBattlegrounds.UI
                 EnsureShimmerTexture();
                 shimmerOverlay.gameObject.SetActive(true);
                 shimmerOverlay.raycastTarget = false;
-                shimmerOverlay.color = new Color(1f, 1f, 1f, 0f); // Start invisible
+                shimmerOverlay.color = Color.clear; // Start invisible
                 if (shimmerCoroutine != null) StopCoroutine(shimmerCoroutine);
                 shimmerCoroutine = StartCoroutine(ShimmerRoutine());
             }
@@ -212,14 +212,14 @@ namespace TarotBattlegrounds.UI
                     else
                         alpha = 1f;
 
-                    shimmerOverlay.color = new Color(1f, 0.95f, 0.7f, alpha * 0.3f);
+                    shimmerOverlay.color = Tokens.WithAlpha(Tokens.BronzeBright, alpha * 0.3f);
 
                     elapsed += Time.deltaTime;
                     yield return null;
                 }
 
                 // Reset shimmer to invisible
-                shimmerOverlay.color = new Color(1f, 1f, 1f, 0f);
+                shimmerOverlay.color = Color.clear;
             }
         }
 
@@ -283,7 +283,7 @@ namespace TarotBattlegrounds.UI
                     // Smooth falloff
                     alpha = alpha * alpha;
 
-                    pixels[y * size + x] = new Color(1f, 0.95f, 0.8f, alpha);
+                    pixels[y * size + x] = Tokens.WithAlpha(Tokens.BronzeBright, alpha);
                 }
             }
 

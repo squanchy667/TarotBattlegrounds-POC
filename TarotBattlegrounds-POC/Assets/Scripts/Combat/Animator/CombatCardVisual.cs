@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 using TarotBattlegrounds.Combat.Replay;
+using TarotBattlegrounds.UI;
 
 namespace TarotBattlegrounds.Combat.Animator
 {
@@ -30,10 +31,10 @@ namespace TarotBattlegrounds.Combat.Animator
         [SerializeField] private CanvasGroup canvasGroup;
 
         [Header("Colors")]
-        [SerializeField] private Color normalColor = new Color(0.3f, 0.2f, 0.4f, 1f);
-        [SerializeField] private Color damagedFlashColor = new Color(1f, 0.2f, 0.2f, 1f);
-        [SerializeField] private Color buffFlashColor = new Color(0.2f, 1f, 0.2f, 1f);
-        [SerializeField] private Color aegisFlashColor = new Color(0.9f, 0.8f, 0.2f, 1f);
+        [SerializeField] private Color normalColor = Tokens.CharredWood;
+        [SerializeField] private Color damagedFlashColor = Tokens.BloodDeep;
+        [SerializeField] private Color buffFlashColor = Tokens.BronzeBright;
+        [SerializeField] private Color aegisFlashColor = Tokens.EtherBlue; // aegis = magic shield; unified with FloatingNumber (sanctioned ether use in combat)
 
         // Snapshot data
         private CombatCardSnapshot snapshot;
@@ -366,7 +367,7 @@ namespace TarotBattlegrounds.Combat.Animator
 
             // Background
             Image bg = cardObj.AddComponent<Image>();
-            bg.color = new Color(0.3f, 0.2f, 0.4f, 0.9f);
+            bg.color = Tokens.WithAlpha(Tokens.CharredWood, 0.9f);
 
             // Canvas group for fading
             CanvasGroup cg = cardObj.AddComponent<CanvasGroup>();
@@ -381,9 +382,9 @@ namespace TarotBattlegrounds.Combat.Animator
             nameRt.offsetMax = Vector2.zero;
             TMP_Text nameText = nameObj.AddComponent<TextMeshProUGUI>();
             nameText.text = snap.cardName;
-            nameText.fontSize = 12;
+            nameText.fontSize = Tokens.TextCaption;
             nameText.alignment = TextAlignmentOptions.Center;
-            nameText.color = Color.white;
+            nameText.color = Tokens.BoneBright;
             nameText.enableAutoSizing = true;
             nameText.fontSizeMin = 8;
             nameText.fontSizeMax = 14;
@@ -398,10 +399,10 @@ namespace TarotBattlegrounds.Combat.Animator
             atkRt.offsetMax = Vector2.zero;
             TMP_Text atkText = atkObj.AddComponent<TextMeshProUGUI>();
             atkText.text = snap.attack.ToString();
-            atkText.fontSize = 18;
+            atkText.fontSize = Tokens.TextCaption;
             atkText.fontStyle = FontStyles.Bold;
             atkText.alignment = TextAlignmentOptions.Center;
-            atkText.color = new Color(1f, 0.8f, 0.2f);
+            atkText.color = Tokens.BronzeBright;
 
             // Health text (bottom-right)
             GameObject hpObj = new GameObject("HealthText");
@@ -413,10 +414,10 @@ namespace TarotBattlegrounds.Combat.Animator
             hpRt.offsetMax = Vector2.zero;
             TMP_Text hpText = hpObj.AddComponent<TextMeshProUGUI>();
             hpText.text = snap.health.ToString();
-            hpText.fontSize = 18;
+            hpText.fontSize = Tokens.TextCaption;
             hpText.fontStyle = FontStyles.Bold;
             hpText.alignment = TextAlignmentOptions.Center;
-            hpText.color = new Color(0.2f, 1f, 0.2f);
+            hpText.color = Tokens.BronzeBright;
 
             // Add the component and set references
             CombatCardVisual visual = cardObj.AddComponent<CombatCardVisual>();
