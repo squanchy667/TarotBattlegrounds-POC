@@ -5,7 +5,9 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using Photon.Pun;
 using Photon.Realtime;
+using System.Collections;
 using System.Collections.Generic;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// UI controller for the Lobby scene.
@@ -17,6 +19,8 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] private GameObject connectionPanel;
     [SerializeField] private TMP_Text connectionStatusText;
     [SerializeField] private TMP_InputField playerNameInput;
+    // Optional phase caption on the connection card ("OPENING THE GATE")
+    [SerializeField] private TMP_Text connectionPhaseCaption;
 
     [Header("Room Browser Panel")]
     [SerializeField] private GameObject roomBrowserPanel;
@@ -32,7 +36,8 @@ public class LobbyUI : MonoBehaviour
     [Header("Room Interior Panel")]
     [SerializeField] private GameObject roomInteriorPanel;
     [SerializeField] private TMP_Text roomTitleText;
-    [SerializeField] private TMP_Text playerListText;
+    [SerializeField] private TMP_Text playerListText; // legacy fallback
+    [SerializeField] private Transform playerSlotContainer; // T750 §8 slot stack
     [SerializeField] private Button startGameButton;
     [SerializeField] private Button leaveRoomButton;
     [SerializeField] private TMP_Text roomStatusText;
@@ -42,6 +47,8 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] private TMP_Text reconnectingText;
 
     private List<GameObject> roomListEntries = new List<GameObject>();
+    private readonly List<GameObject> playerSlotInstances = new List<GameObject>();
+    private bool roomTitleCopyWired;
 
     private void Start()
     {
@@ -58,6 +65,9 @@ public class LobbyUI : MonoBehaviour
         if (backToMenuButton != null) backToMenuButton.onClick.AddListener(OnBackToMenuClicked);
         if (startGameButton != null) startGameButton.onClick.AddListener(OnStartGameClicked);
         if (leaveRoomButton != null) leaveRoomButton.onClick.AddListener(OnLeaveRoomClicked);
+
+        // Connection-panel escape hatch (built by LobbyRestyleSetup)
+        WireConnectionBackButton();
 
         // Setup max players dropdown
         if (maxPlayersDropdown != null)
@@ -82,6 +92,9 @@ public class LobbyUI : MonoBehaviour
 
         // T006: Hide reconnection overlay
         if (reconnectingOverlay != null) reconnectingOverlay.SetActive(false);
+
+        // T750: room code tap-to-copy (room title)
+        WireRoomTitleCopy();
 
         // Connect if not already connected
         if (!PhotonNetwork.IsConnected)
@@ -160,10 +173,56 @@ public class LobbyUI : MonoBehaviour
         }
     }
 
+    private void WireConnectionBackButton()
+    {
+        if (connectionPanel == null) return;
+        // Include inactive children — panel may already be toggled
+        Button[] buttons = connectionPanel.GetComponentsInChildren<Button>(true);
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            if (buttons[i] == null || buttons[i].gameObject.name != "ConnectionBackButton")
+                continue;
+            buttons[i].onClick.RemoveAllListeners();
+            buttons[i].onClick.AddListener(OnBackToMenuClicked);
+            // Ensure the hit target can receive clicks above the video
+            var img = buttons[i].GetComponent<Image>();
+            if (img != null) img.raycastTarget = true;
+            return;
+        }
+        Debug.LogWarning("[LobbyUI] ConnectionBackButton not found under ConnectionPanel.");
+    }
+
+    private void SetConnectionCopy(string phase, string status)
+    {
+        if (connectionPhaseCaption == null && connectionPanel != null)
+        {
+            foreach (var tr in connectionPanel.GetComponentsInChildren<Transform>(true))
+            {
+                if (tr.name == "PhaseCaption")
+                {
+                    connectionPhaseCaption = tr.GetComponent<TMP_Text>();
+                    break;
+                }
+            }
+        }
+        if (connectionPhaseCaption != null && !string.IsNullOrEmpty(phase))
+            connectionPhaseCaption.text = phase;
+        if (connectionStatusText != null && status != null)
+            connectionStatusText.text = status;
+    }
+
     private void Connect()
     {
         SetActivePanel(PanelState.Connecting);
-        if (connectionStatusText != null) connectionStatusText.text = "Connecting to server...";
+        SetConnectionCopy("OPENING THE GATE", "Seeking the circle...");
+
+        EnsurePhotonConnector();
+        if (PhotonConnector.Instance == null)
+        {
+            SetConnectionCopy("GATE SEALED", "The connector is missing. Return to the menu.");
+            Debug.LogError("[LobbyUI] PhotonConnector.Instance is null after EnsurePhotonConnector.");
+            return;
+        }
         PhotonConnector.Instance.Connect();
     }
 
@@ -217,12 +276,13 @@ public class LobbyUI : MonoBehaviour
         if (PhotonConnector.Instance != null && PhotonConnector.Instance.IsReconnecting)
         {
             if (reconnectingOverlay != null) reconnectingOverlay.SetActive(true);
-            if (reconnectingText != null) reconnectingText.text = "Reconnecting...";
+            if (reconnectingText != null)
+                reconnectingText.text = "The path frayed. Holding the gate...";
             return;
         }
 
         SetActivePanel(PanelState.Connecting);
-        if (connectionStatusText != null) connectionStatusText.text = $"Disconnected: {cause}\nReconnecting...";
+        SetConnectionCopy("PATH CLOSED", "The circle slipped away.\nSeeking it again...");
 
         // Auto-reconnect after a short delay
         Invoke(nameof(Connect), 2f);
@@ -230,7 +290,8 @@ public class LobbyUI : MonoBehaviour
 
     private void OnJoinRoomFailed()
     {
-        if (roomStatusText != null) roomStatusText.text = "Failed to join room.";
+        if (roomStatusText != null)
+            roomStatusText.text = "Could not enter that room. Choose another.";
         SetActivePanel(PanelState.RoomBrowser);
     }
 
@@ -261,9 +322,26 @@ public class LobbyUI : MonoBehaviour
 
     private void OnBackToMenuClicked()
     {
+        Debug.Log("[LobbyUI] Return to Menu clicked");
+        // Stop pending reconnect attempts so we don't fight the scene load
+        CancelInvoke();
         UnsubscribeEvents();
-        PhotonConnector.Instance.Disconnect();
-        SceneManager.LoadScene("MainMenu");
+        try
+        {
+            if (PhotonConnector.Instance != null)
+                PhotonConnector.Instance.Disconnect();
+            else if (PhotonNetwork.IsConnected)
+                PhotonNetwork.Disconnect();
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning("[LobbyUI] Disconnect on back: " + e.Message);
+        }
+        // Load by name + build index fallback
+        if (Application.CanStreamedLevelBeLoaded("MainMenu"))
+            SceneManager.LoadScene("MainMenu");
+        else
+            SceneManager.LoadScene(0);
     }
 
     private void OnStartGameClicked()
@@ -293,6 +371,75 @@ public class LobbyUI : MonoBehaviour
 
     // === Room Interior ===
 
+    private void WireRoomTitleCopy()
+    {
+        if (roomTitleCopyWired || roomTitleText == null) return;
+        roomTitleCopyWired = true;
+
+        // TMP_Text is already a Graphic — cannot AddComponent<Image> on the same GO
+        // (returns null → NRE). Use a transparent child hit target for tap-to-copy.
+        Transform existing = roomTitleText.transform.Find("CopyHit");
+        GameObject hitGo;
+        if (existing != null)
+        {
+            hitGo = existing.gameObject;
+        }
+        else
+        {
+            hitGo = new GameObject("CopyHit");
+            hitGo.transform.SetParent(roomTitleText.transform, false);
+            RectTransform rt = hitGo.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
+        Image img = hitGo.GetComponent<Image>();
+        if (img == null) img = hitGo.AddComponent<Image>();
+        img.color = Tokens.WithAlpha(Tokens.Ash, 0f);
+        img.raycastTarget = true;
+
+        Button btn = hitGo.GetComponent<Button>();
+        if (btn == null) btn = hitGo.AddComponent<Button>();
+        btn.transition = Selectable.Transition.None;
+        btn.onClick.RemoveListener(OnRoomCodeClicked);
+        btn.onClick.AddListener(OnRoomCodeClicked);
+
+        // Text itself should not steal clicks from the hit child
+        roomTitleText.raycastTarget = false;
+    }
+
+    private void OnRoomCodeClicked()
+    {
+        if (roomTitleText == null || string.IsNullOrEmpty(roomTitleText.text)) return;
+        GUIUtility.systemCopyBuffer = roomTitleText.text;
+        // Ignite flash confirmation (DESIGN §8)
+        StartCoroutine(RoomCodeIgniteFlash());
+        Debug.Log("[LobbyUI] Room code copied: " + roomTitleText.text);
+    }
+
+    private IEnumerator RoomCodeIgniteFlash()
+    {
+        if (roomTitleText == null) yield break;
+        Color was = roomTitleText.color;
+        roomTitleText.color = Tokens.Ember;
+        float d = UiMotion.Dur(Tokens.DurBase);
+        if (d <= 0f)
+        {
+            roomTitleText.color = was;
+            yield break;
+        }
+        float t = 0f;
+        while (t < d)
+        {
+            t += Time.unscaledDeltaTime;
+            roomTitleText.color = Color.Lerp(Tokens.Ember, was, Mathf.Clamp01(t / d));
+            yield return null;
+        }
+        roomTitleText.color = was;
+    }
+
     private void UpdateRoomInterior()
     {
         if (!PhotonNetwork.InRoom) return;
@@ -302,35 +449,35 @@ public class LobbyUI : MonoBehaviour
         if (roomTitleText != null)
             roomTitleText.text = room.Name;
 
-        // Player list
-        if (playerListText != null)
+        // T750 §8: visual player slots when container is wired; else legacy text list
+        if (playerSlotContainer != null)
         {
+            RebuildPlayerSlots(room);
+            if (playerListText != null) playerListText.gameObject.SetActive(false);
+        }
+        else if (playerListText != null)
+        {
+            playerListText.gameObject.SetActive(true);
             string playerList = "";
             int index = 1;
             foreach (var player in PhotonNetwork.PlayerList)
             {
                 string host = player.IsMasterClient ? " (Host)" : "";
                 string local = player.IsLocal ? " (You)" : "";
-                // T006: Show display name and rating from custom properties
                 string displayName = PhotonConnector.GetPlayerDisplayName(player);
                 int rating = PhotonConnector.GetPlayerRating(player);
-                playerList += $"{index}. {displayName} [{rating}]{host}{local}\n";
+                playerList += index + ". " + displayName + " [" + rating + "]" + host + local + "\n";
                 index++;
             }
-
-            // Show empty AI slots
             for (int i = index; i <= room.MaxPlayers; i++)
-            {
-                playerList += $"{i}. [AI]\n";
-            }
-
+                playerList += i + ". [AI]\n";
             playerListText.text = playerList;
         }
 
         // Status text
         if (roomStatusText != null)
         {
-            roomStatusText.text = $"{room.PlayerCount}/{room.MaxPlayers} players. " +
+            roomStatusText.text = room.PlayerCount + "/" + room.MaxPlayers + " players. " +
                 (PhotonNetwork.IsMasterClient ? "Press Start when ready." : "Waiting for host...");
         }
 
@@ -339,7 +486,119 @@ public class LobbyUI : MonoBehaviour
         {
             startGameButton.gameObject.SetActive(PhotonNetwork.IsMasterClient);
             startGameButton.interactable = room.PlayerCount >= 1;
+            var ignite = startGameButton.GetComponent<IgniteButton>();
+            if (ignite != null) ignite.SetInteractable(startGameButton.interactable);
         }
+    }
+
+    /// <summary>
+    /// Rebuild notched player slots: filled / empty ("Awaiting challenger").
+    /// Host is treated as ready (slot_ready ember) — no green checkmarks.
+    /// </summary>
+    private void RebuildPlayerSlots(Room room)
+    {
+        // Clear previous
+        foreach (var go in playerSlotInstances)
+        {
+            if (go != null) Destroy(go);
+        }
+        playerSlotInstances.Clear();
+
+        var sprites = UiSprites.Instance;
+        var players = PhotonNetwork.PlayerList;
+        int max = room.MaxPlayers;
+
+        for (int i = 0; i < max; i++)
+        {
+            bool filled = i < players.Length;
+            Photon.Realtime.Player player = filled ? players[i] : null;
+            bool ready = filled && player.IsMasterClient; // host = ready chrome for now
+
+            GameObject slot = new GameObject("PlayerSlot_" + i);
+            slot.transform.SetParent(playerSlotContainer, false);
+
+            RectTransform rt = slot.AddComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(0f, Tokens.SlotHeight);
+
+            Image bg = slot.AddComponent<Image>();
+            Sprite spr = null;
+            if (sprites != null)
+            {
+                if (!filled) spr = sprites.SlotEmpty;
+                else if (ready) spr = sprites.SlotReady;
+                else spr = sprites.SlotFilled;
+                if (spr != null) UiSprites.ApplySliced(bg, spr);
+            }
+            if (spr == null)
+            {
+                bg.color = filled
+                    ? (ready ? Tokens.Ember : Tokens.Bronze)
+                    : Tokens.WithAlpha(Tokens.StoneEdge, 0.5f);
+            }
+            bg.raycastTarget = false;
+
+            LayoutElement le = slot.AddComponent<LayoutElement>();
+            le.minHeight = Tokens.SlotHeight;
+            le.preferredHeight = Tokens.SlotHeight;
+
+            // Label
+            GameObject textGo = new GameObject("Label");
+            textGo.transform.SetParent(slot.transform, false);
+            RectTransform tr = textGo.AddComponent<RectTransform>();
+            tr.anchorMin = Vector2.zero;
+            tr.anchorMax = Vector2.one;
+            tr.offsetMin = new Vector2(Tokens.Space3, Tokens.Space1);
+            tr.offsetMax = new Vector2(-Tokens.Space3, -Tokens.Space1);
+
+            TextMeshProUGUI tmp = textGo.AddComponent<TextMeshProUGUI>();
+            tmp.fontSize = Tokens.TextBody;
+            tmp.alignment = TextAlignmentOptions.MidlineLeft;
+            tmp.enableWordWrapping = false;
+            tmp.raycastTarget = false;
+            if (FontRefs.Instance != null && FontRefs.Instance.Label != null)
+                tmp.font = FontRefs.Instance.Label;
+
+            if (filled)
+            {
+                string displayName = PhotonConnector.GetPlayerDisplayName(player);
+                int rating = PhotonConnector.GetPlayerRating(player);
+                string host = player.IsMasterClient ? " · Host" : "";
+                string you = player.IsLocal ? " · You" : "";
+                tmp.text = displayName + "  [" + rating + "]" + host + you;
+                tmp.color = Tokens.BoneBright;
+            }
+            else
+            {
+                tmp.text = "Awaiting challenger";
+                tmp.color = Tokens.BoneDim;
+            }
+
+            // Fade in at DurBase (DESIGN §8)
+            CanvasGroup cg = slot.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeSlotIn(cg));
+
+            playerSlotInstances.Add(slot);
+        }
+    }
+
+    private IEnumerator FadeSlotIn(CanvasGroup cg)
+    {
+        if (cg == null) yield break;
+        float dur = UiMotion.Dur(Tokens.DurBase);
+        if (dur <= 0f)
+        {
+            cg.alpha = 1f;
+            yield break;
+        }
+        float t = 0f;
+        while (t < dur && cg != null)
+        {
+            t += Time.unscaledDeltaTime;
+            cg.alpha = Mathf.Clamp01(t / dur);
+            yield return null;
+        }
+        if (cg != null) cg.alpha = 1f;
     }
 
     // === Room List ===

@@ -19,6 +19,12 @@ public class MainMenuVisual : ThemeableUI
     [SerializeField] private float floatAmplitude = 3f;
     [SerializeField] private float floatSpeed = 1.5f;
 
+    [Header("Hero sigil (underline_ember breathe)")]
+    [SerializeField] private CanvasGroup sigilUnderline;
+    [SerializeField] private float sigilBreatheSpeed = 0.55f; // ~3.2s period-ish with sin
+    [SerializeField] private float sigilAlphaMin = 0.55f;
+    [SerializeField] private float sigilAlphaMax = 1f;
+
     [Header("Background")]
     [SerializeField] private BackgroundController backgroundController;
     [SerializeField] private Image fallbackGradient;
@@ -97,12 +103,14 @@ public class MainMenuVisual : ThemeableUI
     private void Update()
     {
         AnimateTitleFloat();
+        AnimateSigilBreathe();
     }
 
     // ========== TITLE ANIMATION ==========
 
     /// <summary>
     /// Subtle sine-wave Y offset on the title text (+-3px at slow speed).
+    /// Honors reduce-motion (DESIGN.md §7 / §11).
     /// </summary>
     private void AnimateTitleFloat()
     {
@@ -115,6 +123,24 @@ public class MainMenuVisual : ThemeableUI
 
         float yOffset = Mathf.Sin(Time.unscaledTime * floatSpeed) * floatAmplitude;
         titleRect.anchoredPosition = titleBasePosition + new Vector2(0f, yOffset);
+    }
+
+    /// <summary>
+    /// Slow-burning opacity on the hero underline_ember strip (design-site mock).
+    /// Off under reduce-motion — static mid opacity.
+    /// </summary>
+    private void AnimateSigilBreathe()
+    {
+        if (sigilUnderline == null) return;
+        if (UiMotion.ReduceMotion)
+        {
+            sigilUnderline.alpha = 0.85f;
+            return;
+        }
+
+        // Map sin [-1,1] → [min,max]
+        float t = (Mathf.Sin(Time.unscaledTime * sigilBreatheSpeed) + 1f) * 0.5f;
+        sigilUnderline.alpha = Mathf.Lerp(sigilAlphaMin, sigilAlphaMax, t);
     }
 
     // ========== DIFFICULTY SELECTOR ==========

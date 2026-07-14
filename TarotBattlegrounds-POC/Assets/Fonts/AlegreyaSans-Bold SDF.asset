@@ -60,9 +60,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 71c1514a6bd24e1e882cebbe1904ce04, type: 3}
   m_Name: AlegreyaSans-Bold SDF
   m_EditorClassIdentifier: 
-  hashCode: 0
+  hashCode: -1435275754
   material: {fileID: 9148168783331392572}
-  materialHashCode: -2006316128
+  materialHashCode: -324080650
   m_Version: 1.1.0
   m_SourceFontFileGUID: 5fb063d5e433f46bca28361c7054d2c9
   m_SourceFontFile_EditorRef: {fileID: 12800000, guid: 5fb063d5e433f46bca28361c7054d2c9, type: 3}
@@ -7224,9 +7224,9 @@ Material:
     - _OutlineSoftness: 0
     - _OutlineWidth: 0
     - _PerspectiveFilter: 0.875
-    - _ScaleRatioA: 1
+    - _ScaleRatioA: 0.9
     - _ScaleRatioB: 1
-    - _ScaleRatioC: 1
+    - _ScaleRatioC: 0.73125
     - _ScaleX: 1
     - _ScaleY: 1
     - _ShaderFlags: 0

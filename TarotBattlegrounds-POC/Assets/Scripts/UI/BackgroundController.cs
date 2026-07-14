@@ -1,24 +1,34 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 using TarotBattlegrounds.UI;
 
 /// <summary>
-/// Multi-layered procedural background system that creates a mystical tavern atmosphere.
-/// Layers: base color, radial gradient overlay, vignette, and ambient dust particles.
-/// Supports custom background sprite override and integrates with the theme system.
+/// Background layers for menu/lobby scenes.
+/// Modes:
+///  - Procedural: Ash base + radial gradient + vignette + optional dust
+///  - Art still: full-bleed sprite + vignette (≤2 full-screen overdraws)
+///  - Art video: VideoPlayer → RawImage, still as poster/fallback;
+///    default menu mode is ping-pong (forward then reverse) so the loop has no jump.
+///    Reduce-motion and load failure stay on still (T750 Phase 3 — MainMenu only).
 /// </summary>
 public class BackgroundController : MonoBehaviour, IThemeable
 {
     [Header("Layers")]
-    [SerializeField] private Image backgroundBase;        // Solid base
-    [SerializeField] private Image gradientOverlay;       // Radial gradient
+    [SerializeField] private Image backgroundBase;        // Solid Ash or still poster
+    [SerializeField] private Image gradientOverlay;       // Procedural gradient OR unused in art mode
     [SerializeField] private Image vignetteOverlay;       // Edge darkening
     [SerializeField] private ParticleSystem ambientDust;  // Floating particles
+    [SerializeField] private RawImage videoDisplay;       // Optional video layer (menu trial)
 
     [Header("Settings")]
     [SerializeField] private bool useProceduralBackground = true;
     [SerializeField] private Sprite customBackgroundSprite;
 
+    [Header("Video (optional — MainMenu trial)")]
+    [SerializeField] private VideoPlayer videoPlayer;
+    [SerializeField] private VideoClip backgroundVideo;
+    [SerializeField] private bool loopBackgroundVideo = true;
     [Header("Gradient")]
     [SerializeField] private Color gradientCenter = Tokens.CharredWood;
     [SerializeField] private Color gradientEdge = Tokens.Ash;
@@ -31,19 +41,12 @@ public class BackgroundController : MonoBehaviour, IThemeable
 
     private Texture2D gradientTexture;
     private Texture2D vignetteTexture;
+    private RenderTexture videoRT;
+    private bool artMode;
 
     private void Start()
     {
-        if (useProceduralBackground && customBackgroundSprite == null)
-        {
-            CreateGradientTexture();
-            CreateVignetteTexture();
-        }
-        else if (customBackgroundSprite != null)
-        {
-            ApplyCustomBackground();
-        }
-
+        ApplyCurrentMode();
         SetupParticles();
     }
 
@@ -60,55 +63,253 @@ public class BackgroundController : MonoBehaviour, IThemeable
     private void OnDisable()
     {
         ThemeManager.OnThemeChanged -= ApplyTheme;
+        StopVideo();
     }
 
     /// <summary>
-    /// Apply theme to background layers. Derives gradient colors from gameBackgroundColor.
+    /// Wire still + optional video. Still is always the reduce-motion / failure
+    /// poster. Does not block interactivity on prepare.
+    /// Prefer a pre-baked forward+reverse clip (menu_video_pingpong) — this
+    /// VideoPlayer backend clamps negative playbackSpeed to 0, so software
+    /// reverse is not viable.
     /// </summary>
+    public void ConfigureArtBackground(Sprite still, VideoClip clip, bool loop)
+    {
+        customBackgroundSprite = still;
+        backgroundVideo = clip;
+        loopBackgroundVideo = loop;
+        // Baked forward+reverse clips just hard-loop seamlessly.
+        bool bakedPingPong = clip != null && clip.name != null
+            && clip.name.IndexOf("pingpong", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        if (bakedPingPong)
+            loopBackgroundVideo = true;
+        useProceduralBackground = still == null && clip == null;
+        artMode = !useProceduralBackground;
+        ApplyCurrentMode();
+    }
+
     public void ApplyTheme(ThemeConfig theme)
     {
         if (theme == null) return;
 
-        // Derive gradient center from theme background color (slightly brighter)
         Color baseColor = theme.gameBackgroundColor;
         gradientCenter = new Color(
             Mathf.Min(baseColor.r * 1.6f, 0.2f),
             Mathf.Min(baseColor.g * 1.6f, 0.15f),
             Mathf.Min(baseColor.b * 1.4f, 0.25f)
         );
-        // Edge is darker version
         gradientEdge = new Color(
             baseColor.r * 0.4f,
             baseColor.g * 0.3f,
             baseColor.b * 0.5f
         );
 
-        // Apply base color
+        if (artMode || customBackgroundSprite != null || backgroundVideo != null)
+        {
+            // Art mode owns colors; theme does not override full-bleed env art.
+            return;
+        }
+
         if (backgroundBase != null)
         {
             backgroundBase.color = baseColor;
         }
 
-        // Regenerate procedural textures if using procedural mode
-        if (useProceduralBackground && customBackgroundSprite == null)
+        if (useProceduralBackground)
         {
             CreateGradientTexture();
             CreateVignetteTexture();
         }
-        else if (theme.gameBackground != null)
+        else if (theme.gameBackground != null && gradientOverlay != null)
         {
-            // Theme provides a background sprite -- use it as custom override
-            if (gradientOverlay != null)
-            {
-                gradientOverlay.sprite = theme.gameBackground;
-                gradientOverlay.color = Color.white;
-            }
+            gradientOverlay.sprite = theme.gameBackground;
+            gradientOverlay.color = Color.white;
         }
     }
 
-    /// <summary>
-    /// Create a 512x512 radial gradient texture from gradientCenter to gradientEdge.
-    /// </summary>
+    private void ApplyCurrentMode()
+    {
+        artMode = customBackgroundSprite != null || backgroundVideo != null;
+
+        if (!artMode && useProceduralBackground)
+        {
+            HideVideoLayer();
+            if (backgroundBase != null)
+            {
+                backgroundBase.enabled = true;
+                backgroundBase.sprite = null;
+                backgroundBase.color = Tokens.Ash;
+            }
+            if (gradientOverlay != null)
+            {
+                gradientOverlay.enabled = true;
+                gradientOverlay.gameObject.SetActive(true);
+            }
+            CreateGradientTexture();
+            CreateVignetteTexture(Tokens.MenuVignette);
+            return;
+        }
+
+        // Art mode: still poster + optional video + vignette. No procedural gradient.
+        useProceduralBackground = false;
+        if (gradientOverlay != null)
+        {
+            gradientOverlay.enabled = false;
+            gradientOverlay.gameObject.SetActive(false);
+        }
+
+        ApplyStillPoster();
+        CreateVignetteTexture(Tokens.MenuVignette);
+
+        bool wantVideo = backgroundVideo != null && !UiMotion.ReduceMotion;
+        if (wantVideo)
+            TryStartVideo();
+        else
+            HideVideoLayer();
+    }
+
+    private void ApplyStillPoster()
+    {
+        if (backgroundBase == null) return;
+
+        backgroundBase.enabled = true;
+        if (customBackgroundSprite != null)
+        {
+            backgroundBase.sprite = customBackgroundSprite;
+            backgroundBase.type = Image.Type.Simple;
+            backgroundBase.preserveAspect = false;
+            backgroundBase.color = Color.white;
+        }
+        else
+        {
+            backgroundBase.sprite = null;
+            backgroundBase.color = Tokens.Ash;
+        }
+    }
+
+    private void TryStartVideo()
+    {
+        if (videoPlayer == null || videoDisplay == null || backgroundVideo == null)
+        {
+            HideVideoLayer();
+            return;
+        }
+
+        if (UiMotion.ReduceMotion)
+        {
+            HideVideoLayer();
+            return;
+        }
+
+        EnsureVideoRenderTexture();
+
+        videoPlayer.playOnAwake = false;
+        // Seamless when clip is baked forward+reverse; otherwise plain loop.
+        videoPlayer.isLooping = loopBackgroundVideo;
+        videoPlayer.playbackSpeed = 1f;
+        videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+        videoPlayer.targetTexture = videoRT;
+        videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
+        videoPlayer.clip = backgroundVideo;
+        videoPlayer.prepareCompleted -= OnVideoPrepared;
+        videoPlayer.prepareCompleted += OnVideoPrepared;
+        videoPlayer.errorReceived -= OnVideoError;
+        videoPlayer.errorReceived += OnVideoError;
+        videoPlayer.Prepare();
+    }
+
+    private void OnVideoPrepared(VideoPlayer source)
+    {
+        if (UiMotion.ReduceMotion)
+        {
+            HideVideoLayer();
+            return;
+        }
+
+        if (videoDisplay != null)
+        {
+            videoDisplay.texture = videoRT;
+            videoDisplay.color = Color.white;
+            videoDisplay.enabled = true;
+            videoDisplay.gameObject.SetActive(true);
+            videoDisplay.raycastTarget = false;
+        }
+
+        // Still remains under video for first-frame safety; hide once playing to
+        // keep full-screen overdraw at video + vignette (≤2).
+        if (backgroundBase != null)
+            backgroundBase.enabled = false;
+
+        source.playbackSpeed = 1f;
+        source.Play();
+    }
+
+    private void OnVideoError(VideoPlayer source, string message)
+    {
+        Debug.LogWarning("[BackgroundController] Video failed — staying on still poster. " + message);
+        HideVideoLayer();
+        ApplyStillPoster();
+    }
+
+    private void EnsureVideoRenderTexture()
+    {
+        int w = 1280;
+        int h = 720;
+        if (backgroundVideo != null)
+        {
+            w = Mathf.Max(16, (int)backgroundVideo.width);
+            h = Mathf.Max(16, (int)backgroundVideo.height);
+        }
+
+        if (videoRT != null && (videoRT.width != w || videoRT.height != h))
+        {
+            videoRT.Release();
+            Destroy(videoRT);
+            videoRT = null;
+        }
+
+        if (videoRT == null)
+        {
+            videoRT = new RenderTexture(w, h, 0, RenderTextureFormat.ARGB32);
+            videoRT.name = "BG_VideoRT";
+            videoRT.Create();
+        }
+    }
+
+    private void HideVideoLayer()
+    {
+        if (videoPlayer != null)
+        {
+            videoPlayer.prepareCompleted -= OnVideoPrepared;
+            videoPlayer.errorReceived -= OnVideoError;
+            if (videoPlayer.isPlaying) videoPlayer.Stop();
+            videoPlayer.playbackSpeed = 1f;
+        }
+        if (videoDisplay != null)
+        {
+            videoDisplay.enabled = false;
+            videoDisplay.texture = null;
+            videoDisplay.gameObject.SetActive(false);
+        }
+        if (backgroundBase != null)
+            backgroundBase.enabled = true;
+    }
+
+    private void StopVideo()
+    {
+        if (videoPlayer == null) return;
+        videoPlayer.prepareCompleted -= OnVideoPrepared;
+        videoPlayer.errorReceived -= OnVideoError;
+        if (videoPlayer.isPlaying) videoPlayer.Stop();
+        videoPlayer.playbackSpeed = 1f;
+    }
+
+    /// <summary>Public re-evaluate (e.g. after reduce-motion toggle).</summary>
+    public void RefreshMotionPreference()
+    {
+        ApplyCurrentMode();
+    }
+
     private void CreateGradientTexture()
     {
         if (gradientOverlay == null) return;
@@ -147,12 +348,10 @@ public class BackgroundController : MonoBehaviour, IThemeable
 
         gradientOverlay.sprite = gradientSprite;
         gradientOverlay.color = Color.white;
+        gradientOverlay.enabled = true;
     }
 
-    /// <summary>
-    /// Create a procedural vignette texture: transparent center fading to black edges (alpha 0-0.6).
-    /// </summary>
-    private void CreateVignetteTexture()
+    private void CreateVignetteTexture(float edgeAlpha = 0.6f)
     {
         if (vignetteOverlay == null) return;
 
@@ -174,8 +373,7 @@ public class BackgroundController : MonoBehaviour, IThemeable
             {
                 float dist = Vector2.Distance(new Vector2(x, y), center);
                 float t = Mathf.Clamp01(dist / maxDist);
-                // Ease-in for smoother vignette falloff
-                float alpha = t * t * 0.6f;
+                float alpha = t * t * edgeAlpha;
                 pixels[y * size + x] = Tokens.WithAlpha(Tokens.Ash, alpha);
             }
         }
@@ -192,33 +390,22 @@ public class BackgroundController : MonoBehaviour, IThemeable
 
         vignetteOverlay.sprite = vignetteSprite;
         vignetteOverlay.color = Color.white;
+        vignetteOverlay.enabled = true;
+        vignetteOverlay.raycastTarget = false;
     }
 
-    /// <summary>
-    /// Apply custom background sprite, hiding the procedural gradient.
-    /// </summary>
-    private void ApplyCustomBackground()
-    {
-        if (gradientOverlay != null && customBackgroundSprite != null)
-        {
-            gradientOverlay.sprite = customBackgroundSprite;
-            gradientOverlay.color = Color.white;
-        }
-
-        // Hide vignette when using custom sprite (artist controls their own vignette)
-        if (vignetteOverlay != null)
-        {
-            vignetteOverlay.enabled = true;
-        }
-    }
-
-    /// <summary>
-    /// Configure the particle system for ambient mystical dust.
-    /// Slow upward drift with slight horizontal sway, golden specks at very low alpha.
-    /// </summary>
     private void SetupParticles()
     {
         if (ambientDust == null) return;
+
+        // Art/video menus keep overdraw lean — dust optional and dim.
+        if (artMode)
+        {
+            ambientDust.gameObject.SetActive(false);
+            return;
+        }
+
+        ambientDust.gameObject.SetActive(true);
 
         var main = ambientDust.main;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
@@ -231,19 +418,16 @@ public class BackgroundController : MonoBehaviour, IThemeable
         main.loop = true;
         main.playOnAwake = true;
 
-        // Emission
         var emission = ambientDust.emission;
         emission.enabled = true;
-        float avgLifetime = 10f; // average of 8 and 12
+        float avgLifetime = 10f;
         emission.rateOverTime = (float)dustCount / avgLifetime;
 
-        // Shape: Box covering screen area
         var shape = ambientDust.shape;
         shape.enabled = true;
         shape.shapeType = ParticleSystemShapeType.Box;
         shape.scale = new Vector3(20f, 12f, 1f);
 
-        // Noise for gentle sway
         var noise = ambientDust.noise;
         noise.enabled = true;
         noise.strength = 0.5f;
@@ -251,7 +435,6 @@ public class BackgroundController : MonoBehaviour, IThemeable
         noise.scrollSpeed = 0.1f;
         noise.quality = ParticleSystemNoiseQuality.Medium;
 
-        // Color over lifetime: fade in and out
         var colorOverLifetime = ambientDust.colorOverLifetime;
         colorOverLifetime.enabled = true;
         Gradient gradient = new Gradient();
@@ -271,26 +454,23 @@ public class BackgroundController : MonoBehaviour, IThemeable
         );
         colorOverLifetime.color = gradient;
 
-        // Renderer settings
         var renderer = ambientDust.GetComponent<ParticleSystemRenderer>();
         if (renderer != null)
         {
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
-            // Use default particle material if none assigned
             if (renderer.material == null || renderer.material.name == "Default-Material")
             {
                 renderer.material = new Material(Shader.Find("Particles/Standard Unlit"));
                 if (renderer.material != null)
                 {
-                    renderer.material.SetFloat("_Mode", 1f); // Additive
+                    renderer.material.SetFloat("_Mode", 1f);
                     renderer.material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                     renderer.material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
                 }
             }
-            renderer.sortingOrder = -1; // Behind UI
+            renderer.sortingOrder = -1;
         }
 
-        // Restart if already playing
         if (ambientDust.isPlaying)
         {
             ambientDust.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -298,37 +478,36 @@ public class BackgroundController : MonoBehaviour, IThemeable
         ambientDust.Play();
     }
 
-    /// <summary>
-    /// Set a custom background sprite at runtime.
-    /// Pass null to revert to procedural background.
-    /// </summary>
     public void SetCustomBackground(Sprite sprite)
     {
         customBackgroundSprite = sprite;
+        backgroundVideo = null;
+        useProceduralBackground = sprite == null;
+        artMode = sprite != null;
+        ApplyCurrentMode();
+    }
 
-        if (sprite != null)
-        {
-            useProceduralBackground = false;
-            ApplyCustomBackground();
-        }
-        else
-        {
-            useProceduralBackground = true;
-            CreateGradientTexture();
-            CreateVignetteTexture();
-        }
+    /// <summary>Editor/runtime wiring for existing BG_Image layers + optional video GO.</summary>
+    public void WireLayers(Image baseImg, Image gradient, Image vignette, ParticleSystem dust,
+        RawImage videoImg, VideoPlayer player)
+    {
+        backgroundBase = baseImg;
+        gradientOverlay = gradient;
+        vignetteOverlay = vignette;
+        ambientDust = dust;
+        videoDisplay = videoImg;
+        videoPlayer = player;
     }
 
     private void OnDestroy()
     {
-        // Clean up procedural textures
-        if (gradientTexture != null)
+        StopVideo();
+        if (gradientTexture != null) Destroy(gradientTexture);
+        if (vignetteTexture != null) Destroy(vignetteTexture);
+        if (videoRT != null)
         {
-            Destroy(gradientTexture);
-        }
-        if (vignetteTexture != null)
-        {
-            Destroy(vignetteTexture);
+            videoRT.Release();
+            Destroy(videoRT);
         }
     }
 }

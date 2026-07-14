@@ -305,15 +305,13 @@ public class MainMenuManager : MonoBehaviour
     }
 
     /// <summary>
-    /// T730: Visually promote the Solo button as the first-run "Play" CTA.
-    /// T750: emphasis = the ignited/selected ember state (green tint and the
-    /// scale pulse violated DESIGN.md §7 — no green, no scaling/bounce).
+    /// T730: Visually promote the Solo CTA as the first-run action.
+    /// T750 Phase 3: Copy A keeps label "Begin the rite"; emphasis is the
+    /// ignited/selected ember state on IgniteButton (no green, no scale pulse).
     /// </summary>
     private void PromoteSoloAsFirstRunCta()
     {
-        var label = soloButton.GetComponentInChildren<TMP_Text>();
-        if (label != null) label.text = "Play — Recommended";
-
+        // Do not relabel — factory ships Copy A ("Begin the rite").
         var ignite = soloButton.GetComponent<TarotBattlegrounds.UI.IgniteButton>();
         if (ignite != null) ignite.Selected = true;
     }
