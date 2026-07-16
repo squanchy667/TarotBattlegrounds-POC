@@ -41,8 +41,11 @@ public class MainMenuVisual : ThemeableUI
     // selected Ember/BoneBright, unselected surface/BoneDim. No serialized colors.
 
     private RectTransform titleRect;
-    private Vector2 titleBasePosition;
-    private bool titleBasePositionCaptured;
+    /// <summary>
+    /// When true, title sits under a LayoutGroup — never write anchoredPosition
+    /// (that fought VLG after Lobby→Menu and shoved the left of the title off-screen).
+    /// </summary>
+    private bool titleDrivenByLayout;
 
     private int selectedDifficultyIndex = 1; // Default: Medium
     private int selectedPlayerCountIndex = 0; // Default: 4 players
@@ -52,6 +55,9 @@ public class MainMenuVisual : ThemeableUI
         if (titleText != null)
         {
             titleRect = titleText.GetComponent<RectTransform>();
+            // Parent VerticalLayoutGroup (HeroLeft) owns placement
+            titleDrivenByLayout = titleRect != null
+                && titleRect.GetComponentInParent<UnityEngine.UI.LayoutGroup>() != null;
         }
 
         // Set up difficulty button listeners
@@ -77,13 +83,6 @@ public class MainMenuVisual : ThemeableUI
 
     private void Start()
     {
-        // Capture title base position after layout has settled
-        if (titleRect != null)
-        {
-            titleBasePosition = titleRect.anchoredPosition;
-            titleBasePositionCaptured = true;
-        }
-
         // Set fallback gradient if no BackgroundController present
         if (backgroundController == null && fallbackGradient != null)
         {
@@ -102,27 +101,21 @@ public class MainMenuVisual : ThemeableUI
 
     private void Update()
     {
-        AnimateTitleFloat();
+        // Title float disabled when layout-driven — see AnimateTitleFloat docs
         AnimateSigilBreathe();
     }
 
     // ========== TITLE ANIMATION ==========
 
     /// <summary>
-    /// Subtle sine-wave Y offset on the title text (+-3px at slow speed).
-    /// Honors reduce-motion (DESIGN.md §7 / §11).
+    /// Legacy float kept for non-layout titles only. HeroLeft uses VerticalLayoutGroup;
+    /// writing anchoredPosition every frame captured a pre-layout (0,0) base on scene
+    /// reload (Lobby→Menu) and clipped "Tarot Battlegrounds" off the left edge.
     /// </summary>
     private void AnimateTitleFloat()
     {
-        if (titleRect == null || !titleBasePositionCaptured) return;
-        if (UiMotion.ReduceMotion)
-        {
-            titleRect.anchoredPosition = titleBasePosition;
-            return;
-        }
-
-        float yOffset = Mathf.Sin(Time.unscaledTime * floatSpeed) * floatAmplitude;
-        titleRect.anchoredPosition = titleBasePosition + new Vector2(0f, yOffset);
+        // Intentionally no-op for layout-driven titles (current §8 MainMenu).
+        if (titleDrivenByLayout || titleRect == null) return;
     }
 
     /// <summary>
@@ -265,15 +258,12 @@ public class MainMenuVisual : ThemeableUI
     public int SelectedPlayerCountIndex => selectedPlayerCountIndex;
 
     /// <summary>
-    /// Update the title base position (call after layout changes, e.g., after fade-in completes).
+    /// No-op: title is layout-driven; position is not animated.
+    /// Kept so any fade-in callers still compile.
     /// </summary>
     public void RefreshTitleBasePosition()
     {
-        if (titleRect != null)
-        {
-            titleBasePosition = titleRect.anchoredPosition;
-            titleBasePositionCaptured = true;
-        }
+        // Layout owns TitleText placement under HeroLeft VLG.
     }
 
     private void OnDestroy()

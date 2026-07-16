@@ -116,53 +116,28 @@ public class MainMenuManager : MonoBehaviour
     }
 
     /// <summary>
-    /// UX17: Fade the content group from alpha 0 to 1 and slide the title down into position.
+    /// UX17: Fade the content group from alpha 0 to 1.
+    /// Do NOT slide TitleText by anchoredPosition — it lives under HeroLeft's
+    /// VerticalLayoutGroup; manual position writes fight layout and after
+    /// Lobby→Menu reload left the title at (0,0) clipped off-screen.
     /// </summary>
     private IEnumerator FadeInContent()
     {
-        // Set initial state
-        if (contentGroup != null)
-            contentGroup.alpha = 0f;
+        if (contentGroup == null)
+            yield break;
 
-        RectTransform titleRect = null;
-        Vector2 titleOriginalPos = Vector2.zero;
-        if (titleText != null)
-        {
-            titleRect = titleText.GetComponent<RectTransform>();
-            if (titleRect != null)
-            {
-                titleOriginalPos = titleRect.anchoredPosition;
-                titleRect.anchoredPosition = titleOriginalPos + Vector2.up * titleSlideDistance;
-            }
-        }
+        contentGroup.alpha = 0f;
 
         float elapsed = 0f;
         while (elapsed < fadeInDuration)
         {
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / fadeInDuration);
-            float smoothT = Mathf.SmoothStep(0f, 1f, t);
-
-            // Fade content group
-            if (contentGroup != null)
-                contentGroup.alpha = smoothT;
-
-            // Slide title down into position
-            if (titleRect != null)
-                titleRect.anchoredPosition = Vector2.Lerp(
-                    titleOriginalPos + Vector2.up * titleSlideDistance,
-                    titleOriginalPos,
-                    smoothT
-                );
-
+            contentGroup.alpha = Mathf.SmoothStep(0f, 1f, t);
             yield return null;
         }
 
-        // Ensure final state
-        if (contentGroup != null)
-            contentGroup.alpha = 1f;
-        if (titleRect != null)
-            titleRect.anchoredPosition = titleOriginalPos;
+        contentGroup.alpha = 1f;
     }
 
     private void ShowMainPanel()
@@ -209,18 +184,17 @@ public class MainMenuManager : MonoBehaviour
 
     private void OnMultiplayerClicked()
     {
-        // Require auth before entering multiplayer
-        if (GameAuthManager.Instance == null || !GameAuthManager.Instance.IsAuthenticated)
-        {
-            pendingMultiplayerAction = PendingAction.Lobby;
-            if (authUI != null) authUI.Open();
-            return;
-        }
-
+        // Casual multiplayer always goes straight to Lobby (Photon connect lives there).
+        // Ranked still requires auth via OnRankedClicked.
         GameConfig.CurrentGameMode = GameConfig.GameMode.Multiplayer;
         GameConfig.Save();
         Debug.Log("[MainMenu] Loading Lobby for multiplayer...");
-        SceneManager.LoadScene("Lobby");
+        if (Application.CanStreamedLevelBeLoaded("Lobby"))
+            SceneManager.LoadScene("Lobby");
+        else
+        {
+            Debug.LogError("[MainMenu] Lobby scene not in Build Settings — cannot open multiplayer.");
+        }
     }
 
     private void OnRankedClicked()

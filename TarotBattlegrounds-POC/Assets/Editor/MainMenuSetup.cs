@@ -337,6 +337,9 @@ public class MainMenuSetup : EditorWindow
         // Prefer existing controller
         BackgroundController bgCtrl = Object.FindObjectOfType<BackgroundController>(true);
 
+        // BG_Root owns RectMask2D — never put mask on Canvas (clips TMP titles)
+        RectTransform bgRoot = BackgroundController.EnsureBgRoot(canvasTransform);
+
         Image baseImg = FindNamedImage(canvasTransform, "BG_Base");
         Image gradientImg = FindNamedImage(canvasTransform, "BG_Gradient");
         Image vignetteImg = FindNamedImage(canvasTransform, "BG_Vignette");
@@ -344,13 +347,23 @@ public class MainMenuSetup : EditorWindow
 
         if (baseImg == null)
         {
-            GameObject baseGo = CreateFullscreenImage(canvasTransform, "BG_Base", Tokens.Ash, -20);
+            GameObject baseGo = CreateFullscreenImage(bgRoot, "BG_Base", Tokens.Ash, 0);
             baseImg = baseGo.GetComponent<Image>();
+        }
+        else
+        {
+            baseImg.transform.SetParent(bgRoot, false);
+            StretchFull(baseImg.rectTransform);
         }
         if (vignetteImg == null)
         {
-            GameObject vigGo = CreateFullscreenImage(canvasTransform, "BG_Vignette", Color.white, -10);
+            GameObject vigGo = CreateFullscreenImage(bgRoot, "BG_Vignette", Color.white, 2);
             vignetteImg = vigGo.GetComponent<Image>();
+        }
+        else
+        {
+            vignetteImg.transform.SetParent(bgRoot, false);
+            StretchFull(vignetteImg.rectTransform);
         }
 
         // Video layer
@@ -359,7 +372,7 @@ public class MainMenuSetup : EditorWindow
         if (videoT == null)
         {
             videoGo = new GameObject("BG_Video");
-            videoGo.transform.SetParent(canvasTransform, false);
+            videoGo.transform.SetParent(bgRoot, false);
             RectTransform rt = videoGo.AddComponent<RectTransform>();
             StretchFull(rt);
             videoGo.AddComponent<CanvasRenderer>();
@@ -371,12 +384,12 @@ public class MainMenuSetup : EditorWindow
             vp.isLooping = true;
             vp.renderMode = VideoRenderMode.RenderTexture;
             vp.audioOutputMode = VideoAudioOutputMode.None;
-            // Sit above base, below vignette
-            videoGo.transform.SetSiblingIndex(baseImg.transform.GetSiblingIndex() + 1);
         }
         else
         {
             videoGo = videoT.gameObject;
+            videoGo.transform.SetParent(bgRoot, false);
+            StretchFull(videoGo.GetComponent<RectTransform>());
         }
 
         RawImage videoRaw = videoGo.GetComponent<RawImage>();
@@ -425,10 +438,11 @@ public class MainMenuSetup : EditorWindow
         bgCtrl.ConfigureArtBackground(still, clip, loop: true);
         EditorUtility.SetDirty(bgCtrl);
 
-        // Force BG children to bottom of canvas (under SafeArea)
-        if (baseImg != null) baseImg.transform.SetAsFirstSibling();
+        // Layer order inside BG_Root: Base → Video → Vignette
+        if (baseImg != null) baseImg.transform.SetSiblingIndex(0);
         if (videoGo != null) videoGo.transform.SetSiblingIndex(1);
         if (vignetteImg != null) vignetteImg.transform.SetSiblingIndex(2);
+        bgRoot.SetAsFirstSibling();
 
         return bgCtrl;
     }
@@ -552,7 +566,9 @@ public class MainMenuSetup : EditorWindow
         tmp.characterSpacing = Tokens.TrackingDisplay * 100f;
         tmp.color = Tokens.BoneBright;
         tmp.alignment = TextAlignmentOptions.MidlineLeft;
-        tmp.enableWordWrapping = true;
+        // Explicit newlines only — wrapping + mask bugs ate "TAROT BATTLE…" after scene return
+        tmp.enableWordWrapping = false;
+        tmp.overflowMode = TextOverflowModes.Overflow;
         tmp.raycastTarget = false;
 
         var refs = FontRefs.Instance;
@@ -561,6 +577,7 @@ public class MainMenuSetup : EditorWindow
         LayoutElement le = obj.AddComponent<LayoutElement>();
         le.minHeight = Tokens.TextDisplay * 2.2f;
         le.preferredHeight = Tokens.TextDisplay * 2.4f;
+        le.flexibleWidth = 1f;
         return obj;
     }
 

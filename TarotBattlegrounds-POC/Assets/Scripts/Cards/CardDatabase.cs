@@ -662,7 +662,29 @@ public static class CardDatabase
             card.tribe = tribes[0].ToString();
         }
 
+        card.cardImage = LoadCardArt(name);
+
         return card;
+    }
+
+    // Card art lives at Assets/Resources/CardArt/<cardName>.png — the filename must match
+    // cardName exactly. Cards with no art file get a null sprite, which CardDisplayUI already
+    // handles by drawing a StoneEdge placeholder, so a missing image is never an error.
+    //
+    // Public because RuntimeDataLoader.BuildCards() must use the same lookup: when runtime
+    // data loads, it REPLACES this pool entirely, and cards built there would otherwise have
+    // no art at all.
+    private static readonly Dictionary<string, Sprite> _artCache = new Dictionary<string, Sprite>();
+
+    public static Sprite LoadCardArt(string cardName)
+    {
+        if (string.IsNullOrEmpty(cardName)) return null;
+
+        if (_artCache.TryGetValue(cardName, out Sprite cached)) return cached;
+
+        Sprite sprite = Resources.Load<Sprite>($"CardArt/{cardName}");
+        _artCache[cardName] = sprite;
+        return sprite;
     }
 
     /// <summary>

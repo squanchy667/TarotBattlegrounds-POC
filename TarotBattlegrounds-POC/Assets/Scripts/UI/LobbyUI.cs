@@ -50,6 +50,13 @@ public class LobbyUI : MonoBehaviour
     private readonly List<GameObject> playerSlotInstances = new List<GameObject>();
     private bool roomTitleCopyWired;
 
+    private void Awake()
+    {
+        // Lobby.unity historically had no EventSystem; MainMenu's is destroyed on scene load.
+        // Without this, every button is dead (GraphicRaycaster has nothing to dispatch to).
+        EnsureEventSystem();
+    }
+
     private void Start()
     {
         // Being in the Lobby means we're in multiplayer mode — ensure GameConfig reflects this
@@ -59,12 +66,33 @@ public class LobbyUI : MonoBehaviour
         // Start all panels hidden
         SetActivePanel(PanelState.Connecting);
 
-        // Setup button listeners
-        if (createRoomButton != null) createRoomButton.onClick.AddListener(OnCreateRoomClicked);
-        if (joinRandomButton != null) joinRandomButton.onClick.AddListener(OnJoinRandomClicked);
-        if (backToMenuButton != null) backToMenuButton.onClick.AddListener(OnBackToMenuClicked);
-        if (startGameButton != null) startGameButton.onClick.AddListener(OnStartGameClicked);
-        if (leaveRoomButton != null) leaveRoomButton.onClick.AddListener(OnLeaveRoomClicked);
+        // Setup button listeners (RemoveAll first — restyle / domain reload can double-wire)
+        if (createRoomButton != null)
+        {
+            createRoomButton.onClick.RemoveAllListeners();
+            createRoomButton.onClick.AddListener(OnCreateRoomClicked);
+        }
+        if (joinRandomButton != null)
+        {
+            joinRandomButton.onClick.RemoveAllListeners();
+            joinRandomButton.onClick.AddListener(OnJoinRandomClicked);
+        }
+        if (backToMenuButton != null)
+        {
+            backToMenuButton.onClick.RemoveAllListeners();
+            backToMenuButton.onClick.AddListener(OnBackToMenuClicked);
+            EnsureButtonHitTarget(backToMenuButton);
+        }
+        if (startGameButton != null)
+        {
+            startGameButton.onClick.RemoveAllListeners();
+            startGameButton.onClick.AddListener(OnStartGameClicked);
+        }
+        if (leaveRoomButton != null)
+        {
+            leaveRoomButton.onClick.RemoveAllListeners();
+            leaveRoomButton.onClick.AddListener(OnLeaveRoomClicked);
+        }
 
         // Connection-panel escape hatch (built by LobbyRestyleSetup)
         WireConnectionBackButton();
@@ -184,12 +212,39 @@ public class LobbyUI : MonoBehaviour
                 continue;
             buttons[i].onClick.RemoveAllListeners();
             buttons[i].onClick.AddListener(OnBackToMenuClicked);
-            // Ensure the hit target can receive clicks above the video
-            var img = buttons[i].GetComponent<Image>();
-            if (img != null) img.raycastTarget = true;
+            EnsureButtonHitTarget(buttons[i]);
             return;
         }
         Debug.LogWarning("[LobbyUI] ConnectionBackButton not found under ConnectionPanel.");
+    }
+
+    private static void EnsureButtonHitTarget(Button btn)
+    {
+        if (btn == null) return;
+        var img = btn.GetComponent<Image>();
+        if (img == null)
+        {
+            // Never put Image on a pure TMP label GO — Button GO only
+            img = btn.gameObject.AddComponent<Image>();
+            img.color = Tokens.WithAlpha(Tokens.Ash, 0.01f);
+        }
+        img.raycastTarget = true;
+        if (btn.targetGraphic == null)
+            btn.targetGraphic = img;
+        btn.interactable = true;
+    }
+
+    private static void EnsureEventSystem()
+    {
+        if (UnityEngine.EventSystems.EventSystem.current != null)
+            return;
+        if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() != null)
+            return;
+
+        GameObject esObj = new GameObject("EventSystem");
+        esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
+        esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+        Debug.Log("[LobbyUI] Created missing EventSystem (Lobby scene had none).");
     }
 
     private void SetConnectionCopy(string phase, string status)
@@ -325,7 +380,31 @@ public class LobbyUI : MonoBehaviour
         Debug.Log("[LobbyUI] Return to Menu clicked");
         // Stop pending reconnect attempts so we don't fight the scene load
         CancelInvoke();
+        StopAllCoroutines();
         UnsubscribeEvents();
+
+        // Load first, disconnect second — Photon disconnect can stall the main thread
+        // if we wait on it before LoadScene; fire-and-forget is fine for menu exit.
+        bool loaded = false;
+        try
+        {
+            if (Application.CanStreamedLevelBeLoaded("MainMenu"))
+            {
+                SceneManager.LoadScene("MainMenu");
+                loaded = true;
+            }
+            else
+            {
+                // Build-index fallback: 0 is usually MainMenu in this project
+                SceneManager.LoadScene(0);
+                loaded = true;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("[LobbyUI] LoadScene failed: " + e.Message);
+        }
+
         try
         {
             if (PhotonConnector.Instance != null)
@@ -337,11 +416,9 @@ public class LobbyUI : MonoBehaviour
         {
             Debug.LogWarning("[LobbyUI] Disconnect on back: " + e.Message);
         }
-        // Load by name + build index fallback
-        if (Application.CanStreamedLevelBeLoaded("MainMenu"))
-            SceneManager.LoadScene("MainMenu");
-        else
-            SceneManager.LoadScene(0);
+
+        if (!loaded)
+            Debug.LogError("[LobbyUI] Return to Menu could not load MainMenu.");
     }
 
     private void OnStartGameClicked()

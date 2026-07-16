@@ -62,7 +62,14 @@ public class SafeAreaHandler : MonoBehaviour
 
     private void ApplySafeArea()
     {
+        // Editor Game View / Device Simulator can report 0 or tiny height for a frame
+        // during scene loads — dividing by that nukes anchors and clips UI.
+        if (Screen.width < 16 || Screen.height < 16)
+            return;
+
         Rect safeArea = Screen.safeArea;
+        if (safeArea.width < 1f || safeArea.height < 1f)
+            return;
 
         if (showDebugInfo)
         {
@@ -77,6 +84,17 @@ public class SafeAreaHandler : MonoBehaviour
         anchorMin.y /= Screen.height;
         anchorMax.x /= Screen.width;
         anchorMax.y /= Screen.height;
+
+        // Clamp — never allow inverted / out-of-range anchors
+        anchorMin.x = Mathf.Clamp01(anchorMin.x);
+        anchorMin.y = Mathf.Clamp01(anchorMin.y);
+        anchorMax.x = Mathf.Clamp01(anchorMax.x);
+        anchorMax.y = Mathf.Clamp01(anchorMax.y);
+        if (anchorMax.x <= anchorMin.x || anchorMax.y <= anchorMin.y)
+        {
+            anchorMin = Vector2.zero;
+            anchorMax = Vector2.one;
+        }
 
         // Apply selective edge handling
         if (!applyToAllEdges)

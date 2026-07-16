@@ -266,6 +266,11 @@ public class RuntimeDataLoader : MonoBehaviour
                     card.effectType = et;
             }
 
+            // Runtime cards replace the built-in pool wholesale, so they must pick up artwork
+            // the same way CardDatabase does — otherwise every card renders as a grey placeholder
+            // whenever the S3 fetch succeeds.
+            card.cardImage = CardDatabase.LoadCardArt(card.cardName);
+
             result.Add(card);
         }
 

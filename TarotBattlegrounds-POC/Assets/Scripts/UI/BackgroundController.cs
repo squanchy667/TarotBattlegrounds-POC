@@ -177,13 +177,19 @@ public class BackgroundController : MonoBehaviour, IThemeable
         {
             backgroundBase.sprite = customBackgroundSprite;
             backgroundBase.type = Image.Type.Simple;
+            // Stretch-to-fill distorts landscape env art on portrait; cover crops edges instead.
             backgroundBase.preserveAspect = false;
             backgroundBase.color = Color.white;
+            float aspect = 16f / 9f;
+            if (customBackgroundSprite.rect.height > 1f)
+                aspect = customBackgroundSprite.rect.width / customBackgroundSprite.rect.height;
+            ApplyCoverFit(backgroundBase.rectTransform, aspect);
         }
         else
         {
             backgroundBase.sprite = null;
             backgroundBase.color = Tokens.Ash;
+            ClearCoverFit(backgroundBase.rectTransform);
         }
     }
 
@@ -233,6 +239,12 @@ public class BackgroundController : MonoBehaviour, IThemeable
             videoDisplay.enabled = true;
             videoDisplay.gameObject.SetActive(true);
             videoDisplay.raycastTarget = false;
+            float aspect = 16f / 9f;
+            if (source != null && source.height > 0)
+                aspect = (float)source.width / source.height;
+            else if (backgroundVideo != null && backgroundVideo.height > 0)
+                aspect = (float)backgroundVideo.width / backgroundVideo.height;
+            ApplyCoverFit(videoDisplay.rectTransform, aspect);
         }
 
         // Still remains under video for first-frame safety; hide once playing to
@@ -293,6 +305,118 @@ public class BackgroundController : MonoBehaviour, IThemeable
         }
         if (backgroundBase != null)
             backgroundBase.enabled = true;
+    }
+
+    /// <summary>
+    /// Cover-fit media (center-crop, no stretch-distort) via AspectRatioFitter.EnvelopeParent.
+    /// Clipping lives on <c>BG_Root</c> only — never on the Canvas. A root RectMask2D
+    /// incorrectly clips TMP titles (SafeArea) after scene reloads / safe-area changes.
+    /// </summary>
+    private static void ApplyCoverFit(RectTransform rt, float mediaAspect)
+    {
+        if (rt == null || mediaAspect <= 0.01f) return;
+
+        EnsureMediaUnderBgRoot(rt);
+
+        var fitter = rt.GetComponent<AspectRatioFitter>();
+        if (fitter == null)
+            fitter = rt.gameObject.AddComponent<AspectRatioFitter>();
+        fitter.enabled = true;
+        fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+        fitter.aspectRatio = mediaAspect;
+        LayoutRebuilder.MarkLayoutForRebuild(rt);
+    }
+
+    /// <summary>
+    /// Reparents a BG media layer under Canvas/BG_Root (masked) and strips any
+    /// RectMask2D that was wrongly added on the Canvas itself.
+    /// </summary>
+    public static RectTransform EnsureBgRoot(Transform canvasTransform)
+    {
+        if (canvasTransform == null) return null;
+
+        // Strip Canvas-level mask — it clips SafeArea TMP after Lobby↔Menu travel
+        var canvas = canvasTransform.GetComponent<Canvas>();
+        if (canvas != null)
+        {
+            var badMask = canvas.GetComponent<RectMask2D>();
+            if (badMask != null)
+            {
+                if (Application.isPlaying) Object.Destroy(badMask);
+                else Object.DestroyImmediate(badMask);
+            }
+        }
+
+        Transform rootT = canvasTransform.Find("BG_Root");
+        GameObject rootGo;
+        if (rootT == null)
+        {
+            rootGo = new GameObject("BG_Root");
+            rootGo.transform.SetParent(canvasTransform, false);
+            RectTransform rootRt = rootGo.AddComponent<RectTransform>();
+            rootRt.anchorMin = Vector2.zero;
+            rootRt.anchorMax = Vector2.one;
+            rootRt.offsetMin = Vector2.zero;
+            rootRt.offsetMax = Vector2.zero;
+            rootRt.pivot = new Vector2(0.5f, 0.5f);
+            rootGo.AddComponent<RectMask2D>();
+            // Bottom of canvas, under SafeArea chrome
+            rootGo.transform.SetAsFirstSibling();
+        }
+        else
+        {
+            rootGo = rootT.gameObject;
+            if (rootGo.GetComponent<RectMask2D>() == null)
+                rootGo.AddComponent<RectMask2D>();
+            rootGo.transform.SetAsFirstSibling();
+        }
+
+        return rootGo.GetComponent<RectTransform>();
+    }
+
+    private static void EnsureMediaUnderBgRoot(RectTransform mediaRt)
+    {
+        if (mediaRt == null) return;
+
+        Canvas canvas = mediaRt.GetComponentInParent<Canvas>();
+        if (canvas == null) return;
+
+        RectTransform bgRoot = EnsureBgRoot(canvas.transform);
+        if (bgRoot == null) return;
+
+        if (mediaRt.parent != bgRoot)
+        {
+            mediaRt.SetParent(bgRoot, false);
+            // Leave anchors for AspectRatioFitter to drive; seed full stretch first
+            mediaRt.anchorMin = Vector2.zero;
+            mediaRt.anchorMax = Vector2.one;
+            mediaRt.offsetMin = Vector2.zero;
+            mediaRt.offsetMax = Vector2.zero;
+            mediaRt.pivot = new Vector2(0.5f, 0.5f);
+            mediaRt.anchoredPosition = Vector2.zero;
+            mediaRt.sizeDelta = Vector2.zero;
+            mediaRt.localScale = Vector3.one;
+        }
+    }
+
+    private static void ClearCoverFit(RectTransform rt)
+    {
+        if (rt == null) return;
+        var fitter = rt.GetComponent<AspectRatioFitter>();
+        if (fitter != null)
+        {
+            fitter.enabled = false;
+            if (Application.isPlaying) Object.Destroy(fitter);
+            else Object.DestroyImmediate(fitter);
+        }
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = Vector2.zero;
+        rt.sizeDelta = Vector2.zero;
+        rt.localScale = Vector3.one;
     }
 
     private void StopVideo()

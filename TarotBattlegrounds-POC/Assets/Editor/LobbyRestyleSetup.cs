@@ -56,6 +56,13 @@ public static class LobbyRestyleSetup
         if (canvas == null)
             return "ABORT: No Canvas in Lobby scene.";
 
+        // Lobby.unity was originally built with withEventSystem:false — without this,
+        // loading Lobby from MainMenu destroys the menu EventSystem and NO buttons work.
+        EnsureEventSystem();
+
+        if (canvas.GetComponent<GraphicRaycaster>() == null)
+            canvas.gameObject.AddComponent<GraphicRaycaster>();
+
         LobbyUI lobbyUI = Object.FindObjectOfType<LobbyUI>(true);
         if (lobbyUI == null)
             return "ABORT: No LobbyUI in Lobby scene.";
@@ -81,6 +88,12 @@ public static class LobbyRestyleSetup
         // Critical: no opaque fullscreen plates over the video
         EnsureBackgroundShowsThrough(canvas.transform, safe);
 
+        // Default panel visibility in the saved scene (runtime LobbyUI.Start re-asserts)
+        SetPanelActive(safe, "ConnectionPanel", true);
+        SetPanelActive(safe, "RoomBrowserPanel", false);
+        SetPanelActive(safe, "RoomInteriorPanel", false);
+        SetPanelActive(safe, "ReconnectingOverlay", false);
+
         so.ApplyModifiedProperties();
         EditorUtility.SetDirty(lobbyUI);
         EditorSceneManager.MarkSceneDirty(scene);
@@ -88,10 +101,39 @@ public static class LobbyRestyleSetup
 
         return "T750 §8 Lobby restyle complete.\n\n" +
                "  BG: lobby_bg still + lobby_video_pingpong (visible behind UI)\n" +
+               "  EventSystem: ensured (required for all button clicks)\n" +
                "  Panels: transparent shells; only small cards use plate chrome\n" +
                "  Room interior: slots + room code + Start\n" +
                "  Buttons: IgniteButton bronze, ≥88px\n\n" +
                "Scene saved.";
+    }
+
+    private static void EnsureEventSystem()
+    {
+        if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() != null)
+            return;
+
+        GameObject esObj = new GameObject("EventSystem");
+        esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
+        // Project activeInputHandler=Input Manager (old) → StandaloneInputModule
+        esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+        Undo.RegisterCreatedObjectUndo(esObj, "T750 Ensure EventSystem");
+    }
+
+    private static void SetPanelActive(Transform safe, string name, bool active)
+    {
+        Transform t = FindDeep(safe, name);
+        if (t == null)
+        {
+            // overlays may live under canvas root
+            var all = Object.FindObjectsOfType<Transform>(true);
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i].name == name) { t = all[i]; break; }
+            }
+        }
+        if (t != null)
+            t.gameObject.SetActive(active);
     }
 
     /// <summary>
@@ -180,6 +222,9 @@ public static class LobbyRestyleSetup
 
     private static void EnsureLobbyBackground(Transform canvasTransform)
     {
+        // BG_Root owns RectMask2D — never mask the Canvas (clips TMP titles)
+        RectTransform bgRoot = BackgroundController.EnsureBgRoot(canvasTransform);
+
         // Remove plain solid "Background" if present (old factory)
         Transform oldBg = canvasTransform.Find("Background");
         if (oldBg != null)
@@ -191,15 +236,30 @@ public static class LobbyRestyleSetup
                 Object.DestroyImmediate(oldBg.gameObject);
         }
 
-        Image baseImg = GetOrCreateFullscreenImage(canvasTransform, "BG_Base", Tokens.Ash, 0);
-        Image vignetteImg = GetOrCreateFullscreenImage(canvasTransform, "BG_Vignette", Color.white, 2);
+        // Find anywhere under canvas, then reparent into BG_Root (avoid duplicate layers)
+        Image baseImg = FindNamedImage(canvasTransform, "BG_Base");
+        if (baseImg == null)
+            baseImg = GetOrCreateFullscreenImage(bgRoot, "BG_Base", Tokens.Ash, 0);
+        else
+        {
+            baseImg.transform.SetParent(bgRoot, false);
+            StretchFull(baseImg.rectTransform);
+        }
+        Image vignetteImg = FindNamedImage(canvasTransform, "BG_Vignette");
+        if (vignetteImg == null)
+            vignetteImg = GetOrCreateFullscreenImage(bgRoot, "BG_Vignette", Color.white, 2);
+        else
+        {
+            vignetteImg.transform.SetParent(bgRoot, false);
+            StretchFull(vignetteImg.rectTransform);
+        }
 
         Transform videoT = FindDeep(canvasTransform, "BG_Video");
         GameObject videoGo;
         if (videoT == null)
         {
             videoGo = new GameObject("BG_Video");
-            videoGo.transform.SetParent(canvasTransform, false);
+            videoGo.transform.SetParent(bgRoot, false);
             StretchFull(videoGo.AddComponent<RectTransform>());
             videoGo.AddComponent<CanvasRenderer>();
             videoGo.AddComponent<RawImage>().raycastTarget = false;
@@ -209,7 +269,12 @@ public static class LobbyRestyleSetup
             vp.audioOutputMode = VideoAudioOutputMode.None;
             vp.renderMode = VideoRenderMode.RenderTexture;
         }
-        else videoGo = videoT.gameObject;
+        else
+        {
+            videoGo = videoT.gameObject;
+            videoGo.transform.SetParent(bgRoot, false);
+            StretchFull(videoGo.GetComponent<RectTransform>());
+        }
 
         RawImage videoRaw = videoGo.GetComponent<RawImage>();
         if (videoRaw == null) videoRaw = videoGo.AddComponent<RawImage>();
@@ -235,10 +300,11 @@ public static class LobbyRestyleSetup
         bg.ConfigureArtBackground(still, clip, loop: true);
         EditorUtility.SetDirty(bg);
 
-        // Order: base, video, vignette, then SafeArea on top
-        baseImg.transform.SetAsFirstSibling();
+        // Order inside BG_Root: base, video, vignette — SafeArea stays outside mask
+        baseImg.transform.SetSiblingIndex(0);
         videoGo.transform.SetSiblingIndex(1);
         vignetteImg.transform.SetSiblingIndex(2);
+        bgRoot.SetAsFirstSibling();
     }
 
     private static void EnsureLobbyStillImport()
@@ -311,8 +377,8 @@ public static class LobbyRestyleSetup
         vlg.childAlignment = TextAnchor.MiddleCenter;
         vlg.childControlWidth = true;
         vlg.childControlHeight = false;
-        // false: keep sigil / buttons at preferred width (true stretched underline into a fat bar)
-        vlg.childForceExpandWidth = false;
+        // true so title / fields use full card width; thin sigil lives in a centered child row
+        vlg.childForceExpandWidth = true;
         vlg.childForceExpandHeight = false;
         vlg.padding = new RectOffset(
             (int)Tokens.Space4, (int)Tokens.Space4,
@@ -325,30 +391,15 @@ public static class LobbyRestyleSetup
         titleTmp.enableWordWrapping = false; // explicit newlines only
         titleTmp.overflowMode = TextOverflowModes.Overflow;
         titleTmp.enableAutoSizing = true;
-        titleTmp.fontSizeMin = 32f;
+        titleTmp.fontSizeMin = 28f;
         titleTmp.fontSizeMax = Tokens.TextH1;
         var titleLe = titleGo.GetComponent<LayoutElement>();
         titleLe.minHeight = Tokens.TextH1 * 2.3f;
         titleLe.preferredHeight = Tokens.TextH1 * 2.5f;
+        titleLe.flexibleWidth = 1f;
 
-        // Thin ember underline (NOT a full-width orange slab — VLG must not stretch it)
-        GameObject sigil = new GameObject("HeroSigil");
-        sigil.transform.SetParent(card.transform, false);
-        RectTransform sigilRt = sigil.AddComponent<RectTransform>();
-        sigilRt.sizeDelta = new Vector2(220f, 6f);
-        Image sigilImg = sigil.AddComponent<Image>();
-        if (sprites != null && sprites.UnderlineEmber != null)
-            UiSprites.ApplySliced(sigilImg, sprites.UnderlineEmber);
-        else
-            sigilImg.color = Tokens.Ember;
-        sigilImg.raycastTarget = false;
-        LayoutElement sigilLe = sigil.AddComponent<LayoutElement>();
-        sigilLe.minHeight = 6f;
-        sigilLe.preferredHeight = 6f;
-        sigilLe.minWidth = 220f;
-        sigilLe.preferredWidth = 220f;
-        sigilLe.flexibleWidth = 0f;
-        sigilLe.flexibleHeight = 0f;
+        // Thin ember underline: full-width ROW + fixed-width child (VLG force-expand cannot fatten the bar)
+        CreateCenteredSigilUnderline(card.transform, "HeroSigil", width: 220f, height: 6f);
 
         // Phase caption
         GameObject phaseGo = CreatePlainText(card.transform, "PhaseCaption", "OPENING THE GATE",
@@ -416,29 +467,37 @@ public static class LobbyRestyleSetup
         if (phaseProp != null)
             phaseProp.objectReferenceValue = phaseGo.GetComponent<TMP_Text>();
 
-        // Escape hatch — not stuck if Photon fails
+        // Escape hatch — not stuck if Photon fails (Cinzel label, reliable hit target)
         GameObject backGo = new GameObject("ConnectionBackButton");
         backGo.transform.SetParent(card.transform, false);
         RectTransform backRt = backGo.AddComponent<RectTransform>();
-        backRt.sizeDelta = new Vector2(280f, Tokens.MinTouchTarget);
+        backRt.sizeDelta = new Vector2(400f, Tokens.MinTouchTarget);
         Image backImg = backGo.AddComponent<Image>();
         Sprite bronze = sprites != null ? sprites.ButtonBronze : null;
         if (bronze != null) UiSprites.ApplySliced(backImg, bronze);
         else backImg.color = Tokens.Bronze;
+        backImg.raycastTarget = true;
         Button backBtn = backGo.AddComponent<Button>();
         backBtn.transition = Selectable.Transition.None;
+        backBtn.targetGraphic = backImg;
         LayoutElement backLe = backGo.AddComponent<LayoutElement>();
         backLe.minHeight = Tokens.MinTouchTarget;
         backLe.preferredHeight = Tokens.MinTouchTarget;
-        backLe.preferredWidth = 280f;
+        backLe.minWidth = 320f;
+        backLe.preferredWidth = 400f;
+        backLe.flexibleWidth = 1f;
 
         GameObject backLabel = CreatePlainText(backGo.transform, "Text (TMP)", "Return to Menu",
             Tokens.TextLabel, Tokens.BoneBright, TextAlignmentOptions.Center, displayFont: true, labelFont: false);
         StretchFull(backLabel.GetComponent<RectTransform>());
+        var backLabelRt = backLabel.GetComponent<RectTransform>();
+        backLabelRt.offsetMin = new Vector2(Tokens.Space3, Tokens.Space1);
+        backLabelRt.offsetMax = new Vector2(-Tokens.Space3, -Tokens.Space1);
         var backTmp = backLabel.GetComponent<TMP_Text>();
         backTmp.raycastTarget = false;
         backTmp.enableWordWrapping = false;
-        backTmp.overflowMode = TextOverflowModes.Ellipsis;
+        backTmp.overflowMode = TextOverflowModes.Overflow;
+        backTmp.characterSpacing = Tokens.TrackingLabel * 100f;
 
         var ignite = backGo.AddComponent<IgniteButton>();
         SerializedObject iso = new SerializedObject(ignite);
@@ -450,21 +509,9 @@ public static class LobbyRestyleSetup
         iso.FindProperty("idleTone").enumValueIndex = (int)IgniteButton.LabelTone.BoneBright;
         iso.ApplyModifiedProperties();
 
-        // Also assign as backToMenuButton so LobbyUI.Start always wires onClick
-        // (ConnectionBackButton is the same control when on the gate screen).
-        if (so.FindProperty("backToMenuButton") != null
-            && so.FindProperty("backToMenuButton").objectReferenceValue == null)
-        {
-            so.FindProperty("backToMenuButton").objectReferenceValue = backBtn;
-        }
-
-        // Layout elements for name field + back so they still expand to card width
+        // Name field uses full card width under force-expand
         nameLe.flexibleWidth = 1f;
         nameLe.minWidth = 400f;
-        backLe.flexibleWidth = 1f;
-        backLe.minWidth = 280f;
-        backLe.preferredWidth = 400f;
-        backRt.sizeDelta = new Vector2(400f, Tokens.MinTouchTarget);
 
         EnsureReconnectingOverlay(safe, so);
         EditorUtility.SetDirty(panel);
@@ -589,21 +636,34 @@ public static class LobbyRestyleSetup
         }
 
         StyleTitleText(panel, "BrowserTitle", "Online Lobby", Tokens.TextH1, Tokens.BoneBright);
+        // Match connection gate: no mid-word wrap on the browser title
+        Transform browserTitleT = FindDeep(panel, "BrowserTitle");
+        if (browserTitleT != null)
+        {
+            var bt = browserTitleT.GetComponent<TMP_Text>();
+            if (bt != null)
+            {
+                bt.enableWordWrapping = false;
+                bt.overflowMode = TextOverflowModes.Overflow;
+            }
+        }
         StyleBodyText(panel, "RoomsHeader", "Available Rooms", Tokens.TextH3, Tokens.BoneBright);
         StyleBodyText(panel, "NoRoomsText", "No rooms available. Create one!", Tokens.TextBody, Tokens.BoneDim);
 
         StyleInputField(so.FindProperty("roomNameInput").objectReferenceValue as TMP_InputField,
             Tokens.MinTouchTarget, preferredWidth: 280f);
+        // 4 / 6 / 8 player picker — full rebuild of template so options are readable
         StyleDropdown(so.FindProperty("maxPlayersDropdown").objectReferenceValue as TMP_Dropdown,
-            Tokens.MinTouchTarget, preferredWidth: 180f);
+            Tokens.MinTouchTarget, preferredWidth: 220f);
 
         // Wide enough for Cinzel labels (160px was clipping "Join Random" / "Create Room")
         StyleAsIgniteButton(so.FindProperty("createRoomButton").objectReferenceValue as Button,
-            "Create Room", Tokens.MinTouchTarget, primary: true, minWidth: 260f);
+            "Create Room", Tokens.MinTouchTarget, primary: true, minWidth: 280f);
         StyleAsIgniteButton(so.FindProperty("joinRandomButton").objectReferenceValue as Button,
-            "Join Random", Tokens.MinTouchTarget, primary: true, minWidth: 260f);
+            "Join Random", Tokens.MinTouchTarget, primary: true, minWidth: 280f);
+        // Same copy + Cinzel as connection gate
         StyleAsIgniteButton(so.FindProperty("backToMenuButton").objectReferenceValue as Button,
-            "Back to Menu", Tokens.MinTouchTarget, primary: false, minWidth: 240f);
+            "Return to Menu", Tokens.MinTouchTarget, primary: false, minWidth: 280f, forceDisplayFont: true);
 
         // Rows: give children room; don't crush buttons into 160px
         FixHorizontalRow(FindDeep(panel, "CreateRoomRow"), Tokens.Space2);
@@ -780,8 +840,64 @@ public static class LobbyRestyleSetup
         rowLe.flexibleWidth = 1f;
     }
 
+    /// <summary>
+    /// Full-width layout row with a fixed-width underline centered inside.
+    /// Prevents VerticalLayoutGroup.childForceExpandWidth from turning a 6px strip into a fat bar.
+    /// </summary>
+    private static GameObject CreateCenteredSigilUnderline(Transform parent, string name,
+        float width = 220f, float height = 6f)
+    {
+        GameObject row = new GameObject(name + "Row");
+        row.transform.SetParent(parent, false);
+        RectTransform rowRt = row.AddComponent<RectTransform>();
+        rowRt.sizeDelta = new Vector2(0f, height);
+
+        LayoutElement rowLe = row.AddComponent<LayoutElement>();
+        rowLe.minHeight = height;
+        rowLe.preferredHeight = height;
+        rowLe.flexibleWidth = 1f;
+        rowLe.flexibleHeight = 0f;
+
+        HorizontalLayoutGroup hlg = row.AddComponent<HorizontalLayoutGroup>();
+        hlg.childAlignment = TextAnchor.MiddleCenter;
+        hlg.childControlWidth = false;
+        hlg.childControlHeight = false;
+        hlg.childForceExpandWidth = false;
+        hlg.childForceExpandHeight = false;
+        hlg.spacing = 0f;
+        hlg.padding = new RectOffset(0, 0, 0, 0);
+
+        GameObject sigil = new GameObject(name);
+        sigil.transform.SetParent(row.transform, false);
+        RectTransform sigilRt = sigil.AddComponent<RectTransform>();
+        sigilRt.sizeDelta = new Vector2(width, height);
+
+        Image sigilImg = sigil.AddComponent<Image>();
+        var sprites = UiSprites.Instance;
+        if (sprites != null && sprites.UnderlineEmber != null)
+            UiSprites.ApplySliced(sigilImg, sprites.UnderlineEmber);
+        else
+            sigilImg.color = Tokens.Ember;
+        sigilImg.raycastTarget = false;
+
+        LayoutElement sigilLe = sigil.AddComponent<LayoutElement>();
+        sigilLe.minWidth = width;
+        sigilLe.preferredWidth = width;
+        sigilLe.minHeight = height;
+        sigilLe.preferredHeight = height;
+        sigilLe.flexibleWidth = 0f;
+        sigilLe.flexibleHeight = 0f;
+
+        CanvasGroup cg = sigil.AddComponent<CanvasGroup>();
+        cg.alpha = 0.9f;
+        cg.blocksRaycasts = false;
+        cg.interactable = false;
+
+        return row;
+    }
+
     private static void StyleAsIgniteButton(Button btn, string label, float height,
-        bool primary, float minWidth = 0f)
+        bool primary, float minWidth = 0f, bool forceDisplayFont = false)
     {
         if (btn == null) return;
         var sprites = UiSprites.Instance;
@@ -798,8 +914,10 @@ public static class LobbyRestyleSetup
         {
             img.color = primary ? Tokens.Bronze : Tokens.CharredWood;
         }
+        img.raycastTarget = true;
 
         btn.transition = Selectable.Transition.None;
+        btn.targetGraphic = img;
 
         // Multi-word Cinzel needs real width — 160px clips "Join Random" / "Create Room"
         string finalLabel = string.IsNullOrEmpty(label) ? (btn.GetComponentInChildren<TMP_Text>(true)?.text ?? "") : label;
@@ -807,7 +925,7 @@ public static class LobbyRestyleSetup
         // ~0.62em average Cinzel advance + horizontal padding for 9-slice notches
         float estimated = finalLabel.Length * fontSize * 0.62f + Tokens.Space5 * 2f;
         float w = Mathf.Max(minWidth > 0f ? minWidth : 200f, estimated, 200f);
-        w = Mathf.Min(w, 360f); // cap so rows don't explode
+        w = Mathf.Min(w, 400f); // "Return to Menu" needs headroom
 
         RectTransform rt = btn.GetComponent<RectTransform>();
         if (rt != null)
@@ -829,13 +947,14 @@ public static class LobbyRestyleSetup
             tmp.color = Tokens.BoneBright;
             tmp.characterSpacing = Tokens.TrackingLabel * 100f;
             var refs = FontRefs.Instance;
-            // Cinzel for primary actions (matches MainMenu CTA face), Label for secondary
-            if (primary && refs != null && refs.Display != null) tmp.font = refs.Display;
+            // Cinzel for primary / forced Return; Label for other secondary
+            bool useDisplay = primary || forceDisplayFont;
+            if (useDisplay && refs != null && refs.Display != null) tmp.font = refs.Display;
             else if (refs != null && refs.Label != null) tmp.font = refs.Label;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.enableWordWrapping = false;
-            tmp.overflowMode = TextOverflowModes.Ellipsis;
+            tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.raycastTarget = false;
             // Inset text from notched edges
             RectTransform tr = tmp.rectTransform;
@@ -943,13 +1062,20 @@ public static class LobbyRestyleSetup
         EditorUtility.SetDirty(field);
     }
 
+    /// <summary>
+    /// Tokenized TMP_Dropdown: dark plate, readable Bone labels, ember hover —
+    /// not Unity default grey/white toggle colors. Template tall enough for 3 options.
+    /// </summary>
     private static void StyleDropdown(TMP_Dropdown dropdown, float height, float preferredWidth = 0f)
     {
         if (dropdown == null) return;
         var refs = FontRefs.Instance;
-        TMP_FontAsset body = refs != null ? refs.Body : null;
+        var sprites = UiSprites.Instance;
+        TMP_FontAsset labelFont = refs != null && refs.Label != null ? refs.Label
+            : (refs != null ? refs.Body : null);
+        TMP_FontAsset bodyFont = refs != null ? refs.Body : labelFont;
 
-        float w = preferredWidth > 0f ? preferredWidth : 180f;
+        float w = preferredWidth > 0f ? preferredWidth : 220f;
         var le = dropdown.GetComponent<LayoutElement>();
         if (le == null) le = dropdown.gameObject.AddComponent<LayoutElement>();
         le.minHeight = height;
@@ -963,27 +1089,219 @@ public static class LobbyRestyleSetup
             rt.sizeDelta = new Vector2(w, height);
 
         Image bg = dropdown.GetComponent<Image>();
-        if (bg != null)
-        {
-            var sprites = UiSprites.Instance;
-            if (sprites != null && sprites.PanelCharred != null)
-                UiSprites.ApplySliced(bg, sprites.PanelCharred);
-            else
-                bg.color = Tokens.CharredWood;
-        }
+        if (bg == null) bg = dropdown.gameObject.AddComponent<Image>();
+        if (sprites != null && sprites.PanelCharred != null)
+            UiSprites.ApplySliced(bg, sprites.PanelCharred);
+        else
+            bg.color = Tokens.CharredWood;
+        bg.raycastTarget = true;
 
+        // Caption on the closed control
         if (dropdown.captionText != null)
         {
             dropdown.captionText.fontSize = Tokens.TextLabel;
             dropdown.captionText.color = Tokens.BoneBright;
-            if (body != null) dropdown.captionText.font = body;
+            dropdown.captionText.fontStyle = FontStyles.Bold;
+            dropdown.captionText.enableWordWrapping = false;
+            dropdown.captionText.overflowMode = TextOverflowModes.Ellipsis;
+            dropdown.captionText.alignment = TextAlignmentOptions.MidlineLeft;
+            if (labelFont != null) dropdown.captionText.font = labelFont;
+            var capRt = dropdown.captionText.rectTransform;
+            capRt.anchorMin = Vector2.zero;
+            capRt.anchorMax = Vector2.one;
+            capRt.offsetMin = new Vector2(Tokens.Space2, Tokens.Space1);
+            capRt.offsetMax = new Vector2(-Tokens.Space4, -Tokens.Space1); // room for arrow
         }
-        if (dropdown.itemText != null)
+
+        // Soft ember interaction — no Unity default white flash
+        var colors = dropdown.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = Tokens.WithAlpha(Tokens.Ember, 0.25f);
+        colors.pressedColor = Tokens.WithAlpha(Tokens.Ember, 0.40f);
+        colors.selectedColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.30f);
+        colors.disabledColor = Tokens.WithAlpha(Tokens.BoneDim, 0.35f);
+        colors.colorMultiplier = 1f;
+        colors.fadeDuration = 0.08f;
+        dropdown.colors = colors;
+        dropdown.transition = Selectable.Transition.ColorTint;
+        dropdown.targetGraphic = bg;
+
+        // Rebuild dropdown list template (item bg + layout + all 3 options visible)
+        RebuildDropdownTemplate(dropdown, w, height, labelFont, bodyFont, sprites);
+
+        // Seed options so the closed caption is correct even before Play
+        dropdown.ClearOptions();
+        dropdown.AddOptions(new List<string> { "4 Players", "6 Players", "8 Players" });
+        dropdown.value = 0;
+        dropdown.RefreshShownValue();
+
+        EditorUtility.SetDirty(dropdown);
+    }
+
+    private static void RebuildDropdownTemplate(TMP_Dropdown dropdown, float width, float rowHeight,
+        TMP_FontAsset labelFont, TMP_FontAsset bodyFont, UiSprites sprites)
+    {
+        // Destroy previous template if present
+        if (dropdown.template != null)
         {
-            dropdown.itemText.fontSize = Tokens.TextLabel;
-            dropdown.itemText.color = Tokens.BoneBright;
-            if (body != null) dropdown.itemText.font = body;
+            Object.DestroyImmediate(dropdown.template.gameObject);
+            dropdown.template = null;
         }
+
+        // Also remove leftover Template children by name
+        Transform existing = dropdown.transform.Find("Template");
+        if (existing != null)
+            Object.DestroyImmediate(existing.gameObject);
+
+        float listHeight = rowHeight * 3f + Tokens.Space1 * 2f; // 3 options fully visible
+
+        GameObject template = new GameObject("Template");
+        template.transform.SetParent(dropdown.transform, false);
+        RectTransform templateRt = template.AddComponent<RectTransform>();
+        templateRt.anchorMin = new Vector2(0f, 0f);
+        templateRt.anchorMax = new Vector2(1f, 0f);
+        templateRt.pivot = new Vector2(0.5f, 1f);
+        templateRt.anchoredPosition = new Vector2(0f, 2f);
+        templateRt.sizeDelta = new Vector2(0f, listHeight);
+
+        Image templateBg = template.AddComponent<Image>();
+        if (sprites != null && sprites.PanelCharred != null)
+            UiSprites.ApplySliced(templateBg, sprites.PanelCharred);
+        else
+            templateBg.color = Tokens.CharredWood;
+        templateBg.raycastTarget = true;
+
+        // Drop shadow of depth — slight bronze rim via secondary plate optional skip
+        ScrollRect scroll = template.AddComponent<ScrollRect>();
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 20f;
+
+        // Viewport
+        GameObject viewport = new GameObject("Viewport");
+        viewport.transform.SetParent(template.transform, false);
+        RectTransform vpRt = viewport.AddComponent<RectTransform>();
+        StretchFull(vpRt);
+        vpRt.offsetMin = new Vector2(Tokens.Space1, Tokens.Space1);
+        vpRt.offsetMax = new Vector2(-Tokens.Space1, -Tokens.Space1);
+        Image vpImg = viewport.AddComponent<Image>();
+        vpImg.color = Tokens.WithAlpha(Tokens.Ash, 0.92f);
+        vpImg.raycastTarget = true;
+        Mask mask = viewport.AddComponent<Mask>();
+        mask.showMaskGraphic = false;
+
+        // Content
+        GameObject content = new GameObject("Content");
+        content.transform.SetParent(viewport.transform, false);
+        RectTransform contentRt = content.AddComponent<RectTransform>();
+        contentRt.anchorMin = new Vector2(0f, 1f);
+        contentRt.anchorMax = new Vector2(1f, 1f);
+        contentRt.pivot = new Vector2(0.5f, 1f);
+        contentRt.anchoredPosition = Vector2.zero;
+        contentRt.sizeDelta = new Vector2(0f, 0f);
+        VerticalLayoutGroup contentVlg = content.AddComponent<VerticalLayoutGroup>();
+        contentVlg.childAlignment = TextAnchor.UpperCenter;
+        contentVlg.childControlWidth = true;
+        contentVlg.childControlHeight = true;
+        contentVlg.childForceExpandWidth = true;
+        contentVlg.childForceExpandHeight = false;
+        contentVlg.spacing = 2f;
+        contentVlg.padding = new RectOffset(0, 0, 0, 0);
+        ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>();
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        scroll.viewport = vpRt;
+        scroll.content = contentRt;
+
+        // Item prototype
+        GameObject item = new GameObject("Item");
+        item.transform.SetParent(content.transform, false);
+        RectTransform itemRt = item.AddComponent<RectTransform>();
+        itemRt.anchorMin = new Vector2(0f, 0.5f);
+        itemRt.anchorMax = new Vector2(1f, 0.5f);
+        itemRt.sizeDelta = new Vector2(0f, rowHeight);
+        LayoutElement itemLe = item.AddComponent<LayoutElement>();
+        itemLe.minHeight = rowHeight;
+        itemLe.preferredHeight = rowHeight;
+
+        Image itemBg = item.AddComponent<Image>();
+        itemBg.color = Tokens.WithAlpha(Tokens.Umber, 0.0f); // transparent idle; tint via toggle
+        itemBg.raycastTarget = true;
+
+        Toggle toggle = item.AddComponent<Toggle>();
+        toggle.targetGraphic = itemBg;
+        toggle.isOn = false;
+        var tColors = toggle.colors;
+        tColors.normalColor = Tokens.WithAlpha(Tokens.Umber, 0.0f);
+        tColors.highlightedColor = Tokens.WithAlpha(Tokens.Ember, 0.35f);
+        tColors.pressedColor = Tokens.WithAlpha(Tokens.Ember, 0.55f);
+        tColors.selectedColor = Tokens.WithAlpha(Tokens.Bronze, 0.55f);
+        tColors.disabledColor = Tokens.WithAlpha(Tokens.Ash, 0.3f);
+        tColors.colorMultiplier = 1f;
+        tColors.fadeDuration = 0.06f;
+        toggle.colors = tColors;
+        toggle.transition = Selectable.Transition.ColorTint;
+
+        // Checkmark (selected indicator — thin ember bar left)
+        GameObject check = new GameObject("Item Checkmark");
+        check.transform.SetParent(item.transform, false);
+        RectTransform checkRt = check.AddComponent<RectTransform>();
+        checkRt.anchorMin = new Vector2(0f, 0.2f);
+        checkRt.anchorMax = new Vector2(0f, 0.8f);
+        checkRt.pivot = new Vector2(0f, 0.5f);
+        checkRt.anchoredPosition = new Vector2(6f, 0f);
+        checkRt.sizeDelta = new Vector2(4f, 0f);
+        Image checkImg = check.AddComponent<Image>();
+        checkImg.color = Tokens.Ember;
+        checkImg.raycastTarget = false;
+        toggle.graphic = checkImg;
+
+        // Item label
+        GameObject itemLabel = new GameObject("Item Label");
+        itemLabel.transform.SetParent(item.transform, false);
+        RectTransform ilRt = itemLabel.AddComponent<RectTransform>();
+        ilRt.anchorMin = Vector2.zero;
+        ilRt.anchorMax = Vector2.one;
+        ilRt.offsetMin = new Vector2(Tokens.Space3, Tokens.Space1);
+        ilRt.offsetMax = new Vector2(-Tokens.Space2, -Tokens.Space1);
+        TextMeshProUGUI itemTmp = itemLabel.AddComponent<TextMeshProUGUI>();
+        itemTmp.text = "Option";
+        itemTmp.fontSize = Tokens.TextLabel;
+        itemTmp.color = Tokens.BoneBright;
+        itemTmp.fontStyle = FontStyles.Bold;
+        itemTmp.alignment = TextAlignmentOptions.MidlineLeft;
+        itemTmp.enableWordWrapping = false;
+        itemTmp.raycastTarget = false;
+        if (labelFont != null) itemTmp.font = labelFont;
+        else if (bodyFont != null) itemTmp.font = bodyFont;
+
+        // Wire dropdown
+        dropdown.template = templateRt;
+        dropdown.captionText = dropdown.captionText; // keep existing caption child if present
+        // Ensure caption exists
+        if (dropdown.captionText == null)
+        {
+            Transform labelT = dropdown.transform.Find("Label");
+            if (labelT != null)
+                dropdown.captionText = labelT.GetComponent<TMP_Text>();
+        }
+        dropdown.itemText = itemTmp;
+        dropdown.itemImage = null;
+
+        // Arrow (optional)
+        Transform arrowT = dropdown.transform.Find("Arrow");
+        if (arrowT != null)
+        {
+            Image arrowImg = arrowT.GetComponent<Image>();
+            if (arrowImg != null)
+            {
+                arrowImg.color = Tokens.BronzeBright;
+                arrowImg.raycastTarget = false;
+            }
+        }
+
+        template.SetActive(false);
         EditorUtility.SetDirty(dropdown);
     }
 
