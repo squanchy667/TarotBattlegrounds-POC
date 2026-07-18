@@ -569,93 +569,132 @@ public class LobbyUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Rebuild notched player slots: filled / empty ("Awaiting challenger").
-    /// Host is treated as ready (slot_ready ember) — no green checkmarks.
+    /// WO-05: pooled player slots — reuse instances, no destroy/rebuild thrash on refresh.
+    /// Empty label pinned: "Awaiting challenger". Host = ready chrome (slot_ready).
     /// </summary>
     private void RebuildPlayerSlots(Room room)
     {
-        // Clear previous
-        foreach (var go in playerSlotInstances)
-        {
-            if (go != null) Destroy(go);
-        }
-        playerSlotInstances.Clear();
+        if (playerSlotContainer == null || room == null) return;
 
         var sprites = UiSprites.Instance;
         var players = PhotonNetwork.PlayerList;
         int max = room.MaxPlayers;
 
-        for (int i = 0; i < max; i++)
+        // Grow pool only — never shrink by Destroy (hide extras instead)
+        while (playerSlotInstances.Count < max)
         {
+            int idx = playerSlotInstances.Count;
+            playerSlotInstances.Add(CreatePooledSlotShell(idx));
+        }
+
+        for (int i = 0; i < playerSlotInstances.Count; i++)
+        {
+            GameObject slot = playerSlotInstances[i];
+            if (slot == null)
+            {
+                slot = CreatePooledSlotShell(i);
+                playerSlotInstances[i] = slot;
+            }
+
+            if (i >= max)
+            {
+                if (slot.activeSelf) slot.SetActive(false);
+                continue;
+            }
+
+            bool wasInactive = !slot.activeSelf;
+            if (wasInactive) slot.SetActive(true);
+
             bool filled = i < players.Length;
             Photon.Realtime.Player player = filled ? players[i] : null;
-            bool ready = filled && player.IsMasterClient; // host = ready chrome for now
+            ConfigurePooledSlot(slot, filled, player, sprites);
 
-            GameObject slot = new GameObject("PlayerSlot_" + i);
-            slot.transform.SetParent(playerSlotContainer, false);
-
-            RectTransform rt = slot.AddComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(0f, Tokens.SlotHeight);
-
-            Image bg = slot.AddComponent<Image>();
-            Sprite spr = null;
-            if (sprites != null)
+            // Fade only when a slot becomes newly visible (not every room refresh)
+            if (wasInactive)
             {
-                if (!filled) spr = sprites.SlotEmpty;
-                else if (ready) spr = sprites.SlotReady;
-                else spr = sprites.SlotFilled;
-                if (spr != null) UiSprites.ApplySliced(bg, spr);
+                var cg = slot.GetComponent<CanvasGroup>();
+                if (cg != null)
+                {
+                    cg.alpha = 0f;
+                    StartCoroutine(FadeSlotIn(cg));
+                }
             }
-            if (spr == null)
-            {
-                bg.color = filled
-                    ? (ready ? Tokens.Ember : Tokens.Bronze)
-                    : Tokens.WithAlpha(Tokens.StoneEdge, 0.5f);
-            }
-            bg.raycastTarget = false;
+        }
+    }
 
-            LayoutElement le = slot.AddComponent<LayoutElement>();
-            le.minHeight = Tokens.SlotHeight;
-            le.preferredHeight = Tokens.SlotHeight;
+    private GameObject CreatePooledSlotShell(int index)
+    {
+        GameObject slot = new GameObject("PlayerSlot_" + index);
+        slot.transform.SetParent(playerSlotContainer, false);
 
-            // Label
-            GameObject textGo = new GameObject("Label");
-            textGo.transform.SetParent(slot.transform, false);
-            RectTransform tr = textGo.AddComponent<RectTransform>();
-            tr.anchorMin = Vector2.zero;
-            tr.anchorMax = Vector2.one;
-            tr.offsetMin = new Vector2(Tokens.Space3, Tokens.Space1);
-            tr.offsetMax = new Vector2(-Tokens.Space3, -Tokens.Space1);
+        RectTransform rt = slot.AddComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(0f, Tokens.SlotHeight);
 
-            TextMeshProUGUI tmp = textGo.AddComponent<TextMeshProUGUI>();
-            tmp.fontSize = Tokens.TextBody;
-            tmp.alignment = TextAlignmentOptions.MidlineLeft;
-            tmp.enableWordWrapping = false;
-            tmp.raycastTarget = false;
-            if (FontRefs.Instance != null && FontRefs.Instance.Label != null)
-                tmp.font = FontRefs.Instance.Label;
+        Image bg = slot.AddComponent<Image>();
+        bg.raycastTarget = false;
 
-            if (filled)
-            {
-                string displayName = PhotonConnector.GetPlayerDisplayName(player);
-                int rating = PhotonConnector.GetPlayerRating(player);
-                string host = player.IsMasterClient ? " · Host" : "";
-                string you = player.IsLocal ? " · You" : "";
-                tmp.text = displayName + "  [" + rating + "]" + host + you;
-                tmp.color = Tokens.BoneBright;
-            }
-            else
-            {
-                tmp.text = "Awaiting challenger";
-                tmp.color = Tokens.BoneDim;
-            }
+        LayoutElement le = slot.AddComponent<LayoutElement>();
+        le.minHeight = Tokens.SlotHeight;
+        le.preferredHeight = Tokens.SlotHeight;
+        le.flexibleWidth = 1f;
 
-            // Fade in at DurBase (DESIGN §8)
-            CanvasGroup cg = slot.AddComponent<CanvasGroup>();
-            cg.alpha = 0f;
-            StartCoroutine(FadeSlotIn(cg));
+        GameObject textGo = new GameObject("Label");
+        textGo.transform.SetParent(slot.transform, false);
+        RectTransform tr = textGo.AddComponent<RectTransform>();
+        tr.anchorMin = Vector2.zero;
+        tr.anchorMax = Vector2.one;
+        tr.offsetMin = new Vector2(Tokens.Space3, Tokens.Space1);
+        tr.offsetMax = new Vector2(-Tokens.Space3, -Tokens.Space1);
 
-            playerSlotInstances.Add(slot);
+        TextMeshProUGUI tmp = textGo.AddComponent<TextMeshProUGUI>();
+        tmp.fontSize = Tokens.TextBody;
+        tmp.alignment = TextAlignmentOptions.MidlineLeft;
+        tmp.enableWordWrapping = false;
+        tmp.raycastTarget = false;
+        if (FontRefs.Instance != null && FontRefs.Instance.Label != null)
+            tmp.font = FontRefs.Instance.Label;
+
+        CanvasGroup cg = slot.AddComponent<CanvasGroup>();
+        cg.alpha = 1f;
+        return slot;
+    }
+
+    private static void ConfigurePooledSlot(GameObject slot, bool filled,
+        Photon.Realtime.Player player, UiSprites sprites)
+    {
+        Image bg = slot.GetComponent<Image>();
+        TextMeshProUGUI tmp = slot.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (bg == null || tmp == null) return;
+
+        bool ready = filled && player != null && player.IsMasterClient;
+        Sprite spr = null;
+        if (sprites != null)
+        {
+            if (!filled) spr = sprites.SlotEmpty;
+            else if (ready) spr = sprites.SlotReady;
+            else spr = sprites.SlotFilled;
+            if (spr != null) UiSprites.ApplySliced(bg, spr);
+        }
+        if (spr == null)
+        {
+            bg.color = filled
+                ? (ready ? Tokens.Ember : Tokens.Bronze)
+                : Tokens.WithAlpha(Tokens.StoneEdge, 0.5f);
+        }
+
+        if (filled && player != null)
+        {
+            string displayName = PhotonConnector.GetPlayerDisplayName(player);
+            int rating = PhotonConnector.GetPlayerRating(player);
+            string host = player.IsMasterClient ? " · Host" : "";
+            string you = player.IsLocal ? " · You" : "";
+            tmp.text = displayName + "  [" + rating + "]" + host + you;
+            tmp.color = Tokens.BoneBright;
+        }
+        else
+        {
+            tmp.text = "Awaiting challenger";
+            tmp.color = Tokens.BoneDim;
         }
     }
 
@@ -745,6 +784,9 @@ public class LobbyUI : MonoBehaviour
         if (backToMenuButton != null) backToMenuButton.onClick.RemoveAllListeners();
         if (startGameButton != null) startGameButton.onClick.RemoveAllListeners();
         if (leaveRoomButton != null) leaveRoomButton.onClick.RemoveAllListeners();
+
+        // Slot pool lives under scene hierarchy — clear list only (Unity destroys children)
+        playerSlotInstances.Clear();
     }
 }
 #endif

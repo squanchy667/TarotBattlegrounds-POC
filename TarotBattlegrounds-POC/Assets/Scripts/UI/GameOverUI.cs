@@ -46,6 +46,11 @@ public class GameOverUI : MonoBehaviour, IThemeable
     [Header("UX18: Dark Overlay")]
     [SerializeField] private Image darkOverlay;
 
+    [Header("WO-09 Result Stills (R9 — stills only, no video this cycle)")]
+    [SerializeField] private Image resultStillImage;   // full-bleed behind panel chrome
+    [SerializeField] private Sprite victoryStill;      // victory.jpg
+    [SerializeField] private Sprite loseStill;         // lose.jpg
+
     [Header("UX18: Animation")]
     [SerializeField] private RectTransform panelRect;
     [SerializeField] private float animDuration = Tokens.DurSlow;
@@ -55,17 +60,22 @@ public class GameOverUI : MonoBehaviour, IThemeable
     [SerializeField] private Color standingsHighlightColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.15f);
 
     private ThemeConfig currentTheme;
+    private bool _subscribed;
 
     private void Awake()
     {
-        // Start hidden
+        // Host must stay active so OnEnable/Start run and OnGameOver is subscribed.
+        // Only the panel content starts hidden.
         if (gameOverPanel != null)
             gameOverPanel.SetActive(false);
+        if (darkOverlay != null)
+            darkOverlay.gameObject.SetActive(false);
+        EnsureSubscribed();
     }
 
     private void OnEnable()
     {
-        GameManager.OnGameOver += ShowGameOver;
+        EnsureSubscribed();
         ThemeManager.OnThemeChanged += ApplyTheme;
 
         if (ThemeManager.ActiveTheme != null)
@@ -74,16 +84,52 @@ public class GameOverUI : MonoBehaviour, IThemeable
 
     private void OnDisable()
     {
-        GameManager.OnGameOver -= ShowGameOver;
+        // Keep game-over subscription even if this GO is toggled; only drop on destroy.
         ThemeManager.OnThemeChanged -= ApplyTheme;
     }
 
     private void Start()
     {
+        EnsureSubscribed();
         if (playAgainButton != null)
+        {
+            playAgainButton.onClick.RemoveListener(OnPlayAgainClicked);
             playAgainButton.onClick.AddListener(OnPlayAgainClicked);
+        }
         if (quitToMenuButton != null)
+        {
+            quitToMenuButton.onClick.RemoveListener(OnQuitToMenuClicked);
             quitToMenuButton.onClick.AddListener(OnQuitToMenuClicked);
+        }
+    }
+
+    /// <summary>
+    /// Scene often saved GameOverUIRoot inactive → never subscribed → win never shows.
+    /// Call from GameUIManager.Start as a belt-and-suspenders activate.
+    /// </summary>
+    public void EnsureReady()
+    {
+        // Walk up and force every parent active so the panel can display
+        Transform t = transform;
+        while (t != null)
+        {
+            if (!t.gameObject.activeSelf)
+                t.gameObject.SetActive(true);
+            t = t.parent;
+        }
+        EnsureSubscribed();
+        if (gameOverPanel != null && !IsShowing)
+            gameOverPanel.SetActive(false);
+    }
+
+    public bool IsShowing => gameOverPanel != null && gameOverPanel.activeSelf;
+
+    private void EnsureSubscribed()
+    {
+        if (_subscribed) return;
+        GameManager.OnGameOver -= ShowGameOver;
+        GameManager.OnGameOver += ShowGameOver;
+        _subscribed = true;
     }
 
     public void ApplyTheme(ThemeConfig theme)
@@ -109,17 +155,83 @@ public class GameOverUI : MonoBehaviour, IThemeable
 
     private bool IsOnlineMode => GameConfig.CurrentGameMode == GameConfig.GameMode.Multiplayer;
 
+    private void ApplyResultStill(bool victory)
+    {
+        if (resultStillImage == null) return;
+        Sprite still = victory ? victoryStill : loseStill;
+        if (still == null)
+        {
+            resultStillImage.enabled = false;
+            return;
+        }
+        resultStillImage.sprite = still;
+        resultStillImage.color = Color.white;
+        resultStillImage.enabled = true;
+        resultStillImage.gameObject.SetActive(true);
+        resultStillImage.raycastTarget = false;
+    }
+
     private void ShowGameOver(GameOverData data)
     {
-        if (gameOverPanel == null) return;
+        // Force entire hierarchy on (root often saved inactive; combat UI may cover us)
+        EnsureReady();
+
+        // Tear down combat presentation so game-over is the only full-screen UI
+        if (GameUIManager.Instance != null)
+            GameUIManager.Instance.SetCombatPresentationMode(false);
+        if (TarotBattlegrounds.Combat.Animator.CombatAnimator.Instance != null)
+        {
+            // Best-effort: hide combat panel if still up after last fight
+            var anim = TarotBattlegrounds.Combat.Animator.CombatAnimator.Instance;
+            // Skip remaining if still playing
+            if (anim.IsPlaying)
+                anim.SkipReplay();
+        }
+
+        if (gameOverPanel == null)
+        {
+            Debug.LogError("[GameOverUI] gameOverPanel is null — cannot show end screen");
+            return;
+        }
+
+        // Bring to front, center, full size
+        gameOverPanel.transform.SetAsLastSibling();
+        transform.SetAsLastSibling();
+        var panelRt = gameOverPanel.GetComponent<RectTransform>();
+        if (panelRt != null)
+        {
+            panelRt.anchorMin = Vector2.zero;
+            panelRt.anchorMax = Vector2.one;
+            panelRt.offsetMin = Vector2.zero;
+            panelRt.offsetMax = Vector2.zero;
+            panelRt.localScale = Vector3.one;
+            panelRt.anchoredPosition = Vector2.zero;
+        }
+        if (panelRect != null)
+        {
+            // Content card: center on screen, not hanging half off-canvas
+            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.anchoredPosition = Vector2.zero;
+            if (panelRect.sizeDelta.x < 400f || panelRect.sizeDelta.y < 300f)
+                panelRect.sizeDelta = new Vector2(720f, 560f);
+            panelRect.localScale = Vector3.one;
+        }
 
         gameOverPanel.SetActive(true);
+        if (panelCanvasGroup != null)
+            panelCanvasGroup.alpha = 1f;
 
-        // UX18: Show dark overlay behind the panel
+        // UX18: Show dark overlay behind the panel — must block clicks to combat underneath
         if (darkOverlay != null)
         {
             darkOverlay.gameObject.SetActive(true);
-            darkOverlay.raycastTarget = false;
+            darkOverlay.raycastTarget = true;
+            var ovRt = darkOverlay.rectTransform;
+            ovRt.anchorMin = Vector2.zero;
+            ovRt.anchorMax = Vector2.one;
+            ovRt.offsetMin = ovRt.offsetMax = Vector2.zero;
         }
 
         // Title
@@ -146,10 +258,13 @@ public class GameOverUI : MonoBehaviour, IThemeable
             }
         }
 
-        // Placement text
+        // Placement text + WO-09 result still (victory vs lose; no video this cycle)
+        bool isVictory = localPlacement == 1;
+        ApplyResultStill(isVictory);
+
         if (placementText != null)
         {
-            if (localPlacement == 1)
+            if (isVictory)
             {
                 string victoryText = currentTheme != null ? currentTheme.victoryText : "Victory!";
                 placementText.text = victoryText;
@@ -485,6 +600,11 @@ public class GameOverUI : MonoBehaviour, IThemeable
 
     private void OnDestroy()
     {
+        if (_subscribed)
+        {
+            GameManager.OnGameOver -= ShowGameOver;
+            _subscribed = false;
+        }
         if (playAgainButton != null)
             playAgainButton.onClick.RemoveAllListeners();
         if (quitToMenuButton != null)

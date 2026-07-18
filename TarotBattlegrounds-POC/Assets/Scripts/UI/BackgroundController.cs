@@ -88,6 +88,91 @@ public class BackgroundController : MonoBehaviour, IThemeable
         ApplyCurrentMode();
     }
 
+    /// <summary>
+    /// WO-09: swap full-bleed still only (no video). Used for recruit/combat phase env art.
+    /// Stills only — no extra full-screen chrome layers.
+    /// </summary>
+    public void SetStillSprite(Sprite still)
+    {
+        if (still == null) return;
+        EnsureBackgroundBaseLayer();
+        ConfigureArtBackground(still, null, false);
+        // Force first-sibling under canvas so shop/board UI draws on top of art
+        if (backgroundBase != null)
+        {
+            var canvas = backgroundBase.canvas != null ? backgroundBase.canvas.transform : transform;
+            BackgroundController.EnsureBgRoot(canvas);
+            backgroundBase.transform.SetParent(
+                canvas.Find("BG_Root") != null ? canvas.Find("BG_Root") : canvas, false);
+            if (backgroundBase.transform.parent != null && backgroundBase.transform.parent.name == "BG_Root")
+                backgroundBase.transform.parent.SetAsFirstSibling();
+            backgroundBase.enabled = true;
+            backgroundBase.gameObject.SetActive(true);
+            backgroundBase.raycastTarget = false;
+        }
+        ApplyStillPoster();
+        Debug.Log($"[BackgroundController] SetStillSprite → {still.name} (base={(backgroundBase != null ? backgroundBase.name : "null")})");
+    }
+
+    /// <summary>
+    /// Ensure a full-screen Image exists for still posters (fixes zero-size BG_Base from bad setup).
+    /// </summary>
+    public void EnsureBackgroundBaseLayer()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindObjectOfType<Canvas>();
+        if (canvas == null) return;
+
+        RectTransform bgRoot = EnsureBgRoot(canvas.transform);
+        if (backgroundBase == null)
+        {
+            // Prefer existing BG_Base under canvas tree
+            foreach (var img in canvas.GetComponentsInChildren<Image>(true))
+            {
+                if (img != null && img.gameObject.name == "BG_Base")
+                {
+                    backgroundBase = img;
+                    break;
+                }
+            }
+        }
+
+        if (backgroundBase == null)
+        {
+            GameObject go = new GameObject("BG_Base");
+            go.transform.SetParent(bgRoot != null ? (Transform)bgRoot : canvas.transform, false);
+            go.layer = canvas.gameObject.layer;
+            RectTransform rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            Image img = go.AddComponent<Image>();
+            img.color = Color.white;
+            img.raycastTarget = false;
+            backgroundBase = img;
+            Debug.Log("[BackgroundController] Created BG_Base full-screen layer");
+        }
+        else
+        {
+            // Repair broken zero-size anchors from earlier setup
+            RectTransform rt = backgroundBase.rectTransform;
+            if (bgRoot != null && backgroundBase.transform.parent != bgRoot)
+                backgroundBase.transform.SetParent(bgRoot, false);
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = Vector2.zero;
+            rt.localScale = Vector3.one;
+            backgroundBase.raycastTarget = false;
+            backgroundBase.gameObject.SetActive(true);
+            backgroundBase.enabled = true;
+        }
+    }
+
     public void ApplyTheme(ThemeConfig theme)
     {
         if (theme == null) return;

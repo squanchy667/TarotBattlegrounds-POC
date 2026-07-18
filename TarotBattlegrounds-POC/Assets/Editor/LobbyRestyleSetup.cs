@@ -388,10 +388,11 @@ public static class LobbyRestyleSetup
         GameObject titleGo = CreatePlainText(card.transform, "TitleText", "TAROT\nBATTLEGROUNDS",
             Tokens.TextH1, Tokens.BoneBright, TextAlignmentOptions.Center, displayFont: true);
         var titleTmp = titleGo.GetComponent<TMP_Text>();
-        titleTmp.enableWordWrapping = false; // explicit newlines only
+        titleTmp.enableWordWrapping = false; // explicit newlines only — never mid-word wrap
         titleTmp.overflowMode = TextOverflowModes.Overflow;
         titleTmp.enableAutoSizing = true;
-        titleTmp.fontSizeMin = 28f;
+        // Cinzel display floor (Tokens.TextDisplay note: never below 30) — no raw literals
+        titleTmp.fontSizeMin = Tokens.TextH3;
         titleTmp.fontSizeMax = Tokens.TextH1;
         var titleLe = titleGo.GetComponent<LayoutElement>();
         titleLe.minHeight = Tokens.TextH1 * 2.3f;
@@ -656,14 +657,15 @@ public static class LobbyRestyleSetup
         StyleDropdown(so.FindProperty("maxPlayersDropdown").objectReferenceValue as TMP_Dropdown,
             Tokens.MinTouchTarget, preferredWidth: 220f);
 
-        // Wide enough for Cinzel labels (160px was clipping "Join Random" / "Create Room")
+        // Wide enough for Cinzel labels (160px was clipping "Join Random" / "Create Room").
+        // WO-05: real sizeDelta + LayoutElement mins (not inert mins alone) via StyleAsIgniteButton.
         StyleAsIgniteButton(so.FindProperty("createRoomButton").objectReferenceValue as Button,
-            "Create Room", Tokens.MinTouchTarget, primary: true, minWidth: 280f);
+            "Create Room", Tokens.MinTouchTarget, primary: true, minWidth: 300f);
         StyleAsIgniteButton(so.FindProperty("joinRandomButton").objectReferenceValue as Button,
-            "Join Random", Tokens.MinTouchTarget, primary: true, minWidth: 280f);
+            "Join Random", Tokens.MinTouchTarget, primary: true, minWidth: 300f);
         // Same copy + Cinzel as connection gate
         StyleAsIgniteButton(so.FindProperty("backToMenuButton").objectReferenceValue as Button,
-            "Return to Menu", Tokens.MinTouchTarget, primary: false, minWidth: 280f, forceDisplayFont: true);
+            "Return to Menu", Tokens.MinTouchTarget, primary: false, minWidth: 320f, forceDisplayFont: true);
 
         // Rows: give children room; don't crush buttons into 160px
         FixHorizontalRow(FindDeep(panel, "CreateRoomRow"), Tokens.Space2);
@@ -921,20 +923,22 @@ public static class LobbyRestyleSetup
 
         // Multi-word Cinzel needs real width — 160px clips "Join Random" / "Create Room"
         string finalLabel = string.IsNullOrEmpty(label) ? (btn.GetComponentInChildren<TMP_Text>(true)?.text ?? "") : label;
-        float fontSize = Tokens.TextLabel; // 24 — fits chrome; H3 overflowed at 160px
+        float fontSize = Tokens.TextLabel;
         // ~0.62em average Cinzel advance + horizontal padding for 9-slice notches
         float estimated = finalLabel.Length * fontSize * 0.62f + Tokens.Space5 * 2f;
-        float w = Mathf.Max(minWidth > 0f ? minWidth : 200f, estimated, 200f);
+        float w = Mathf.Max(minWidth > 0f ? minWidth : Tokens.MinTouchTarget * 2f, estimated, Tokens.MinTouchTarget * 2f);
         w = Mathf.Min(w, 400f); // "Return to Menu" needs headroom
+        // Gate A: height is a real canvas size, never below MinTouchTarget (WO-04 F3 lesson)
+        float h = Mathf.Max(height, Tokens.MinTouchTarget);
 
         RectTransform rt = btn.GetComponent<RectTransform>();
         if (rt != null)
-            rt.sizeDelta = new Vector2(w, height);
+            rt.sizeDelta = new Vector2(w, h);
 
         LayoutElement le = btn.GetComponent<LayoutElement>();
         if (le == null) le = btn.gameObject.AddComponent<LayoutElement>();
-        le.minHeight = height;
-        le.preferredHeight = height;
+        le.minHeight = h;
+        le.preferredHeight = h;
         le.minWidth = w;
         le.preferredWidth = w;
         le.flexibleWidth = 0f;

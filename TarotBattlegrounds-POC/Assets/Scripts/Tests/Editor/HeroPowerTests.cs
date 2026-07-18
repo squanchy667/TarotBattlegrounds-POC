@@ -469,6 +469,62 @@ public class HeroPowerTests
             "Minion killed by Arcane Bolt should be removed from opponent board");
     }
 
+    /// <summary>
+    /// WO-12 / TA-1: lethal bolt must fire Deathrattle (same pipeline as combat deaths),
+    /// not bare Remove that skips abilities.
+    /// </summary>
+    [Test]
+    public void ArcaneBolt_Kill_FiresDeathrattle_SummonToken()
+    {
+        var power = new ArcaneBoltPower();
+        var host = MakeCard("TokenHost", health: 2);
+        var dr = new DeathrattleAbility(DeathrattleAbility.DeathrattleEffect.SummonToken, 2);
+        AbilityManager.RegisterAbility(host, dr);
+        _opponent.board.Add(host);
+
+        power.Activate(_player);
+        power.OnCombatStart(_player, _opponent);
+
+        // Host dies; deathrattle summons a 2/2 token onto the same board
+        Assert.IsTrue(_opponent.board.Count >= 1,
+            "Deathrattle token should remain after host is destroyed by bolt");
+        Assert.IsFalse(_opponent.board.Contains(host),
+            "Host should be removed after lethal bolt");
+        Assert.IsTrue(_opponent.board.Exists(c => c != null && c.cardName != null && c.cardName.Contains("Token")),
+            "SummonToken deathrattle should insert a token when bolt kills the host");
+    }
+
+    [Test]
+    public void ArcaneBolt_Kill_Reborn_StaysOnBoardAtOneHp()
+    {
+        var power = new ArcaneBoltPower();
+        var phoenix = MakeCard("Phoenix", health: 2);
+        phoenix.hasReborn = true;
+        _opponent.board.Add(phoenix);
+
+        power.Activate(_player);
+        power.OnCombatStart(_player, _opponent);
+
+        Assert.AreEqual(1, _opponent.board.Count, "Reborn minion stays on board");
+        Assert.AreEqual(1, phoenix.health, "Reborn revives at 1 HP");
+        Assert.IsFalse(phoenix.hasReborn, "Reborn keyword consumed");
+    }
+
+    [Test]
+    public void ArcaneBolt_Aegis_BlocksDamage()
+    {
+        var power = new ArcaneBoltPower();
+        var shielded = MakeCard("Shielded", health: 2, hasAegis: true);
+        _opponent.board.Add(shielded);
+
+        power.Activate(_player);
+        power.OnCombatStart(_player, _opponent);
+
+        Assert.AreEqual(2, shielded.health, "Aegis should fully block bolt damage");
+        Assert.IsFalse(shielded.hasAegis, "Aegis consumed");
+        Assert.AreEqual(1, _opponent.board.Count);
+    }
+
     [Test]
     public void ArcaneBolt_ResetForNewTurn_ClearsUsedFlag()
     {

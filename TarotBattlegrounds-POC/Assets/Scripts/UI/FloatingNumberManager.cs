@@ -186,7 +186,7 @@ public class FloatingNumberManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Show "AEGIS!" floating text when aegis shield pops. Cyan colored.
+    /// Show "AEGIS!" floating text when aegis shield pops. EtherBlue arcana.
     /// </summary>
     /// <param name="worldPos">World position of the card whose aegis popped</param>
     public void ShowAegisPop(Vector3 worldPos)
@@ -196,8 +196,17 @@ public class FloatingNumberManager : MonoBehaviour
         fn.Show("AEGIS!", FloatingNumber.AegisColor, canvasPos);
     }
 
+    /// <summary>WO-08: ability / arcana float (EtherViolet).</summary>
+    public void ShowArcana(Vector3 worldPos, string text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        FloatingNumber fn = GetFromPool();
+        Vector2 canvasPos = ApplyOffset(WorldToCanvasPosition(worldPos));
+        fn.Show(text, FloatingNumber.ArcanaColor, canvasPos);
+    }
+
     /// <summary>
-    /// Show "DEAD" floating text when a card dies. Dark red colored.
+    /// Show "DEAD" floating text when a card dies. BoneDim (WO-08).
     /// </summary>
     /// <param name="worldPos">World position of the dead card</param>
     public void ShowDeath(Vector3 worldPos)

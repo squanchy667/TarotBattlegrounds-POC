@@ -146,11 +146,11 @@ namespace TarotBattlegrounds.Combat.Animator
                 yield return StartCoroutine(AnimateAction(action));
             }
 
-            // Show result
+            // Show result (in-panel + keep readable longer for testing)
             ShowResult();
 
             // Wait a moment for result to be visible
-            yield return new WaitForSeconds(skipRequested ? 0.5f : 2f);
+            yield return new WaitForSeconds(skipRequested ? 0.85f : 2.8f);
 
             // Cleanup
             isPlaying = false;
@@ -560,14 +560,15 @@ namespace TarotBattlegrounds.Combat.Animator
             if (resultText != null)
             {
                 resultText.gameObject.SetActive(true);
+                resultText.fontSize = Tokens.TextH1;
                 if (result.winnerName == "Tie")
                 {
-                    resultText.text = "TIE!";
+                    resultText.text = "TIE!\n" + result.damageDealt + " dmg each";
                     resultText.color = Tokens.BoneBright;
                 }
                 else
                 {
-                    resultText.text = $"{result.winnerName} WINS!\n{result.damageDealt} damage";
+                    resultText.text = result.winnerName + " WINS!\n" + result.damageDealt + " face damage";
                     resultText.color = Tokens.BronzeBright;
                 }
             }
@@ -612,7 +613,16 @@ namespace TarotBattlegrounds.Combat.Animator
         private void SetPanelVisible(bool visible)
         {
             if (combatPanel != null)
+            {
                 combatPanel.gameObject.SetActive(visible);
+                // Solid-ish dim so the fight reads as a clean combat screen (env still under cards)
+                var bg = combatPanel.GetComponent<Image>();
+                if (bg != null && visible)
+                {
+                    bg.color = Tokens.WithAlpha(Tokens.Ash, 0.82f);
+                    bg.raycastTarget = true;
+                }
+            }
 
             if (skipButton != null)
                 skipButton.gameObject.SetActive(visible);
@@ -621,6 +631,10 @@ namespace TarotBattlegrounds.Combat.Animator
 
             if (resultText != null && !visible)
                 resultText.gameObject.SetActive(false);
+
+            // Hide recruit shop/hand/board so simulation is on a clean arena
+            if (GameUIManager.Instance != null)
+                GameUIManager.Instance.SetCombatPresentationMode(visible);
         }
 
         private void CleanupCards()

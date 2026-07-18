@@ -28,11 +28,13 @@ public class FloatingNumber : MonoBehaviour
     /// <summary>
     /// Predefined color constants for combat number types.
     /// </summary>
-    public static readonly Color DamageColor = Tokens.Blood;
-    public static readonly Color HealColor = Tokens.BronzeBright;
-    public static readonly Color BuffColor = Tokens.BronzeBright;
-    public static readonly Color AegisColor = Tokens.EtherBlue;
-    public static readonly Color DeathColor = Tokens.Blood;
+    // WO-08 / T752: role colors pinned to Tokens only
+    public static readonly Color DamageColor = Tokens.Blood;          // damage
+    public static readonly Color HealColor = Tokens.BronzeBright;     // heals (positive economy-adjacent)
+    public static readonly Color BuffColor = Tokens.BronzeBright;     // buffs
+    public static readonly Color AegisColor = Tokens.EtherBlue;       // arcana / aegis
+    public static readonly Color ArcanaColor = Tokens.EtherViolet;    // ability / arcana floats
+    public static readonly Color DeathColor = Tokens.BoneDim;         // death (not Blood — reserved for damage)
 
     /// <summary>
     /// Callback invoked when this floating number finishes its animation.

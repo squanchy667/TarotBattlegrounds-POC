@@ -1,4 +1,5 @@
 using UnityEngine;
+using TarotBattlegrounds.UI;
 
 /// <summary>
 /// Owns HUD presentation state for GameUIManager: phase/turn display + UX11 banner state,
@@ -76,6 +77,19 @@ public class HudPresenter
             owner.phaseBanner.UpdateTurn(currentTurn);
             lastBannerTurn = currentTurn;
         }
+
+        // WO-09: recruit still vs combat still on phase change
+        owner.ApplyPhaseEnvironmentBackground(currentPhase);
+
+        // Timer is recruit-only — hide during combat so it is not a dead/frozen number
+        bool recruit = currentPhase == GameManager.GamePhase.Recruit;
+        if (owner.timerText != null)
+            owner.timerText.gameObject.SetActive(recruit);
+        if (owner.circularTimer != null)
+        {
+            if (recruit) owner.circularTimer.gameObject.SetActive(true);
+            else owner.circularTimer.Hide();
+        }
     }
 
     /// <summary>
@@ -134,6 +148,12 @@ public class HudPresenter
     /// </summary>
     public void UpdateTimer(float time)
     {
+        // Always keep timer chrome visible during recruit countdown
+        if (owner.timerText != null)
+            owner.timerText.gameObject.SetActive(true);
+        if (owner.circularTimer != null)
+            owner.circularTimer.gameObject.SetActive(true);
+
         if (owner.timerText != null)
         {
             // T704: GameManager.RecruitPhase calls this every frame for the whole shop
@@ -143,6 +163,9 @@ public class HudPresenter
             {
                 lastDisplayedSecond = display;
                 owner.timerText.text = $"{display}s";
+                owner.timerText.color = display <= 5
+                    ? Tokens.Blood
+                    : (display <= 15 ? Tokens.BronzeBright : Tokens.BoneBright);
             }
         }
 
@@ -155,6 +178,14 @@ public class HudPresenter
         {
             owner.circularTimer.SetTime(time, circularTimerTotal);
         }
+    }
+
+    /// <summary>Call at recruit phase start so circular fill uses full duration.</summary>
+    public void BeginRecruitTimer(float totalSeconds)
+    {
+        circularTimerTotal = Mathf.Max(1f, totalSeconds);
+        lastDisplayedSecond = -1;
+        UpdateTimer(totalSeconds);
     }
 
     /// <summary>

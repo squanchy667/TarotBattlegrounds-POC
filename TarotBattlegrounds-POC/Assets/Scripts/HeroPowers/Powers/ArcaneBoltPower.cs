@@ -1,8 +1,10 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
 /// Wands hero power: Deal 3 damage to a random enemy minion at combat start.
-/// Marks the power as used; damage is applied via OnCombatStart.
+/// WO-12: Lethal damage routes through the same deathrattle/reborn rules as combat deaths
+/// (no bare board.Remove that skips the death pipeline).
 /// </summary>
 public class ArcaneBoltPower : HeroPowerBase
 {
@@ -31,21 +33,66 @@ public class ArcaneBoltPower : HeroPowerBase
         if (!armed) return;
         armed = false;
 
-        if (opponent == null || opponent.board.Count == 0)
+        if (opponent == null || opponent.board == null || opponent.board.Count == 0)
         {
             Debug.Log("[Arcane Bolt] No enemy minions to target");
             return;
         }
 
         Card target = opponent.board[Random.Range(0, opponent.board.Count)];
+        if (target == null) return;
+
+        // Aegis blocks the bolt (same as combat attacks)
+        if (target.hasAegis)
+        {
+            target.hasAegis = false;
+            Debug.Log($"[Arcane Bolt] {target.cardName}'s Aegis blocks the bolt");
+            return;
+        }
+
         int oldHealth = target.health;
         target.health -= 3;
         Debug.Log($"[Arcane Bolt] Dealt 3 damage to {target.cardName} ({oldHealth} -> {target.health})");
 
         if (target.health <= 0)
         {
-            opponent.board.Remove(target);
-            Debug.Log($"[Arcane Bolt] {target.cardName} destroyed!");
+            ResolveLethalLikeCombat(target, opponent.board, owner != null ? owner.board : null);
+        }
+    }
+
+    /// <summary>
+    /// WO-12: Mirror CombatManager.ProcessDeaths single-card lethal path:
+    /// Deathrattle → Reborn (1 HP, strip Reborn) or remove. No bare Remove that skips abilities.
+    /// </summary>
+    public static void ResolveLethalLikeCombat(Card deadCard, List<Card> ownerBoard, List<Card> enemyBoard)
+    {
+        if (deadCard == null || ownerBoard == null) return;
+        if (!ownerBoard.Contains(deadCard)) return;
+
+        bool willReborn = RebornAbility.HasReborn(deadCard);
+
+        var context = new AbilityContext
+        {
+            SourceCard = deadCard,
+            TargetCard = null,
+            OwnerBoard = ownerBoard,
+            EnemyBoard = enemyBoard,
+            Owner = null
+        };
+        AbilityManager.TriggerAbilities(AbilityTrigger.Deathrattle, context);
+
+        if (willReborn)
+        {
+            deadCard.health = 1;
+            deadCard.hasReborn = false;
+            deadCard.hasAegis = false;
+            Debug.Log($"[Arcane Bolt] {deadCard.cardName} is Reborn with 1 HP");
+        }
+        else
+        {
+            ownerBoard.Remove(deadCard);
+            Debug.Log($"[Arcane Bolt] {deadCard.cardName} destroyed (death pipeline)");
+            AbilityManager.UnregisterCard(deadCard);
         }
     }
 }

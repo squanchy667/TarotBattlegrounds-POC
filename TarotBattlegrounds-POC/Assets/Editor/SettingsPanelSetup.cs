@@ -24,15 +24,20 @@ public static class SettingsPanelSetup
     [MenuItem("Tools/Game/Setup Settings Panel")]
     public static void Setup()
     {
+        string report = SetupMainMenuSettingsCore(save: true);
+        Debug.Log(report);
+        EditorUtility.DisplayDialog("Settings Panel", report, "OK");
+    }
+
+    /// <summary>Dialog-free core for MCP. Returns report string.</summary>
+    public static string SetupMainMenuSettingsCore(bool save = true)
+    {
         var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
         var menuManager = Object.FindObjectOfType<MainMenuManager>(true);
         var canvas = Object.FindObjectOfType<Canvas>(true);
         if (menuManager == null || canvas == null)
-        {
-            Debug.LogError($"[SettingsPanelSetup] Missing {(menuManager == null ? "MainMenuManager" : "Canvas")} in {ScenePath} — aborting.");
-            return;
-        }
+            return "ABORT: missing MainMenuManager or Canvas";
 
         // Idempotency: drop any previous run's objects.
         var existing = canvas.transform.Find(RootName);
@@ -43,17 +48,44 @@ public static class SettingsPanelSetup
         Stretch(root.GetComponent<RectTransform>());
 
         Button gearButton = CreateGearButton(root.transform);
-        (GameObject panel, SettingsUI settings) = CreatePanel(root.transform);
+        (GameObject panel, SettingsUI settings) = CreatePanel(root.transform, gearButton);
 
-        // Wire MainMenuManager.settingsButton / settingsUI (private [SerializeField]).
         var mm = new SerializedObject(menuManager);
         mm.FindProperty("settingsButton").objectReferenceValue = gearButton;
         mm.FindProperty("settingsUI").objectReferenceValue = settings;
         mm.ApplyModifiedPropertiesWithoutUndo();
 
         EditorSceneManager.MarkSceneDirty(scene);
-        EditorSceneManager.SaveScene(scene);
-        Debug.Log("[SettingsPanelSetup] Settings gear + panel added to MainMenu and wired.");
+        if (save) EditorSceneManager.SaveScene(scene);
+        return "OK Settings gear + panel on MainMenu";
+    }
+
+    /// <summary>Add settings gear + panel to Game scene (in-play access).</summary>
+    public static string SetupGameSettingsCore(bool save = true)
+    {
+        const string gamePath = "Assets/Scenes/Game.unity";
+        var scene = EditorSceneManager.OpenScene(gamePath, OpenSceneMode.Single);
+        var canvas = Object.FindObjectOfType<Canvas>(true);
+        if (canvas == null) return "ABORT: no Canvas in Game";
+
+        Transform safe = canvas.transform.Find("SafeArea");
+        Transform parent = safe != null ? safe : canvas.transform;
+
+        var existing = parent.Find(RootName);
+        if (existing != null) Object.DestroyImmediate(existing.gameObject);
+
+        var root = new GameObject(RootName, typeof(RectTransform));
+        root.transform.SetParent(parent, false);
+        Stretch(root.GetComponent<RectTransform>());
+        root.transform.SetAsLastSibling();
+
+        Button gearButton = CreateGearButton(root.transform);
+        (GameObject panel, SettingsUI settings) = CreatePanel(root.transform, gearButton);
+
+        // Runtime wiring is owned by SettingsUI.Awake (editor AddListener does not serialize).
+        EditorSceneManager.MarkSceneDirty(scene);
+        if (save) EditorSceneManager.SaveScene(scene);
+        return "OK Settings gear + panel on Game scene";
     }
 
     private static Button CreateGearButton(Transform parent)
@@ -63,18 +95,34 @@ public static class SettingsPanelSetup
         var rt = btnObj.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = new Vector2(1f, 1f);
         rt.pivot = new Vector2(1f, 1f);
-        rt.anchoredPosition = new Vector2(-24f, -24f);
+        // Top-right corner; MatchInfo "i" sits to the left (see MatchInfoPanelSetup).
+        rt.anchoredPosition = new Vector2(-16f, -16f);
         rt.sizeDelta = new Vector2(72f, 72f); // T715: comfortably above 44pt touch minimum
         return btnObj.GetComponent<Button>();
     }
 
-    private static (GameObject, SettingsUI) CreatePanel(Transform parent)
+    private static (GameObject, SettingsUI) CreatePanel(Transform parent, Button openButton = null)
     {
         GameObject panel = EditorUiFactory.CreateFullscreenPanel(parent, "SettingsPanel");
 
+        // Dim backdrop
+        Image panelImg = panel.GetComponent<Image>();
+        if (panelImg == null) panelImg = panel.AddComponent<Image>();
+        panelImg.color = Tokens.WithAlpha(Tokens.Ash, 0.72f);
+        panelImg.raycastTarget = true;
+
         GameObject box = EditorUiFactory.CreateCenteredContainer(panel.transform, "SettingsBox",
             680f, 760f);
-        var layout = box.AddComponent<VerticalLayoutGroup>();
+        Image boxImg = box.GetComponent<Image>();
+        if (boxImg != null)
+        {
+            if (UiSprites.Instance != null && UiSprites.Instance.PanelCharred != null)
+                UiSprites.ApplySliced(boxImg, UiSprites.Instance.PanelCharred);
+            else
+                boxImg.color = Tokens.WithAlpha(Tokens.CharredWood, 0.96f);
+        }
+        var layout = box.GetComponent<VerticalLayoutGroup>();
+        if (layout == null) layout = box.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(32, 32, (int)Tokens.Space3, (int)Tokens.Space3);
         layout.spacing = 14f;
         layout.childForceExpandHeight = false;
@@ -82,11 +130,24 @@ public static class SettingsPanelSetup
         layout.childControlWidth = true;
 
         EditorUiFactory.CreateText(box.transform, "Title", "Settings", (int)Tokens.TextH2,
-            FontStyles.Bold, LabelColor, TextAlignmentOptions.Center);
+            FontStyles.Bold, Tokens.BoneBright, TextAlignmentOptions.Center);
 
-        var settings = panel.AddComponent<SettingsUI>();
+        // Host SettingsUI on the active parent (SettingsRoot), NOT the inactive panel.
+        // Inactive GameObjects never run Awake/Start, so the gear would never wire.
+        var existingOnPanel = panel.GetComponent<SettingsUI>();
+        if (existingOnPanel != null) Object.DestroyImmediate(existingOnPanel);
+        var settings = parent.GetComponent<SettingsUI>();
+        if (settings == null) settings = parent.gameObject.AddComponent<SettingsUI>();
         var so = new SerializedObject(settings);
         so.FindProperty("settingsPanel").objectReferenceValue = panel;
+        if (openButton != null)
+            so.FindProperty("openButton").objectReferenceValue = openButton;
+        else
+        {
+            var gearT = parent.Find("SettingsButton");
+            if (gearT != null)
+                so.FindProperty("openButton").objectReferenceValue = gearT.GetComponent<Button>();
+        }
 
         WireSlider(so, box.transform, "Master Volume", "masterVolumeSlider", "masterVolumeText", 1f);
         WireSlider(so, box.transform, "Music Volume", "musicVolumeSlider", "musicVolumeText", 0.7f);
@@ -97,8 +158,7 @@ public static class SettingsPanelSetup
 
         // Quality dropdown (row built like the sliders, control from the shared factory).
         GameObject qRow = EditorUiFactory.CreateHorizontalRow(box.transform, "QualityRow", 12f);
-        EditorUiFactory.CreateText(qRow.transform, "Label", "Quality", (int)Tokens.TextBody,
-            FontStyles.Normal, LabelColor, TextAlignmentOptions.Left);
+        CreateSettingsLabel(qRow.transform, "Quality");
         GameObject dd = EditorUiFactory.CreateDropdown(qRow.transform, "QualityDropdown",
             240f, 48f, "Medium", (int)Tokens.TextCaption);
         so.FindProperty("qualityDropdown").objectReferenceValue = dd.GetComponent<TMP_Dropdown>();
@@ -107,32 +167,87 @@ public static class SettingsPanelSetup
         WireToggle(so, box.transform, "Fullscreen", "fullscreenToggle", true);
 
         GameObject closeObj = EditorUiFactory.CreateButton(box.transform, "CloseButton", "Close",
-            220f, 56f, labelFontSize: (int)Tokens.TextLabel);
+            220f, Tokens.MinTouchTarget, labelFontSize: (int)Tokens.TextLabel);
         so.FindProperty("closeButton").objectReferenceValue = closeObj.GetComponent<Button>();
+        // Ignite close if available
+        if (closeObj.GetComponent<IgniteButton>() == null)
+            closeObj.AddComponent<IgniteButton>();
 
         so.ApplyModifiedPropertiesWithoutUndo();
         panel.SetActive(false);
         return (panel, settings);
     }
 
+    /// <summary>
+    /// Label for a settings row. CreateText defaults to width 0 + word wrap, which under
+    /// HorizontalLayoutGroup collapses into a single-character-wide vertical stack.
+    /// Force a fixed horizontal width and disable wrapping so "Master Volume" reads left-to-right.
+    /// </summary>
+    private static GameObject CreateSettingsLabel(Transform parent, string text, float width = 200f)
+    {
+        GameObject labelObj = EditorUiFactory.CreateText(parent, "Label", text, (int)Tokens.TextBody,
+            FontStyles.Normal, LabelColor, TextAlignmentOptions.Left);
+        var tmp = labelObj.GetComponent<TextMeshProUGUI>();
+        tmp.enableWordWrapping = false;
+        tmp.overflowMode = TextOverflowModes.Overflow;
+
+        float h = Tokens.TextBody + 12f;
+        var rt = labelObj.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(width, h);
+
+        var le = labelObj.GetComponent<LayoutElement>();
+        le.minWidth = width;
+        le.preferredWidth = width;
+        le.flexibleWidth = 0f;
+        le.minHeight = h;
+        le.preferredHeight = h;
+        return labelObj;
+    }
+
+    private static GameObject CreateSettingsValueText(Transform parent, string text, float width = 64f)
+    {
+        GameObject valueObj = EditorUiFactory.CreateText(parent, "Value", text, (int)Tokens.TextCaption,
+            FontStyles.Normal, LabelColor, TextAlignmentOptions.Right);
+        var tmp = valueObj.GetComponent<TextMeshProUGUI>();
+        tmp.enableWordWrapping = false;
+        tmp.overflowMode = TextOverflowModes.Overflow;
+
+        float h = Tokens.TextCaption + 12f;
+        var rt = valueObj.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(width, h);
+
+        var le = valueObj.GetComponent<LayoutElement>();
+        le.minWidth = width;
+        le.preferredWidth = width;
+        le.flexibleWidth = 0f;
+        le.minHeight = h;
+        le.preferredHeight = h;
+        return valueObj;
+    }
+
     private static void WireSlider(SerializedObject so, Transform parent, string label,
         string sliderField, string textField, float defaultValue, float min = 0f, float max = 1f)
     {
         GameObject row = EditorUiFactory.CreateHorizontalRow(parent, label.Replace(" ", "") + "Row", 12f);
-        EditorUiFactory.CreateText(row.transform, "Label", label, (int)Tokens.TextBody,
-            FontStyles.Normal, LabelColor, TextAlignmentOptions.Left);
+        CreateSettingsLabel(row.transform, label);
 
         GameObject sliderObj = DefaultControls.CreateSlider(UiResources());
         sliderObj.name = label.Replace(" ", "") + "Slider";
         sliderObj.transform.SetParent(row.transform, false);
         var le = sliderObj.AddComponent<LayoutElement>();
-        le.minWidth = 260f; le.minHeight = 44f; // touch target
+        le.minWidth = 220f;
+        le.preferredWidth = 280f;
+        le.flexibleWidth = 1f;
+        le.minHeight = 44f; // touch target
+        le.preferredHeight = 44f;
         var slider = sliderObj.GetComponent<Slider>();
         slider.minValue = min; slider.maxValue = max; slider.value = defaultValue;
 
-        GameObject valueText = EditorUiFactory.CreateText(row.transform, "Value",
-            Mathf.RoundToInt(defaultValue * 100f) + "%", (int)Tokens.TextCaption,
-            FontStyles.Normal, LabelColor, TextAlignmentOptions.Right);
+        // Combat Speed uses 0.5–2.0; show 1 decimal "x" suffix instead of percent.
+        string valueStr = (max > 1.01f)
+            ? defaultValue.ToString("0.0") + "x"
+            : Mathf.RoundToInt(defaultValue * 100f) + "%";
+        GameObject valueText = CreateSettingsValueText(row.transform, valueStr);
 
         so.FindProperty(sliderField).objectReferenceValue = slider;
         so.FindProperty(textField).objectReferenceValue = valueText.GetComponent<TMP_Text>();
@@ -142,14 +257,17 @@ public static class SettingsPanelSetup
         string toggleField, bool defaultValue)
     {
         GameObject row = EditorUiFactory.CreateHorizontalRow(parent, label.Replace(" ", "") + "Row", 12f);
-        EditorUiFactory.CreateText(row.transform, "Label", label, (int)Tokens.TextBody,
-            FontStyles.Normal, LabelColor, TextAlignmentOptions.Left);
+        CreateSettingsLabel(row.transform, label);
 
         GameObject toggleObj = DefaultControls.CreateToggle(UiResources());
         toggleObj.name = label.Replace(" ", "") + "Toggle";
         toggleObj.transform.SetParent(row.transform, false);
         var le = toggleObj.AddComponent<LayoutElement>();
-        le.minWidth = 56f; le.minHeight = 44f;
+        le.minWidth = 56f;
+        le.preferredWidth = 56f;
+        le.flexibleWidth = 0f;
+        le.minHeight = 44f;
+        le.preferredHeight = 44f;
         var toggle = toggleObj.GetComponent<Toggle>();
         toggle.isOn = defaultValue;
         var builtinLabel = toggleObj.transform.Find("Label");

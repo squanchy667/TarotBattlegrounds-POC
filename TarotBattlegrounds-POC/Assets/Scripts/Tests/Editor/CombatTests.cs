@@ -2,6 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using TarotBattlegrounds.Combat.Replay;
 
 /// <summary>
 /// Tests for combat simulation mechanics.
@@ -88,6 +89,36 @@ public class CombatTests
         
         // Either someone wins or it's a tie
         Assert.IsTrue(winner == "P1" || winner == "P2" || winner == "Tie");
+    }
+
+    /// <summary>
+    /// Regression: Shooting Star (Reborn) vs armored tank must not infinite-loop.
+    /// Old bug: HasReborn kept returning true from leftover RebornAbility registration
+    /// after hasReborn was cleared → reborn every death until turn cap 100.
+    /// </summary>
+    [Test]
+    public void Combat_Reborn_OnlyOnce_VsArmoredGuardian()
+    {
+        var star = CreateCard("Shooting Star", attack: 2, health: 1);
+        star.abilityEffect = Card.AbilityEffectType.Reborn;
+        star.hasReborn = true;
+        AbilityManager.RegisterAbility(star, new RebornAbility());
+
+        var vault = CreateCard("Vault Guardian", attack: 2, health: 20);
+        vault.abilityEffect = Card.AbilityEffectType.GainArmor;
+        vault.abilityValue = 1;
+        vault.armor = 1;
+
+        // Must finish well under the 100-turn safety cap
+        var (damage, winner) = CombatManager.SimulateBattle(
+            new List<Card> { star },
+            new List<Card> { vault },
+            1, 1, "Stars", "Vault", recordReplay: true);
+
+        Assert.IsTrue(winner == "Stars" || winner == "Vault" || winner == "Tie");
+        Assert.IsNotNull(CombatManager.lastReplay);
+        int rebornCount = CombatManager.lastReplay.actions.Count(a => a.type == CombatActionType.Reborn);
+        Assert.LessOrEqual(rebornCount, 1, "Reborn must fire at most once per combat clone");
     }
     
     [Test]

@@ -49,6 +49,18 @@ public static class AbilityManager
     }
 
     /// <summary>
+    /// Remove a single ability type from a card (e.g. spend Reborn after first revive).
+    /// </summary>
+    public static void UnregisterAbilityOfType(Card card, System.Type abilityType)
+    {
+        if (card == null || abilityType == null) return;
+        if (!_cardAbilities.TryGetValue(card, out var list) || list == null) return;
+        list.RemoveAll(a => a != null && abilityType.IsInstanceOfType(a));
+        if (list.Count == 0)
+            _cardAbilities.Remove(card);
+    }
+
+    /// <summary>
     /// Get all abilities for a card.
     /// </summary>
     public static List<IAbility> GetAbilities(Card card)

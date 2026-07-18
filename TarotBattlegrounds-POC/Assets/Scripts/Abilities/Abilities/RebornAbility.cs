@@ -17,19 +17,25 @@ public class RebornAbility : AbilityBase
     }
 
     /// <summary>
-    /// Check if a card has Reborn via the ability system or passive flag.
+    /// Whether this card will still Reborn on its next death.
+    /// Consumable: only <see cref="Card.hasReborn"/> counts.
+    /// Do NOT treat a leftover <see cref="RebornAbility"/> registration as active —
+    /// ProcessDeaths clears the flag after one revive; if we also keyed off the
+    /// ability type, Shooting Star etc. would reborn forever (infinite combat).
     /// </summary>
     public static bool HasReborn(Card card)
     {
         if (card == null) return false;
-        if (card.hasReborn) return true;
+        return card.hasReborn;
+    }
 
-        var abilities = AbilityManager.GetAbilities(card);
-        foreach (var ability in abilities)
-        {
-            if (ability is RebornAbility)
-                return true;
-        }
-        return false;
+    /// <summary>
+    /// Spend the reborn keyword after a successful revive (flag + ability entry).
+    /// </summary>
+    public static void ConsumeReborn(Card card)
+    {
+        if (card == null) return;
+        card.hasReborn = false;
+        AbilityManager.UnregisterAbilityOfType(card, typeof(RebornAbility));
     }
 }

@@ -28,13 +28,11 @@ public class BattleExecutor
     /// </summary>
     public IEnumerator RunBattle(int p1, int p2, int alivePlayerCount)
     {
-        // Snapshot live board state before hero power combat buffs
-        // Hero powers modify the live board directly (WarChief +1 Atk, Tactician +2/+2,
-        // ArcaneBolt removes cards). We must restore after SimulateBattle clones them.
-        var p1Snapshot = gm.players[p1].board.Select(c => (card: c, atk: c.attack, hp: c.health, aegis: c.hasAegis)).ToList();
-        var p2Snapshot = gm.players[p2].board.Select(c => (card: c, atk: c.attack, hp: c.health, aegis: c.hasAegis)).ToList();
-        var p1BoardBackup = new List<Card>(gm.players[p1].board);
-        var p2BoardBackup = new List<Card>(gm.players[p2].board);
+        // Snapshot STATS before hero-power combat buffs (WarChief +1 Atk etc. must not persist).
+        // WO-12: do NOT restore board MEMBERSHIP from pre-passive lists — ArcaneBolt kills that
+        // go through the death pipeline must stick (restoring membership was the "resurrect" bug).
+        var p1Snapshot = gm.players[p1].board.Select(c => (card: c, atk: c.attack, hp: c.health, aegis: c.hasAegis, reborn: c.hasReborn)).ToList();
+        var p2Snapshot = gm.players[p2].board.Select(c => (card: c, atk: c.attack, hp: c.health, aegis: c.hasAegis, reborn: c.hasReborn)).ToList();
 
         // T115: Trigger combat-start hero powers before battle
         if (HeroPowerManager.Instance != null)
@@ -51,11 +49,27 @@ public class BattleExecutor
         // each player's banked coins at StartOfCombat. recordReplay stays at its default (true).
         var (damage, winner) = CombatManager.SimulateBattle(board1, board2, gm.players[p1].currentTavernTier, gm.players[p2].currentTavernTier, p1Name, p2Name, true, gm.players[p1], gm.players[p2]);
 
-        // Restore live boards after SimulateBattle has cloned the buffed state
-        gm.players[p1].board.Clear(); gm.players[p1].board.AddRange(p1BoardBackup);
-        gm.players[p2].board.Clear(); gm.players[p2].board.AddRange(p2BoardBackup);
-        foreach (var (card, atk, hp, aegis) in p1Snapshot) { card.attack = atk; card.health = hp; card.hasAegis = aegis; }
-        foreach (var (card, atk, hp, aegis) in p2Snapshot) { card.attack = atk; card.health = hp; card.hasAegis = aegis; }
+        // Restore pre-passive stats for cards still on the board (membership stays post-passive).
+        foreach (var (card, atk, hp, aegis, reborn) in p1Snapshot)
+        {
+            if (card != null && gm.players[p1].board.Contains(card))
+            {
+                card.attack = atk;
+                card.health = hp;
+                card.hasAegis = aegis;
+                card.hasReborn = reborn;
+            }
+        }
+        foreach (var (card, atk, hp, aegis, reborn) in p2Snapshot)
+        {
+            if (card != null && gm.players[p2].board.Contains(card))
+            {
+                card.attack = atk;
+                card.health = hp;
+                card.hasAegis = aegis;
+                card.hasReborn = reborn;
+            }
+        }
         Debug.Log($"[Combat] {p1Name} vs {p2Name}");
         Debug.Log($"  {p1Name} Board: " + string.Join(", ", board1.Select(c => c.cardName)));
         Debug.Log($"  {p2Name} Board: " + string.Join(", ", board2.Select(c => c.cardName)));
@@ -77,34 +91,51 @@ public class BattleExecutor
             damage = EightPlayerManager.Instance.CalculateCombatDamage(session.TurnNumber, boardStrength, alivePlayerCount);
         }
 
+        // Snapshot combat board sizes before result (for result banner — live boards may still show minions)
+        int p1BoardCount = board1 != null ? board1.Count : 0;
+        int p2BoardCount = board2 != null ? board2.Count : 0;
+        // Prefer lastReplay initial state if present (true combat clone counts)
+        if (CombatManager.lastReplay?.initialState != null)
+        {
+            var st = CombatManager.lastReplay.initialState;
+            // initialState is attacker/defender order, not p1/p2 — keep live counts as fallback
+        }
+
         int winnerIndex;
+        int p1HealthAfter;
+        int p2HealthAfter;
         if (winner == "Tie")
         {
-            int p1Health = session.ApplyDamage(p1, damage);
-            int p2Health = session.ApplyDamage(p2, damage);
-            gm.players[p1].Health = p1Health;
-            gm.players[p2].Health = p2Health;
+            p1HealthAfter = session.ApplyDamage(p1, damage);
+            p2HealthAfter = session.ApplyDamage(p2, damage);
+            gm.players[p1].Health = p1HealthAfter;
+            gm.players[p2].Health = p2HealthAfter;
             winnerIndex = -1;
-            Debug.Log($"[Combat] TIE! Both take {damage} damage. {p1Name}: {p1Health} HP, {p2Name}: {p2Health} HP");
+            Debug.Log($"[Combat] TIE! Both take {damage} damage. {p1Name}: {p1HealthAfter} HP, {p2Name}: {p2HealthAfter} HP");
         }
         else if (winner == p1Name)
         {
-            int p2Health = session.ApplyDamage(p2, damage);
-            gm.players[p2].Health = p2Health;
+            p2HealthAfter = session.ApplyDamage(p2, damage);
+            p1HealthAfter = session.GetHealth(p1);
+            gm.players[p2].Health = p2HealthAfter;
             winnerIndex = p1;
-            Debug.Log($"[Combat] {p1Name} WINS! {p2Name} takes {damage} damage. Health: {p2Health}");
+            Debug.Log($"[Combat] {p1Name} WINS! {p2Name} takes {damage} damage. Health: {p2HealthAfter}");
         }
         else
         {
-            int p1Health = session.ApplyDamage(p1, damage);
-            gm.players[p1].Health = p1Health;
+            p1HealthAfter = session.ApplyDamage(p1, damage);
+            p2HealthAfter = session.GetHealth(p2);
+            gm.players[p1].Health = p1HealthAfter;
             winnerIndex = p2;
-            Debug.Log($"[Combat] {p2Name} WINS! {p1Name} takes {damage} damage. Health: {p1Health}");
+            Debug.Log($"[Combat] {p2Name} WINS! {p1Name} takes {damage} damage. Health: {p1HealthAfter}");
         }
 
         // Record battle for match info scoreboard
         if (MatchTracker.Instance != null)
             MatchTracker.Instance.RecordBattle(p1, p2, winnerIndex, damage);
+
+        // Testability: always show a clear result for local fights (and a note for spectate)
+        ShowBattleResultBanner(p1, p2, winnerIndex, damage, p1HealthAfter, p2HealthAfter, p1BoardCount, p2BoardCount);
 
 #if PHOTON_UNITY_NETWORKING
         // Broadcast combat result and updated states to clients
@@ -138,5 +169,42 @@ public class BattleExecutor
         }
 #endif
         return false;
+    }
+
+    private int GetLocalPlayerIndex()
+    {
+        if (!gm.IsOnlineMode)
+            return GameConfig.HumanPlayerIndex;
+#if PHOTON_UNITY_NETWORKING
+        if (NetworkGameBridge.Instance != null)
+            return NetworkGameBridge.Instance.LocalPlayerSlot;
+#endif
+        return GameConfig.HumanPlayerIndex;
+    }
+
+    private void ShowBattleResultBanner(
+        int p1, int p2, int winnerIndex, int damage,
+        int p1HpAfter, int p2HpAfter, int p1BoardCount, int p2BoardCount)
+    {
+        var banner = CombatResultBanner.EnsureInstance();
+        if (banner == null) return;
+
+        int local = GetLocalPlayerIndex();
+        bool localInFight = p1 == local || p2 == local;
+
+        if (localInFight)
+        {
+            int opp = p1 == local ? p2 : p1;
+            int localHp = p1 == local ? p1HpAfter : p2HpAfter;
+            int oppHp = p1 == local ? p2HpAfter : p1HpAfter;
+            int localBoard = p1 == local ? p1BoardCount : p2BoardCount;
+            int oppBoard = p1 == local ? p2BoardCount : p1BoardCount;
+            banner.ShowLocalBattleResult(local, opp, winnerIndex, damage, localHp, oppHp, localBoard, oppBoard);
+        }
+        else
+        {
+            string w = winnerIndex < 0 ? "Tie" : $"P{winnerIndex + 1} won";
+            banner.ShowSpectating($"P{p1 + 1} vs P{p2 + 1}: {w} ({damage} dmg). You were not in this pairing.");
+        }
     }
 }

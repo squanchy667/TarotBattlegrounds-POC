@@ -363,72 +363,108 @@ namespace TarotBattlegrounds.Combat.Animator
             cardObj.transform.SetParent(parent, false);
 
             RectTransform rt = cardObj.AddComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(100f, 140f);
+            // Larger for mobile readability
+            rt.sizeDelta = new Vector2(120f, 168f);
 
-            // Background
-            Image bg = cardObj.AddComponent<Image>();
-            bg.color = Tokens.WithAlpha(Tokens.CharredWood, 0.9f);
+            // Outer edge: side color so attacker vs defender is obvious
+            Image edge = cardObj.AddComponent<Image>();
+            edge.color = side == 0
+                ? Tokens.WithAlpha(Tokens.BronzeBright, 0.95f)
+                : Tokens.WithAlpha(Tokens.Blood, 0.95f);
+            edge.raycastTarget = false;
 
-            // Canvas group for fading
+            // Inner face
+            GameObject face = new GameObject("Face");
+            face.transform.SetParent(cardObj.transform, false);
+            RectTransform faceRt = face.AddComponent<RectTransform>();
+            faceRt.anchorMin = Vector2.zero;
+            faceRt.anchorMax = Vector2.one;
+            faceRt.offsetMin = new Vector2(4f, 4f);
+            faceRt.offsetMax = new Vector2(-4f, -4f);
+            Image bg = face.AddComponent<Image>();
+            bg.color = Tokens.WithAlpha(Tokens.CharredWood, 0.96f);
+            bg.raycastTarget = false;
+            // Prefer kit frame if available (stone shell)
+            if (UiSprites.Instance != null && UiSprites.Instance.GetCardFrame(1) != null)
+                UiSprites.ApplySliced(bg, UiSprites.Instance.GetCardFrame(1));
+
             CanvasGroup cg = cardObj.AddComponent<CanvasGroup>();
 
-            // Name text
+            // Name plate
             GameObject nameObj = new GameObject("NameText");
-            nameObj.transform.SetParent(cardObj.transform, false);
+            nameObj.transform.SetParent(face.transform, false);
             RectTransform nameRt = nameObj.AddComponent<RectTransform>();
-            nameRt.anchorMin = new Vector2(0f, 0.7f);
-            nameRt.anchorMax = new Vector2(1f, 1f);
+            nameRt.anchorMin = new Vector2(0.05f, 0.62f);
+            nameRt.anchorMax = new Vector2(0.95f, 0.96f);
             nameRt.offsetMin = Vector2.zero;
             nameRt.offsetMax = Vector2.zero;
             TMP_Text nameText = nameObj.AddComponent<TextMeshProUGUI>();
-            nameText.text = snap.cardName;
+            nameText.text = snap != null ? snap.cardName : "?";
             nameText.fontSize = Tokens.TextCaption;
             nameText.alignment = TextAlignmentOptions.Center;
             nameText.color = Tokens.BoneBright;
             nameText.enableAutoSizing = true;
-            nameText.fontSizeMin = 8;
-            nameText.fontSizeMax = 14;
+            nameText.fontSizeMin = 10;
+            nameText.fontSizeMax = 18;
+            nameText.enableWordWrapping = true;
+            nameText.overflowMode = TextOverflowModes.Ellipsis;
+            nameText.raycastTarget = false;
+            if (FontRefs.Instance != null && FontRefs.Instance.Label != null)
+                nameText.font = FontRefs.Instance.Label;
 
-            // Attack text (bottom-left)
-            GameObject atkObj = new GameObject("AttackText");
-            atkObj.transform.SetParent(cardObj.transform, false);
-            RectTransform atkRt = atkObj.AddComponent<RectTransform>();
-            atkRt.anchorMin = new Vector2(0f, 0f);
-            atkRt.anchorMax = new Vector2(0.5f, 0.3f);
-            atkRt.offsetMin = Vector2.zero;
-            atkRt.offsetMax = Vector2.zero;
-            TMP_Text atkText = atkObj.AddComponent<TextMeshProUGUI>();
-            atkText.text = snap.attack.ToString();
-            atkText.fontSize = Tokens.TextCaption;
-            atkText.fontStyle = FontStyles.Bold;
-            atkText.alignment = TextAlignmentOptions.Center;
-            atkText.color = Tokens.BronzeBright;
+            // Attack chip (bottom-left) — Blood
+            TMP_Text atkText = CreateStatChip(face.transform, "AttackText",
+                new Vector2(0.02f, 0.02f), new Vector2(0.48f, 0.38f),
+                snap != null ? snap.attack.ToString() : "0", Tokens.Blood);
 
-            // Health text (bottom-right)
-            GameObject hpObj = new GameObject("HealthText");
-            hpObj.transform.SetParent(cardObj.transform, false);
-            RectTransform hpRt = hpObj.AddComponent<RectTransform>();
-            hpRt.anchorMin = new Vector2(0.5f, 0f);
-            hpRt.anchorMax = new Vector2(1f, 0.3f);
-            hpRt.offsetMin = Vector2.zero;
-            hpRt.offsetMax = Vector2.zero;
-            TMP_Text hpText = hpObj.AddComponent<TextMeshProUGUI>();
-            hpText.text = snap.health.ToString();
-            hpText.fontSize = Tokens.TextCaption;
-            hpText.fontStyle = FontStyles.Bold;
-            hpText.alignment = TextAlignmentOptions.Center;
-            hpText.color = Tokens.BronzeBright;
+            // Health chip (bottom-right) — Ember/positive
+            TMP_Text hpText = CreateStatChip(face.transform, "HealthText",
+                new Vector2(0.52f, 0.02f), new Vector2(0.98f, 0.38f),
+                snap != null ? snap.health.ToString() : "0", Tokens.Ember);
 
-            // Add the component and set references
             CombatCardVisual visual = cardObj.AddComponent<CombatCardVisual>();
             visual.cardNameText = nameText;
             visual.attackText = atkText;
             visual.healthText = hpText;
             visual.cardBackground = bg;
             visual.canvasGroup = cg;
+            visual.normalColor = bg.color;
 
             visual.Setup(snap, side, index);
             return visual;
+        }
+
+        private static TMP_Text CreateStatChip(Transform parent, string name,
+            Vector2 aMin, Vector2 aMax, string value, Color accent)
+        {
+            GameObject chip = new GameObject(name + "Chip");
+            chip.transform.SetParent(parent, false);
+            RectTransform chipRt = chip.AddComponent<RectTransform>();
+            chipRt.anchorMin = aMin;
+            chipRt.anchorMax = aMax;
+            chipRt.offsetMin = new Vector2(2f, 2f);
+            chipRt.offsetMax = new Vector2(-2f, -2f);
+            Image chipBg = chip.AddComponent<Image>();
+            chipBg.color = Tokens.WithAlpha(Tokens.Ash, 0.85f);
+            chipBg.raycastTarget = false;
+
+            GameObject textGo = new GameObject(name);
+            textGo.transform.SetParent(chip.transform, false);
+            RectTransform tr = textGo.AddComponent<RectTransform>();
+            tr.anchorMin = Vector2.zero;
+            tr.anchorMax = Vector2.one;
+            tr.offsetMin = Vector2.zero;
+            tr.offsetMax = Vector2.zero;
+            TMP_Text tmp = textGo.AddComponent<TextMeshProUGUI>();
+            tmp.text = value;
+            tmp.fontSize = Tokens.TextBody;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = accent;
+            tmp.raycastTarget = false;
+            if (FontRefs.Instance != null && FontRefs.Instance.Body != null)
+                tmp.font = FontRefs.Instance.Body;
+            return tmp;
         }
     }
 }

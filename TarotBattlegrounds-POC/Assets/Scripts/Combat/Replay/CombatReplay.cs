@@ -73,6 +73,22 @@ namespace TarotBattlegrounds.Combat.Replay
 
         public static CombatReplayAction MakeWindfuryAttack(int srcIndex, int srcSide, int tgtIndex, int tgtSide) =>
             new CombatReplayAction { type = CombatActionType.WindfuryAttack, sourceCardIndex = srcIndex, sourceOwnerSide = srcSide, targetCardIndex = tgtIndex, targetOwnerSide = tgtSide, abilityName = "Windfury" };
+
+        /// <summary>
+        /// WO-03: Token summon. AnimateSummon uses targetCardIndex as board position,
+        /// targetOwnerSide as side, value as X/X stats, abilityName as display name.
+        /// </summary>
+        public static CombatReplayAction MakeSummonToken(int index, int side, int value, string tokenName) =>
+            new CombatReplayAction
+            {
+                type = CombatActionType.SummonToken,
+                targetCardIndex = index,
+                targetOwnerSide = side,
+                value = value,
+                abilityName = string.IsNullOrEmpty(tokenName) ? "Token" : tokenName,
+                sourceCardIndex = -1,
+                sourceOwnerSide = -1
+            };
     }
 
     [System.Serializable]
@@ -253,5 +269,7 @@ namespace TarotBattlegrounds.Combat.Replay
         public float RecordReborn(int ti, int ts) => Record(CombatReplayAction.MakeReborn(ti, ts));
         public float RecordVenomousKill(int si, int ss, int ti, int ts) => Record(CombatReplayAction.MakeVenomousKill(si, ss, ti, ts));
         public float RecordWindfuryAttack(int si, int ss, int ti, int ts) => Record(CombatReplayAction.MakeWindfuryAttack(si, ss, ti, ts));
+        public float RecordSummonToken(int index, int side, int value, string tokenName) =>
+            Record(CombatReplayAction.MakeSummonToken(index, side, value, tokenName));
     }
 }

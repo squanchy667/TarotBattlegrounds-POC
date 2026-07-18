@@ -24,3 +24,12 @@ MonoBehaviour:
   slotReady: {fileID: 21300000, guid: 9044e197f64384c128b7087afe51e3ff, type: 3}
   underlineEmber: {fileID: 21300000, guid: c151c9220d7aa4ef08d2120f33a004ca, type: 3}
   dividerStone: {fileID: 21300000, guid: 49a5280a6d4804912b7db82df7544e85, type: 3}
+  cardFrameT1Stone: {fileID: 21300000, guid: 5f324de9dbcf04e9abdb5ffc52008ebc, type: 3}
+  cardFrameT2Bronze: {fileID: 21300000, guid: b307713cad0ef4816887f78e7d6a4964, type: 3}
+  cardFrameT3Gold: {fileID: 21300000, guid: a40f4267bf26748d0b736227aa50e199, type: 3}
+  cardFrameT4Ether: {fileID: 21300000, guid: 3b028dcb0913e44988e6465956e033e6, type: 3}
+  cardFrameT5Mythic: {fileID: 21300000, guid: afa7d7448e64c4b60840405ff666b3ef, type: 3}
+  cardNameplate: {fileID: 21300000, guid: 883d6b49387ec44cf895fe0c2d1d1774, type: 3}
+  chipAttack: {fileID: 21300000, guid: 1d784a458ac3f4c0799df16b9160fee5, type: 3}
+  chipHealth: {fileID: 21300000, guid: e64d52d2670f74132a551c8ba1fdfe20, type: 3}
+  chipCost: {fileID: 21300000, guid: c131e90f49bec42b0ae4b287b6533a77, type: 3}

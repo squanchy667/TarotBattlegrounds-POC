@@ -76,8 +76,19 @@ public class GameUIManager : MonoBehaviour, IThemeable
     [SerializeField] internal Image gameBackgroundImage;
     [SerializeField] internal BackgroundController backgroundController;
 
+    [Header("WO-09 Phase Env Stills (assign via GameEnvStillsSetup)")]
+    [SerializeField] internal Sprite recruitEnvStill; // shop_bg.jpg
+    [SerializeField] internal Sprite combatEnvStill;  // board_env.jpg
+    private GameManager.GamePhase lastEnvPhase = (GameManager.GamePhase)(-1);
+
     private int activePlayerIndex = 0;
     private Player currentPlayer;
+
+    // WO-04b: store combat static-event delegates so OnDestroy can -= even when
+    // combatLogUI is a Unity fake-null (DisableDomainReload leaves statics alive).
+    private System.Action<CombatLogEntry> combatLogEntryHandler;
+    private System.Action<string, string> combatStartHandler;
+    private System.Action<string, int> combatEndHandler;
 
     // Extracted helpers (constructed in Awake, after the singleton guard). Internal so
     // sibling helpers can reach each other through the owner reference they hold.
@@ -155,15 +166,67 @@ public class GameUIManager : MonoBehaviour, IThemeable
             boardUI.OnBoardSwapRequested += actions.OnBoardSwapRequested;
         }
 
-        // Subscribe to combat events if available
-        if (combatLogUI != null)
-        {
-            CombatManager.OnCombatLogEntry += combatLogUI.AddLogEntry;
-            CombatManager.OnCombatStart += combatLogUI.OnCombatStart;
-            CombatManager.OnCombatEnd += combatLogUI.OnCombatEnd;
-        }
+        // Subscribe to combat events if available (stored handlers for reliable unsub — WO-04b)
+        SubscribeCombatLogEvents();
 
         UpdateAllUI();
+
+        // Recruit/combat env art (shop_bg / board_env) — force on boot
+        ApplyPhaseEnvironmentBackground(
+            GameManager.Instance != null ? GameManager.Instance.CurrentPhase : GameManager.GamePhase.Recruit,
+            force: true);
+
+        // MatchInfoHolder was often saved inactive → "i" button had no listeners
+        if (matchInfoUI != null)
+            matchInfoUI.EnsureWired();
+
+        // GameOverUIRoot often saved inactive → never subscribed to OnGameOver → stuck after win
+        var gameOver = FindObjectOfType<GameOverUI>(true);
+        if (gameOver != null)
+            gameOver.EnsureReady();
+
+        // Top strip: timer / phase / turn clear of gear + match-info buttons
+        PinTopHudChrome();
+
+        // Synergy rows are built into the scene in editor but the runtime dictionary is empty
+        if (synergyDisplay != null)
+            synergyDisplay.EnsureInitialized();
+    }
+
+    /// <summary>
+    /// WO-04b: pair CombatManager static += with stored delegates (not field-null-gated -=).
+    /// </summary>
+    private void SubscribeCombatLogEvents()
+    {
+        UnsubscribeCombatLogEvents();
+        if (combatLogUI == null) return;
+
+        combatLogEntryHandler = combatLogUI.AddLogEntry;
+        combatStartHandler = combatLogUI.OnCombatStart;
+        combatEndHandler = combatLogUI.OnCombatEnd;
+
+        CombatManager.OnCombatLogEntry += combatLogEntryHandler;
+        CombatManager.OnCombatStart += combatStartHandler;
+        CombatManager.OnCombatEnd += combatEndHandler;
+    }
+
+    private void UnsubscribeCombatLogEvents()
+    {
+        if (combatLogEntryHandler != null)
+        {
+            CombatManager.OnCombatLogEntry -= combatLogEntryHandler;
+            combatLogEntryHandler = null;
+        }
+        if (combatStartHandler != null)
+        {
+            CombatManager.OnCombatStart -= combatStartHandler;
+            combatStartHandler = null;
+        }
+        if (combatEndHandler != null)
+        {
+            CombatManager.OnCombatEnd -= combatEndHandler;
+            combatEndHandler = null;
+        }
     }
 
     private void SetupButtons()
@@ -306,7 +369,134 @@ public class GameUIManager : MonoBehaviour, IThemeable
 
     public void UpdateTimer(float time)
     {
+        // First-tick pin if BeginRecruitTimer was skipped (client path / late UI awake).
+        if (!_timerPinned)
+            EnsureTestabilityTimerVisible();
         hud.UpdateTimer(time);
+    }
+
+    /// <summary>Recruit phase start — reset circular total so long late-game timers fill correctly.</summary>
+    public void BeginRecruitTimer(float totalSeconds)
+    {
+        EnsureTestabilityTimerVisible();
+        hud.BeginRecruitTimer(totalSeconds);
+    }
+
+    private bool _timerPinned;
+    private bool _topHudPinned;
+
+    /// <summary>
+    /// Guarantee a large top-center countdown is on-screen.
+    /// Scene TimerText lived under PhasePanel with anchoredPosition.x=500 (fully off canvas).
+    /// Always reparent + pin to SafeArea/Canvas top-center; create TMP if unwired.
+    /// Styling runs once so HudPresenter can still flash red under 5s.
+    /// </summary>
+    public void EnsureTestabilityTimerVisible()
+    {
+        // Create timer first so PinTopHudChrome can place it
+        if (timerText == null)
+        {
+            Transform host = GetTopHudHost();
+            if (host == null) return;
+            GameObject go = new GameObject("RecruitTimerText_Runtime");
+            go.transform.SetParent(host, false);
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.raycastTarget = false;
+            if (FontRefs.Instance != null && FontRefs.Instance.Display != null)
+                tmp.font = FontRefs.Instance.Display;
+            timerText = tmp;
+            _topHudPinned = false; // allow re-layout with new timer
+            Debug.Log("[GameUIManager] Created runtime recruit timer text (was unwired).");
+        }
+
+        PinTopHudChrome();
+
+        if (timerText != null
+            && GameManager.Instance != null
+            && GameManager.Instance.CurrentPhase == GameManager.GamePhase.Recruit
+            && !timerText.gameObject.activeSelf)
+            timerText.gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// Layout top strip so turn/phase/timer never sit under gear (⚙) or match-info (i).
+    /// Right ~200px reserved for those buttons.
+    ///   [ Phase ]     [ TIMER ]     [ Turn N ]
+    ///                 (center band)
+    /// </summary>
+    public void PinTopHudChrome()
+    {
+        if (_topHudPinned) return;
+        Transform host = GetTopHudHost();
+        if (host == null) return;
+
+        // Timer — top center (leave headroom under right buttons)
+        if (timerText != null)
+        {
+            PinTopLabel(timerText, host, new Vector2(0f, -10f), new Vector2(280f, 72f));
+            StyleTopLabel(timerText, Tokens.TextDisplay, Tokens.BoneBright);
+        }
+
+        // Phase — left of center (not near right menus)
+        if (phaseText != null)
+        {
+            PinTopLabel(phaseText, host, new Vector2(-200f, -18f), new Vector2(180f, 40f));
+            StyleTopLabel(phaseText, Tokens.TextH2, Tokens.BronzeBright);
+        }
+
+        // Turn — right of center but well clear of ⚙/i (those sit at x≈-16..-100 from right edge)
+        if (turnText != null)
+        {
+            PinTopLabel(turnText, host, new Vector2(200f, -18f), new Vector2(160f, 40f));
+            StyleTopLabel(turnText, Tokens.TextH2, Tokens.BoneBright);
+        }
+
+        _topHudPinned = true;
+        _timerPinned = timerText != null;
+        Debug.Log("[GameUIManager] Pinned top HUD (phase/timer/turn) clear of corner menus");
+    }
+
+    private Transform GetTopHudHost()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindObjectOfType<Canvas>();
+        if (canvas == null) return null;
+        Transform host = canvas.transform;
+        Transform safe = host.Find("SafeArea");
+        return safe != null ? safe : host;
+    }
+
+    private static void PinTopLabel(TMP_Text tmp, Transform host, Vector2 anchoredPos, Vector2 size)
+    {
+        if (tmp == null || host == null) return;
+        tmp.transform.SetParent(host, false);
+        // Keep under SettingsRoot so gear stays clickable on top
+        Transform settings = host.Find("SettingsRoot");
+        if (settings != null)
+            tmp.transform.SetSiblingIndex(Mathf.Max(0, settings.GetSiblingIndex()));
+        else
+            tmp.transform.SetAsLastSibling();
+
+        RectTransform rt = tmp.rectTransform;
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
+        rt.pivot = new Vector2(0.5f, 1f);
+        rt.anchoredPosition = anchoredPos;
+        rt.sizeDelta = size;
+        rt.localScale = Vector3.one;
+        tmp.gameObject.SetActive(true);
+    }
+
+    private static void StyleTopLabel(TMP_Text tmp, float fontSize, Color color)
+    {
+        if (tmp == null) return;
+        tmp.enableAutoSizing = false;
+        tmp.fontSize = fontSize;
+        tmp.fontStyle = FontStyles.Bold;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.color = color;
+        tmp.enableWordWrapping = false;
+        tmp.overflowMode = TextOverflowModes.Overflow;
+        tmp.raycastTarget = false;
     }
 
     internal bool IsOnlineMode => GameManager.Instance != null && GameManager.Instance.IsOnlineMode;
@@ -369,13 +559,8 @@ public class GameUIManager : MonoBehaviour, IThemeable
             boardUI.OnBoardSwapRequested -= actions.OnBoardSwapRequested;
         }
 
-        // Unsubscribe from combat events
-        if (combatLogUI != null)
-        {
-            CombatManager.OnCombatLogEntry -= combatLogUI.AddLogEntry;
-            CombatManager.OnCombatStart -= combatLogUI.OnCombatStart;
-            CombatManager.OnCombatEnd -= combatLogUI.OnCombatEnd;
-        }
+        // Unsubscribe from combat events (handlers — do not gate on combatLogUI fake-null)
+        UnsubscribeCombatLogEvents();
 
         // Unsubscribe from theme events
         ThemeManager.OnThemeChanged -= ApplyTheme;
@@ -394,12 +579,82 @@ public class GameUIManager : MonoBehaviour, IThemeable
     }
 
     /// <summary>
-    /// Auto-show match info panel briefly after combat ends.
+    /// Formerly auto-opened the match scoreboard after every fight.
+    /// Playtest preference: on-demand only via the "i" button (popup redesign later).
     /// </summary>
     public void ShowMatchInfoAfterCombat()
     {
-        if (matchInfoUI != null)
-            matchInfoUI.AutoShowAfterCombat();
+        // Intentionally no-op — use MatchInfoUI toggle for on-demand scoreboard.
+    }
+
+    /// <summary>
+    /// Hide shop/hand/board chrome so combat plays on a clean arena.
+    /// Called by CombatAnimator when the replay panel opens/closes.
+    /// </summary>
+    public void SetCombatPresentationMode(bool combatActive)
+    {
+        // Keep settings + match-info usable; hide recruit clutter
+        SetChromeActive(shopUI != null ? shopUI.gameObject : null, !combatActive);
+        SetChromeActive(handUI != null ? handUI.gameObject : null, !combatActive);
+        SetChromeActive(boardUI != null ? boardUI.gameObject : null, !combatActive);
+        SetChromeActive(synergyDisplay != null ? synergyDisplay.gameObject : null, !combatActive);
+        SetChromeActive(resourceBar != null ? resourceBar.gameObject : null, !combatActive);
+        SetChromeActive(combatLogUI != null ? combatLogUI.gameObject : null, !combatActive);
+        if (phaseBanner != null)
+            SetChromeActive(phaseBanner.gameObject, !combatActive);
+
+        // Named shop/action panels (scene hierarchy)
+        Transform host = GetTopHudHost();
+        if (host != null)
+        {
+            foreach (var name in new[]
+                     {
+                         "ActionsButtonsPanel", "ActionButtonsPanel", "ShopPanel", "ShopUI",
+                         "HandPanel", "HandUI", "BoardPanel", "BoardUI", "PlayerInfoPanel"
+                     })
+            {
+                Transform t = host.Find(name);
+                if (t == null)
+                {
+                    // deep-ish: only direct children of SafeArea
+                    continue;
+                }
+                SetChromeActive(t.gameObject, !combatActive);
+            }
+        }
+
+        // Also toggle individual action buttons if their panel wasn't found
+        if (buyButton != null && buyButton.transform.parent != null)
+            SetChromeActive(buyButton.transform.parent.gameObject, !combatActive);
+
+        if (timerText != null && combatActive)
+            timerText.gameObject.SetActive(false);
+
+        // Keep phase/turn readable during combat
+        if (phaseText != null) phaseText.gameObject.SetActive(true);
+        if (turnText != null) turnText.gameObject.SetActive(true);
+
+        if (!combatActive)
+        {
+            ApplyPhaseEnvironmentBackground(
+                GameManager.Instance != null ? GameManager.Instance.CurrentPhase : GameManager.GamePhase.Recruit,
+                force: true);
+            if (GameManager.Instance != null
+                && GameManager.Instance.CurrentPhase == GameManager.GamePhase.Recruit
+                && timerText != null)
+                timerText.gameObject.SetActive(true);
+            hud?.RefreshSynergyDisplay();
+        }
+        else
+        {
+            ApplyPhaseEnvironmentBackground(GameManager.GamePhase.Combat, force: true);
+        }
+    }
+
+    private static void SetChromeActive(GameObject go, bool active)
+    {
+        if (go != null && go.activeSelf != active)
+            go.SetActive(active);
     }
 
     // Accessor methods for child UI components
@@ -407,6 +662,144 @@ public class GameUIManager : MonoBehaviour, IThemeable
     public HandUI GetHandUI() => handUI;
     public BoardUI GetBoardUI() => boardUI;
     public CombatLogUI GetCombatLogUI() => combatLogUI;
+
+    /// <summary>
+    /// WO-09 / in-game: recruit = shop_bg, combat = board_env.
+    /// Always ensures a full-screen BG layer exists; loads stills if missing.
+    /// </summary>
+    public void ApplyPhaseEnvironmentBackground(GameManager.GamePhase phase, bool force = false)
+    {
+        EnsurePhaseBackgroundPipeline();
+
+        if (!force && phase == lastEnvPhase) return;
+        lastEnvPhase = phase;
+
+        // Ofek: use combat board environment for BOTH recruit and combat (one consistent world bg)
+        Sprite still = combatEnvStill;
+        if (still == null)
+            still = recruitEnvStill; // fallback if combat still unwired
+        if (still == null)
+            still = LoadEnvStillFallback(combat: true);
+        if (still == null)
+            still = LoadEnvStillFallback(combat: false);
+
+        if (still == null)
+        {
+            Debug.LogWarning($"[GameUIManager] No env still for phase {phase} — check Art/Env sprites");
+            return;
+        }
+
+        combatEnvStill = still;
+        if (recruitEnvStill == null)
+            recruitEnvStill = still;
+
+        backgroundController.SetStillSprite(still);
+
+        // Kill solid full-screen covers that sit above BG_Root (was hiding all env art)
+        ClearSolidBackgroundCovers();
+    }
+
+    /// <summary>
+    /// GameBackgroundImage (and similar) often paint a solid purple/ash fullscreen
+    /// above BG_Root — disable so shop_bg / board_env can show.
+    /// </summary>
+    private void ClearSolidBackgroundCovers()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindObjectOfType<Canvas>();
+        if (canvas == null) return;
+
+        // Explicit legacy field
+        if (gameBackgroundImage != null)
+        {
+            gameBackgroundImage.enabled = false;
+            gameBackgroundImage.raycastTarget = false;
+            var c = gameBackgroundImage.color;
+            c.a = 0f;
+            gameBackgroundImage.color = c;
+        }
+
+        // Named cover under Canvas
+        Transform gbi = canvas.transform.Find("GameBackgroundImage");
+        if (gbi != null)
+        {
+            var img = gbi.GetComponent<Image>();
+            if (img != null)
+            {
+                img.enabled = false;
+                img.raycastTarget = false;
+                var c = img.color;
+                c.a = 0f;
+                img.color = c;
+            }
+        }
+
+        if (mainPanelBackground != null && mainPanelBackground.color.a > 0.35f)
+        {
+            Color c = mainPanelBackground.color;
+            c.a = 0.12f;
+            mainPanelBackground.color = c;
+            mainPanelBackground.raycastTarget = false;
+        }
+
+        // BG_Root must be first sibling under Canvas
+        Transform bgRoot = canvas.transform.Find("BG_Root");
+        if (bgRoot != null)
+            bgRoot.SetAsFirstSibling();
+    }
+
+    /// <summary>Find/create BackgroundController + load default stills if inspector empty.</summary>
+    private void EnsurePhaseBackgroundPipeline()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindObjectOfType<Canvas>();
+        if (canvas == null) return;
+
+        if (backgroundController == null)
+            backgroundController = canvas.GetComponent<BackgroundController>();
+        if (backgroundController == null)
+            backgroundController = canvas.GetComponentInChildren<BackgroundController>(true);
+        if (backgroundController == null)
+        {
+            backgroundController = canvas.gameObject.AddComponent<BackgroundController>();
+            Debug.Log("[GameUIManager] Added BackgroundController on Canvas");
+        }
+
+        backgroundController.EnsureBackgroundBaseLayer();
+
+        if (recruitEnvStill == null)
+            recruitEnvStill = LoadEnvStillFallback(combat: false);
+        if (combatEnvStill == null)
+            combatEnvStill = LoadEnvStillFallback(combat: true);
+    }
+
+    /// <summary>
+    /// Runtime/editor load of env art. Prefers Resources/Env/ then Resources root names.
+    /// Scene serialized refs should win when present.
+    /// </summary>
+    private static Sprite LoadEnvStillFallback(bool combat)
+    {
+        string[] keys = combat
+            ? new[] { "Env/board_env", "board_env", "Env/Board/board_env" }
+            : new[] { "Env/shop_bg", "shop_bg", "Env/Shop/shop_bg" };
+
+        foreach (var key in keys)
+        {
+            var sp = Resources.Load<Sprite>(key);
+            if (sp != null) return sp;
+        }
+
+#if UNITY_EDITOR
+        string path = combat
+            ? "Assets/Art/Env/Board/board_env.jpg"
+            : "Assets/Art/Env/Shop/shop_bg.jpg";
+        var editorSp = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if (editorSp != null) return editorSp;
+        foreach (var o in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path))
+            if (o is Sprite s) return s;
+#endif
+        return null;
+    }
     public MatchInfoUI GetMatchInfoUI() => matchInfoUI;
     public SynergyDisplayPanel GetSynergyDisplay() => synergyDisplay;
 }

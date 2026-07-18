@@ -253,6 +253,9 @@ namespace TarotBattlegrounds.Combat.VFX
             obj.transform.SetParent(poolRoot);
 
             ParticleSystem ps = obj.AddComponent<ParticleSystem>();
+            // A fresh ParticleSystem on an active GO starts playing immediately (playOnAwake
+            // default) — stop it fully BEFORE configuring; setting duration while playing asserts.
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = ps.main;
             main.playOnAwake = false;
             main.loop = false;

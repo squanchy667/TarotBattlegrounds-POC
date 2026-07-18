@@ -28,12 +28,13 @@ public class CombatLogUI : MonoBehaviour, IThemeable
     [Header("Settings")]
     [SerializeField] private int maxLogEntries = 50;
 
-    [Header("Entry Colors (overridden by theme)")]
+    // WO-08: log role colors — Tokens only (theme may still override in ApplyTheme)
+    [Header("Entry Colors (Tokens; theme may override)")]
     [SerializeField] private Color attackColor = Tokens.Blood;
     [SerializeField] private Color counterattackColor = Tokens.Ember;
     [SerializeField] private Color deathColor = Tokens.BoneDim;
-    [SerializeField] private Color aegisColor = Tokens.BronzeBright;
-    [SerializeField] private Color echoColor = Tokens.Ember;
+    [SerializeField] private Color aegisColor = Tokens.EtherBlue;
+    [SerializeField] private Color echoColor = Tokens.EtherViolet;
     [SerializeField] private Color resultColor = Tokens.BronzeBright;
     [SerializeField] private Color defaultColor = Tokens.BoneBright;
 

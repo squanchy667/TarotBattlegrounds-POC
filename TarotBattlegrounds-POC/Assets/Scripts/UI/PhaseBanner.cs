@@ -142,17 +142,12 @@ public class PhaseBanner : MonoBehaviour, IThemeable
     /// <param name="turnNumber">Current turn number</param>
     public void UpdateTurn(int turnNumber)
     {
-        if (turnText != null)
-        {
-            turnText.text = $"Turn {ToRoman(turnNumber)}";
-        }
-
-        // Brief scale punch on the turn badge
+        // Single source of turn text: GameUIManager.turnText (top HUD).
+        // Hiding the badge avoids "Turn 5" + "Turn V" stacking on combat/recruit.
         if (turnBadge != null)
-        {
-            if (currentTurnPulse != null) StopCoroutine(currentTurnPulse);
-            currentTurnPulse = StartCoroutine(TurnPulseRoutine());
-        }
+            turnBadge.gameObject.SetActive(false);
+        if (turnText != null)
+            turnText.gameObject.SetActive(false);
     }
 
     private IEnumerator TurnPulseRoutine()

@@ -30,14 +30,18 @@ public class MatchInfoUI : MonoBehaviour, IThemeable
 
     private ThemeConfig currentTheme;
     private bool isVisible;
+    private bool _wired;
 
     private void Awake()
     {
+        // Host must stay active so Awake/Start can wire the "i" toggle.
+        // Only the content panel + overlay hide; the holder itself stays on.
         if (infoPanel != null)
             infoPanel.SetActive(false);
         if (dismissOverlay != null)
             dismissOverlay.gameObject.SetActive(false);
         isVisible = false;
+        EnsureWired();
     }
 
     private void OnEnable()
@@ -45,6 +49,7 @@ public class MatchInfoUI : MonoBehaviour, IThemeable
         ThemeManager.OnThemeChanged += ApplyTheme;
         if (ThemeManager.ActiveTheme != null)
             ApplyTheme(ThemeManager.ActiveTheme);
+        EnsureWired();
     }
 
     private void OnDisable()
@@ -54,10 +59,53 @@ public class MatchInfoUI : MonoBehaviour, IThemeable
 
     private void Start()
     {
+        EnsureWired();
+    }
+
+    /// <summary>
+    /// Wire toggle/dismiss listeners. Safe to call when this component was left inactive
+    /// in the scene (Start never ran → "i" button did nothing).
+    /// </summary>
+    public void EnsureWired()
+    {
+        // If someone deactivated the whole holder, bring it back so children can show.
+        // SetActive may run Awake/OnEnable which also calls EnsureWired — re-check _wired after.
+        if (!gameObject.activeSelf)
+            gameObject.SetActive(true);
+
+        if (_wired) return;
+
+        if (toggleButton == null)
+        {
+            // Fallback: find the always-visible top-right "i" button
+            var all = FindObjectsOfType<Button>(true);
+            foreach (var b in all)
+            {
+                if (b != null && b.name == "MatchInfoToggleButton")
+                {
+                    toggleButton = b;
+                    break;
+                }
+            }
+        }
+
         if (toggleButton != null)
-            toggleButton.onClick.AddListener(ShowPanel);
+        {
+            toggleButton.onClick.RemoveListener(TogglePanel);
+            toggleButton.onClick.AddListener(TogglePanel);
+        }
         if (dismissOverlay != null)
+        {
+            dismissOverlay.onClick.RemoveListener(HidePanel);
             dismissOverlay.onClick.AddListener(HidePanel);
+        }
+        _wired = toggleButton != null;
+    }
+
+    public void TogglePanel()
+    {
+        if (isVisible) HidePanel();
+        else ShowPanel();
     }
 
     public void ApplyTheme(ThemeConfig theme)
@@ -75,6 +123,10 @@ public class MatchInfoUI : MonoBehaviour, IThemeable
 
     public void ShowPanel()
     {
+        // Holder may have been saved inactive — force on before showing children.
+        if (!gameObject.activeSelf)
+            gameObject.SetActive(true);
+
         isVisible = true;
         if (dismissOverlay != null)
             dismissOverlay.gameObject.SetActive(true);
@@ -90,6 +142,7 @@ public class MatchInfoUI : MonoBehaviour, IThemeable
             infoPanel.SetActive(false);
         if (dismissOverlay != null)
             dismissOverlay.gameObject.SetActive(false);
+        // Keep this host active so the "i" button stays wired next click.
     }
 
     public void AutoShowAfterCombat()

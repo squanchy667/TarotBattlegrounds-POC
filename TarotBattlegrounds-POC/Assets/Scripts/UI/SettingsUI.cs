@@ -32,6 +32,7 @@ namespace TarotBattlegrounds.UI
         [SerializeField] private Toggle autoEndTurnToggle;
 
         [Header("Navigation")]
+        [SerializeField] private Button openButton; // gear / menu entry (must live on an active object path)
         [SerializeField] private Button closeButton;
         [SerializeField] private Button resetButton;
 
@@ -45,8 +46,19 @@ namespace TarotBattlegrounds.UI
         private const string KEY_COMBAT_SPEED = "Settings_CombatSpeed";
         private const string KEY_AUTO_END = "Settings_AutoEndTurn";
 
+        private bool _wired;
+
+        private void Awake()
+        {
+            // This component must sit on an *active* host (SettingsRoot), not the inactive
+            // SettingsPanel — otherwise Awake/Start never run and the gear never wires.
+            EnsureOpenButtonWired();
+        }
+
         private void Start()
         {
+            EnsureOpenButtonWired();
+
             if (closeButton != null) closeButton.onClick.AddListener(Close);
             if (resetButton != null) resetButton.onClick.AddListener(ResetToDefaults);
 
@@ -75,6 +87,32 @@ namespace TarotBattlegrounds.UI
 
             LoadSettings();
             if (settingsPanel != null) settingsPanel.SetActive(false);
+        }
+
+        /// <summary>
+        /// Wire the gear/menu button at runtime. Editor AddListener calls do not serialize.
+        /// Also resolves sibling SettingsButton if openButton was never assigned.
+        /// </summary>
+        private void EnsureOpenButtonWired()
+        {
+            if (_wired) return;
+
+            if (openButton == null)
+            {
+                // Prefer sibling under SettingsRoot
+                Transform gear = transform.Find("SettingsButton");
+                if (gear == null && transform.parent != null)
+                    gear = transform.parent.Find("SettingsButton");
+                if (gear != null)
+                    openButton = gear.GetComponent<Button>();
+            }
+
+            if (openButton != null)
+            {
+                openButton.onClick.RemoveListener(Open);
+                openButton.onClick.AddListener(Open);
+                _wired = true;
+            }
         }
 
         public void Open()
@@ -199,6 +237,7 @@ namespace TarotBattlegrounds.UI
 
         private void OnDestroy()
         {
+            if (openButton != null) openButton.onClick.RemoveListener(Open);
             if (closeButton != null) closeButton.onClick.RemoveAllListeners();
             if (resetButton != null) resetButton.onClick.RemoveAllListeners();
         }

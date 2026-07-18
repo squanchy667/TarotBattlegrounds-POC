@@ -69,7 +69,9 @@ public static class CombatManager
         allClones.AddRange(pBoardCopy);
         allClones.AddRange(aBoardCopy);
         
-        // Handle empty boards
+        // Handle empty boards — WO-04c (B1): still record a minimal replay so CombatAnimator
+        // can enter combat presentation briefly (CombatStart → result → CombatEnd) then return
+        // to recruit, instead of silent instant skip.
         if (pBoardCopy.Count == 0 && aBoardCopy.Count == 0)
         {
             LogEntry(new CombatLogEntry
@@ -78,6 +80,7 @@ public static class CombatManager
                 Message = "Both boards empty - Tie!",
                 TurnNumber = 0
             });
+            FinalizeMinimalEmptyBoardReplay(replay, pBoardCopy, aBoardCopy, pName, aName, "Tie", 0);
             CleanupCombatClones(allClones);
             OnCombatEnd?.Invoke("Tie", 0);
             return (0, "Tie");
@@ -93,6 +96,7 @@ public static class CombatManager
                 TurnNumber = 0,
                 Damage = damage
             });
+            FinalizeMinimalEmptyBoardReplay(replay, pBoardCopy, aBoardCopy, pName, aName, aName, damage);
             CleanupCombatClones(allClones);
             OnCombatEnd?.Invoke(aName, damage);
             return (damage, aName);
@@ -108,6 +112,7 @@ public static class CombatManager
                 TurnNumber = 0,
                 Damage = damage
             });
+            FinalizeMinimalEmptyBoardReplay(replay, pBoardCopy, aBoardCopy, pName, aName, pName, damage);
             CleanupCombatClones(allClones);
             OnCombatEnd?.Invoke(pName, damage);
             return (damage, pName);
@@ -294,17 +299,22 @@ public static class CombatManager
                     else
                     {
                         // Trigger OnAttack abilities only when attack connects (not blocked by Aegis)
-                        TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target, attackers, targetBoard);
+                        {
+                            int atkSideForAbility = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
+                            TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target, attackers, targetBoard, replay, atkSideForAbility);
+                        }
 
                         // T110: Apply armor damage reduction
                         int actualDamage = GainArmorAbility.ApplyArmor(target, attacker.attack);
                         target.health -= actualDamage;
 
                         // T107: Venomous instant kill
+                        bool venomKill = false;
                         if (VenomousAbility.HasVenomous(attacker) && target.health > 0)
                         {
                             Debug.Log($"[Venomous] {attacker.cardName} poisons {target.cardName} — instant kill!");
                             target.health = 0;
+                            venomKill = true;
                         }
 
                         // T302: Record damage taken
@@ -313,6 +323,12 @@ public static class CombatManager
                             int tgtIdx = targetBoard.IndexOf(target);
                             int tgtSide = isP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1);
                             replay.RecordTakeDamage(tgtIdx, tgtSide, actualDamage, target.health);
+                            if (venomKill)
+                            {
+                                int atkIdxV = attackers.IndexOf(attacker);
+                                int atkSideV = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
+                                replay.RecordVenomousKill(atkIdxV, atkSideV, tgtIdx, tgtSide);
+                            }
                         }
 
                         LogEntry(new CombatLogEntry
@@ -360,10 +376,12 @@ public static class CombatManager
                         attacker.health -= counterDamage;
 
                         // T107: Venomous counterattack instant kill
+                        bool venomCounterKill = false;
                         if (VenomousAbility.HasVenomous(target) && attacker.health > 0)
                         {
                             Debug.Log($"[Venomous] {target.cardName} poisons {attacker.cardName} on counterattack — instant kill!");
                             attacker.health = 0;
+                            venomCounterKill = true;
                         }
 
                         // T302: Record counterattack
@@ -373,6 +391,8 @@ public static class CombatManager
                             int atkSide = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
                             int tgtIdx = targetBoard.IndexOf(target);
                             replay.RecordCounterattack(tgtIdx, 1 - atkSide, atkIdx, atkSide, counterDamage, attacker.health);
+                            if (venomCounterKill)
+                                replay.RecordVenomousKill(tgtIdx, 1 - atkSide, atkIdx, atkSide);
                         }
 
                         LogEntry(new CombatLogEntry
@@ -440,7 +460,8 @@ public static class CombatManager
                                     int atkIdx2 = attackers.IndexOf(attacker);
                                     int tgtIdx2 = targetBoard.IndexOf(target2);
                                     int atkSide2 = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
-                                    replay.RecordAttack(atkIdx2, atkSide2, tgtIdx2, 1 - atkSide2);
+                                    // WO-03: second strike is WindfuryAttack (first strike remains RecordAttack)
+                                    replay.RecordWindfuryAttack(atkIdx2, atkSide2, tgtIdx2, 1 - atkSide2);
                                 }
 
                                 if (target2.hasAegis)
@@ -456,17 +477,27 @@ public static class CombatManager
                                 }
                                 else
                                 {
-                                    TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target2, attackers, targetBoard);
+                                    int atkSideWf = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
+                                    TriggerCombatAbility(AbilityTrigger.OnAttack, attacker, target2, attackers, targetBoard, replay, atkSideWf);
                                     int wfDamage = GainArmorAbility.ApplyArmor(target2, attacker.attack);
                                     target2.health -= wfDamage;
+                                    bool wfVenom = false;
                                     if (VenomousAbility.HasVenomous(attacker) && target2.health > 0)
+                                    {
                                         target2.health = 0;
+                                        wfVenom = true;
+                                    }
 
                                     if (replay != null)
                                     {
                                         int tgtIdx2 = targetBoard.IndexOf(target2);
                                         int tgtSide2 = isP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1);
                                         replay.RecordTakeDamage(tgtIdx2, tgtSide2, wfDamage, target2.health);
+                                        if (wfVenom)
+                                        {
+                                            int atkIdx2 = attackers.IndexOf(attacker);
+                                            replay.RecordVenomousKill(atkIdx2, atkSideWf, tgtIdx2, tgtSide2);
+                                        }
                                     }
 
                                     Debug.Log($"[Windfury] {attacker.cardName} hits {target2.cardName} for {wfDamage} (health: {target2.health})");
@@ -477,14 +508,21 @@ public static class CombatManager
                                 {
                                     int wfCounter = GainArmorAbility.ApplyArmor(attacker, target2.attack);
                                     attacker.health -= wfCounter;
+                                    bool wfCounterVenom = false;
                                     if (VenomousAbility.HasVenomous(target2) && attacker.health > 0)
+                                    {
                                         attacker.health = 0;
+                                        wfCounterVenom = true;
+                                    }
 
                                     if (replay != null)
                                     {
                                         int atkIdx2 = attackers.IndexOf(attacker);
                                         int atkSide2 = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
-                                        replay.RecordCounterattack(targetBoard.IndexOf(target2), 1 - atkSide2, atkIdx2, atkSide2, wfCounter, attacker.health);
+                                        int tgtIdx2 = targetBoard.IndexOf(target2);
+                                        replay.RecordCounterattack(tgtIdx2, 1 - atkSide2, atkIdx2, atkSide2, wfCounter, attacker.health);
+                                        if (wfCounterVenom)
+                                            replay.RecordVenomousKill(tgtIdx2, 1 - atkSide2, atkIdx2, atkSide2);
                                     }
                                 }
                                 else
@@ -590,6 +628,50 @@ public static class CombatManager
     }
 
     /// <summary>
+    /// WO-04c (Ofek B1): minimal replay for empty-board early outs.
+    /// initialState + CombatStart + result (damage/winner) + CombatEnd → lastReplay.
+    /// Numeric outcomes unchanged — only presentation data is added.
+    /// Side mapping: P = attacker, A = defender (no first-player roll on empty paths).
+    /// </summary>
+    private static void FinalizeMinimalEmptyBoardReplay(
+        CombatReplay replay,
+        List<Card> pBoardCopy, List<Card> aBoardCopy,
+        string pName, string aName,
+        string winner, int damage)
+    {
+        if (replay == null) return;
+
+        replay.initialState = CombatReplayState.FromBoards(
+            pBoardCopy, aBoardCopy, pName, aName, 0, 0);
+        replay.RecordCombatStart();
+
+        var survivors = new List<CombatCardSnapshot>();
+        List<Card> survivingBoard = null;
+        if (winner == pName) survivingBoard = pBoardCopy;
+        else if (winner == aName) survivingBoard = aBoardCopy;
+
+        if (survivingBoard != null)
+        {
+            for (int i = 0; i < survivingBoard.Count; i++)
+            {
+                if (survivingBoard[i] != null && survivingBoard[i].health > 0)
+                    survivors.Add(CombatCardSnapshot.FromCard(survivingBoard[i], i));
+            }
+        }
+
+        replay.result = new CombatReplayResult
+        {
+            winnerSide = winner == "Tie" ? "Tie" : (winner == pName ? "attacker" : "defender"),
+            winnerName = winner,
+            damageDealt = damage,
+            survivingCards = survivors,
+            turnCount = 0
+        };
+        replay.RecordCombatEnd();
+        lastReplay = replay;
+    }
+
+    /// <summary>
     /// Unregister abilities from all combat clones to prevent memory leak.
     /// </summary>
     private static void CleanupCombatClones(List<Card> clones)
@@ -651,10 +733,31 @@ public static class CombatManager
                     TurnNumber = turnCount
                 });
 
-                if (deadCard.effectType == Card.EffectType.Echo)
-                    TriggerEcho(deadCard, ownerBoard, ownerName, turnCount);
+                bool isOnAttackerBoard = ownerBoard == attackerBoard;
+                int deadSide = isOnAttackerBoard ? (isAttackerP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0))
+                                                 : (isAttackerP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1));
 
-                TriggerCombatAbility(AbilityTrigger.Deathrattle, deadCard, null, ownerBoard, enemyBoard);
+                if (deadCard.effectType == Card.EffectType.Echo)
+                    TriggerEcho(deadCard, ownerBoard, ownerName, turnCount, replay, deadSide);
+
+                // Snapshot owner board before deathrattle so WO-03 can emit SummonToken for new cards
+                var boardBeforeDeathrattle = new List<Card>(ownerBoard);
+
+                TriggerCombatAbility(AbilityTrigger.Deathrattle, deadCard, null, ownerBoard, enemyBoard, replay, deadSide);
+
+                // WO-03: Record summons for any new cards inserted by deathrattle
+                if (replay != null)
+                {
+                    for (int i = 0; i < ownerBoard.Count; i++)
+                    {
+                        Card c = ownerBoard[i];
+                        if (!boardBeforeDeathrattle.Contains(c))
+                        {
+                            int tokenValue = Mathf.Max(c.attack, c.health);
+                            replay.RecordSummonToken(i, deadSide, tokenValue > 0 ? tokenValue : 1, c.cardName);
+                        }
+                    }
+                }
 
                 // H1 fix: Register any tokens summoned by this deathrattle into allClones so
                 // CleanupCombatClones() will unregister their abilities after combat ends.
@@ -682,21 +785,24 @@ public static class CombatManager
                 if (replay != null)
                 {
                     int deadIdx = ownerBoard.IndexOf(deadCard);
-                    bool isOnAttackerBoard = ownerBoard == attackerBoard;
-                    int deadSide = isOnAttackerBoard ? (isAttackerP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0))
-                                                     : (isAttackerP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1));
                     if (deadIdx >= 0)
                         replay.RecordDie(deadIdx, deadSide);
                 }
 
-                // T105: Reborn — revive with 1 HP at same position, lose Reborn keyword
+                // T105: Reborn — revive with 1 HP at same position, lose Reborn keyword (once)
                 if (willReborn)
                 {
                     int rebornIdx = ownerBoard.IndexOf(deadCard);
                     deadCard.health = 1;
-                    deadCard.hasReborn = false;
                     deadCard.hasAegis = false; // Reborn strips Aegis
-                    Debug.Log($"[Reborn] {deadCard.cardName} revives with 1 HP at position {rebornIdx}");
+                    // Consume flag + ability registration so this cannot reborn again
+                    // (old HasReborn still returned true from leftover RebornAbility → infinite loop
+                    //  with durable tanks like Vault Guardian / Celestial Guardian).
+                    RebornAbility.ConsumeReborn(deadCard);
+                    Debug.Log($"[Reborn] {deadCard.cardName} revives with 1 HP at position {rebornIdx} (reborn spent)");
+                    // WO-03: record reborn for animator
+                    if (replay != null && rebornIdx >= 0)
+                        replay.RecordReborn(rebornIdx, deadSide);
                     // Card stays in the board at its current position — don't remove it
                 }
                 else
@@ -741,7 +847,8 @@ public static class CombatManager
         }
     }
 
-    private static void TriggerEcho(Card dyingCard, List<Card> board, string ownerName, int turn)
+    private static void TriggerEcho(Card dyingCard, List<Card> board, string ownerName, int turn,
+        CombatReplay replay = null, int ownerSide = -1)
     {
         Card ally = board.Where(c => c != dyingCard && c.health > 0).OrderBy(x => UnityEngine.Random.value).FirstOrDefault();
         if (ally != null)
@@ -760,6 +867,15 @@ public static class CombatManager
                 Message = $"{dyingCard.cardName}'s Echo buffs {ally.cardName}'s attack by {value}!",
                 TurnNumber = turn
             });
+
+            // WO-03: replay EchoTrigger (not BuffApplied — avoid double-count)
+            if (replay != null && ownerSide >= 0)
+            {
+                int srcIdx = board.IndexOf(dyingCard);
+                int allyIdx = board.IndexOf(ally);
+                if (srcIdx >= 0 && allyIdx >= 0)
+                    replay.RecordEchoTrigger(srcIdx, ownerSide, allyIdx, ownerSide, value);
+            }
             
             Debug.Log($"Echo: {dyingCard.cardName} ({ownerName}) buffs {ally.cardName} attack by {value} (New Attack: {ally.attack})");
         }
@@ -767,9 +883,34 @@ public static class CombatManager
     
     /// <summary>
     /// Trigger abilities during combat (OnAttack, Deathrattle, etc.)
+    /// WO-03: optional replay + sourceSide records AbilityTrigger without changing ability order.
     /// </summary>
-    private static void TriggerCombatAbility(AbilityTrigger trigger, Card source, Card target, List<Card> ownerBoard, List<Card> enemyBoard)
+    private static void TriggerCombatAbility(AbilityTrigger trigger, Card source, Card target,
+        List<Card> ownerBoard, List<Card> enemyBoard, CombatReplay replay = null, int sourceSide = -1)
     {
+        // Only emit AbilityTrigger when the card has something that could fire (avoid empty noise).
+        if (replay != null && source != null && sourceSide >= 0 && ownerBoard != null)
+        {
+            var registered = AbilityManager.GetAbilities(source);
+            bool hasAbility = source.abilityEffect != Card.AbilityEffectType.None
+                || source.abilityTrigger != AbilityTrigger.None
+                || !string.IsNullOrEmpty(source.ability)
+                || (registered != null && registered.Count > 0);
+            if (hasAbility)
+            {
+                int si = ownerBoard.IndexOf(source);
+                if (si >= 0)
+                {
+                    string name = !string.IsNullOrEmpty(source.ability)
+                        ? source.ability
+                        : (source.abilityEffect != Card.AbilityEffectType.None
+                            ? source.abilityEffect.ToString()
+                            : trigger.ToString());
+                    replay.RecordAbilityTrigger(si, sourceSide, name);
+                }
+            }
+        }
+
         var context = new AbilityContext
         {
             SourceCard = source,

@@ -259,44 +259,63 @@ public class TavernManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Get random discovery cards from the pool at the specified tier.
-    /// Cards are reserved (removed from pool) until the player chooses.
-    /// Call ReturnDiscoveryCards() with unchosen cards after selection.
+    /// Get random discovery cards at the specified tier (HS-BG style triple reward).
+    /// Prefer live pool copies; if the pool is thin (late game / tier 6), fall back through
+    /// lower tiers, then clone from master card templates so discovery is never empty.
+    /// Pool copies are reserved; template clones are not (they never came from the pool).
     /// </summary>
     public List<Card> GetDiscoveryCards(int tier, int count)
     {
-        List<Card> candidates = allCards.Where(c => c.tier == tier).ToList();
+        tier = Mathf.Clamp(tier, 1, 6);
+        count = Mathf.Max(1, count);
 
-        // If no cards at exact tier, try the tier below
-        if (candidates.Count == 0 && tier > 1)
-        {
-            candidates = allCards.Where(c => c.tier == tier - 1).ToList();
-        }
-
-        // Deduplicate by card name to offer variety
-        var uniqueByName = new Dictionary<string, Card>();
-        foreach (var card in candidates)
-        {
-            if (!uniqueByName.ContainsKey(card.cardName))
-                uniqueByName[card.cardName] = card;
-        }
-        var uniqueCards = new List<Card>(uniqueByName.Values);
-
-        // Shuffle and take up to count
         List<Card> result = new List<Card>();
-        var shuffled = uniqueCards.OrderBy(x => Random.value).ToList();
-        for (int i = 0; i < Mathf.Min(count, shuffled.Count); i++)
+        var usedNames = new HashSet<string>();
+
+        // 1) Prefer exact tier from live pool, then walk down (6→5→…→1)
+        for (int t = tier; t >= 1 && result.Count < count; t--)
         {
-            result.Add(shuffled[i]);
+            var poolAtTier = allCards.Where(c => c != null && c.tier == t).ToList();
+            var unique = new Dictionary<string, Card>();
+            foreach (var card in poolAtTier)
+            {
+                if (card == null || usedNames.Contains(card.cardName)) continue;
+                if (!unique.ContainsKey(card.cardName))
+                    unique[card.cardName] = card;
+            }
+            foreach (var card in unique.Values.OrderBy(_ => Random.value))
+            {
+                if (result.Count >= count) break;
+                result.Add(card);
+                usedNames.Add(card.cardName);
+                allCards.Remove(card); // reserve
+            }
         }
 
-        // Reserve discovery cards from pool so other players can't get them
-        foreach (var card in result)
+        // 2) Still short? Clone unique templates from master list at target tier, then lower
+        if (result.Count < count && masterCards != null)
         {
-            allCards.Remove(card);
+            for (int t = tier; t >= 1 && result.Count < count; t--)
+            {
+                var templates = masterCards
+                    .Where(c => c != null && c.tier == t && !usedNames.Contains(c.cardName))
+                    .GroupBy(c => c.cardName)
+                    .Select(g => g.First())
+                    .OrderBy(_ => Random.value)
+                    .ToList();
+                foreach (var template in templates)
+                {
+                    if (result.Count >= count) break;
+                    Card clone = template.Clone();
+                    // Clone registers combat abilities; discovery card still needs a clean instance
+                    result.Add(clone);
+                    usedNames.Add(template.cardName);
+                    Debug.Log($"[TavernManager] Discovery fallback clone: {clone.cardName} (tier {t})");
+                }
+            }
         }
-        Debug.Log($"[TavernManager] Reserved {result.Count} discovery cards from pool (pool size: {allCards.Count})");
 
+        Debug.Log($"[TavernManager] Discovery offer: {result.Count}/{count} at tier≤{tier} (pool size: {allCards.Count})");
         return result;
     }
 

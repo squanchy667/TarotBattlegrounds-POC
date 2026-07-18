@@ -47,11 +47,28 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
         public int currentCount;
     }
 
+    private void Awake()
+    {
+        EnsureInitialized();
+    }
+
+    private void Start()
+    {
+        EnsureInitialized();
+        // Pull board counts if a match is already running
+        if (GameUIManager.Instance != null)
+        {
+            var p = GameUIManager.Instance.GetActivePlayer();
+            if (p != null) UpdateSynergies(p);
+        }
+    }
+
     private void OnEnable()
     {
         ThemeManager.OnThemeChanged += ApplyTheme;
         if (ThemeManager.ActiveTheme != null)
             ApplyTheme(ThemeManager.ActiveTheme);
+        EnsureInitialized();
     }
 
     private void OnDisable()
@@ -96,6 +113,23 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
     }
 
     /// <summary>
+    /// Rebuild rows if the runtime dictionary is empty.
+    /// Editor setup creates children in the scene, but <see cref="rows"/> is not serialized —
+    /// without this, UpdateSynergies is a no-op and the panel looks broken.
+    /// </summary>
+    public void EnsureInitialized()
+    {
+        if (rowContainer == null)
+        {
+            // Common child name from SynergyDisplaySetup
+            var t = transform.Find("RowContainer");
+            if (t != null) rowContainer = t;
+        }
+        if (rows.Count == 0)
+            Initialize();
+    }
+
+    /// <summary>
     /// Initialize the panel with 6 tribe rows. Call once during setup.
     /// </summary>
     public void Initialize()
@@ -106,10 +140,14 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
             return;
         }
 
-        // Clear existing rows
+        // Clear existing rows (editor setup used Destroy which does nothing in edit mode)
+        var toDestroy = new List<GameObject>();
         foreach (Transform child in rowContainer)
+            toDestroy.Add(child.gameObject);
+        foreach (var go in toDestroy)
         {
-            Destroy(child.gameObject);
+            if (Application.isPlaying) Destroy(go);
+            else DestroyImmediate(go);
         }
         rows.Clear();
 
@@ -232,6 +270,8 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
     public void UpdateSynergies(Player player)
     {
         if (player == null) return;
+        EnsureInitialized();
+        if (rows.Count == 0) return;
 
         // Count tribes on player's board
         var tribeCounts = new Dictionary<TribeType, int>();
@@ -239,15 +279,26 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
         {
             if (card == null) continue;
 
-            // Use the card's tribe API which handles both new array and legacy string
+            // Prefer GetPrimaryTribe / GetTribes; also fall back to legacy string tribe
             TribeType[] cardTribes = card.GetTribes();
+            bool any = false;
             if (cardTribes != null)
             {
                 foreach (var tribe in cardTribes)
                 {
                     if (tribe == TribeType.None) continue;
+                    any = true;
                     if (!tribeCounts.ContainsKey(tribe)) tribeCounts[tribe] = 0;
                     tribeCounts[tribe]++;
+                }
+            }
+            if (!any)
+            {
+                TribeType primary = card.GetPrimaryTribe();
+                if (primary != TribeType.None)
+                {
+                    if (!tribeCounts.ContainsKey(primary)) tribeCounts[primary] = 0;
+                    tribeCounts[primary]++;
                 }
             }
         }

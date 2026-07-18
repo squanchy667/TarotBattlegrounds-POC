@@ -178,11 +178,36 @@ public class CardDisplayUI : MonoBehaviour, IThemeable
             frameGenerator.ApplyCardVisuals(card);
         }
 
-        if (cardFrame == null || theme == null) return;
+        if (cardFrame == null) return;
 
-        Sprite frame = theme.GetCardFrame(tier);
+        // WO-07: prefer design-kit frames from UiSprites (t1–t5); theme fallback; tier ≥6 no kit frame
+        Sprite frame = null;
+        if (UiSprites.Instance != null)
+            frame = UiSprites.Instance.GetCardFrame(tier);
+        if (frame == null && theme != null)
+            frame = theme.GetCardFrame(tier);
         if (frame != null)
-            cardFrame.sprite = frame;
+        {
+            UiSprites.ApplySliced(cardFrame, frame);
+        }
+
+        // Nameplate + stat chips when wired on this surface
+        var kit = UiSprites.Instance;
+        if (kit != null)
+        {
+            if (nameBanner != null)
+            {
+                Image bannerImg = nameBanner.GetComponent<Image>();
+                if (bannerImg != null && kit.CardNameplate != null)
+                    UiSprites.ApplySliced(bannerImg, kit.CardNameplate);
+            }
+            if (attackBadge != null && kit.ChipAttack != null)
+                UiSprites.ApplySliced(attackBadge, kit.ChipAttack);
+            if (healthBadge != null && kit.ChipHealth != null)
+                UiSprites.ApplySliced(healthBadge, kit.ChipHealth);
+            if (costBadge != null && kit.ChipCost != null)
+                UiSprites.ApplySliced(costBadge, kit.ChipCost);
+        }
 
         // UX05: Update standalone tier indicator if present (for cards without CardFrameGenerator)
         ApplyTierIndicatorDisplay(tier);

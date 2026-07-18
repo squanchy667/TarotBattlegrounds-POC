@@ -99,14 +99,15 @@ public class MatchInfoPanelSetup : EditorWindow
 
         MatchInfoUI matchInfoUI = holder.AddComponent<MatchInfoUI>();
 
-        // === Toggle Button (top-right corner, always visible) ===
-        GameObject toggleBtn = EditorUiFactory.CreateButton(canvasTransform, "MatchInfoToggleButton", "i", 80, 80,
+        // === Toggle Button (top-right, LEFT of Settings gear so they don't stack) ===
+        // Settings gear is at (-16,-16) size 72; leave a gap: 16 + 72 + 12 = 100 from right.
+        GameObject toggleBtn = EditorUiFactory.CreateButton(canvasTransform, "MatchInfoToggleButton", "i", 72, 72,
             labelFontSize: 22, addLayoutElement: false);
         RectTransform toggleRect = toggleBtn.GetComponent<RectTransform>();
         toggleRect.anchorMin = new Vector2(1, 1);
         toggleRect.anchorMax = new Vector2(1, 1);
         toggleRect.pivot = new Vector2(1, 1);
-        toggleRect.anchoredPosition = new Vector2(-10, -10);
+        toggleRect.anchoredPosition = new Vector2(-100, -16);
         SetButtonColor(toggleBtn, Tokens.WithAlpha(Tokens.CharredWood, 0.9f));
 
         TMP_Text toggleText = toggleBtn.GetComponentInChildren<TextMeshProUGUI>();

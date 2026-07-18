@@ -178,6 +178,8 @@ public class CircularTimer : MonoBehaviour
         if (timeText != null)
             timeText.text = "";
 
+        gameObject.SetActive(false);
+
         if (rectTransform != null)
             rectTransform.localScale = Vector3.one;
     }

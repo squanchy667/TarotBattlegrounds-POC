@@ -607,10 +607,28 @@ public class AbilityTests
     [Test]
     public void RebornAbility_HasReborn_TrueViaAbilityRegistration()
     {
+        // Registration alone no longer grants reborn — the consumable flag does.
+        // Card.RegisterAbility() sets hasReborn when effect type is Reborn.
         var card = MakeCard("Reborn");
+        card.hasReborn = true;
         AbilityManager.RegisterAbility(card, new RebornAbility());
 
         Assert.IsTrue(RebornAbility.HasReborn(card));
+    }
+
+    [Test]
+    public void RebornAbility_ConsumeReborn_PreventsSecondRevive()
+    {
+        var card = MakeCard("Shooting Star");
+        card.hasReborn = true;
+        AbilityManager.RegisterAbility(card, new RebornAbility());
+        Assert.IsTrue(RebornAbility.HasReborn(card));
+
+        RebornAbility.ConsumeReborn(card);
+
+        Assert.IsFalse(RebornAbility.HasReborn(card), "Reborn must be spent after first revive");
+        Assert.IsFalse(card.hasReborn);
+        Assert.IsFalse(AbilityManager.GetAbilities(card).Exists(a => a is RebornAbility));
     }
 
     [Test]

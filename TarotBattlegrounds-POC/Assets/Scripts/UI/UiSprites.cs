@@ -31,6 +31,17 @@ namespace TarotBattlegrounds.UI
         [SerializeField] private Sprite underlineEmber;
         [SerializeField] private Sprite dividerStone;
 
+        [Header("WO-07 Card anatomy (DESIGN §10.4)")]
+        [SerializeField] private Sprite cardFrameT1Stone;
+        [SerializeField] private Sprite cardFrameT2Bronze;
+        [SerializeField] private Sprite cardFrameT3Gold;
+        [SerializeField] private Sprite cardFrameT4Ether;
+        [SerializeField] private Sprite cardFrameT5Mythic;
+        [SerializeField] private Sprite cardNameplate;
+        [SerializeField] private Sprite chipAttack;
+        [SerializeField] private Sprite chipHealth;
+        [SerializeField] private Sprite chipCost;
+
         public Sprite ButtonBronze => buttonBronze;
         public Sprite ButtonEmber => buttonEmber;
         public Sprite ButtonBronzePressed => buttonBronzePressed;
@@ -43,6 +54,24 @@ namespace TarotBattlegrounds.UI
         public Sprite SlotReady => slotReady;
         public Sprite UnderlineEmber => underlineEmber;
         public Sprite DividerStone => dividerStone;
+        public Sprite CardNameplate => cardNameplate;
+        public Sprite ChipAttack => chipAttack;
+        public Sprite ChipHealth => chipHealth;
+        public Sprite ChipCost => chipCost;
+
+        /// <summary>Tier 1–5 kit frames; null if unwired or tier out of range. Tier ≥6 → null (ESCALATE).</summary>
+        public Sprite GetCardFrame(int tier)
+        {
+            switch (tier)
+            {
+                case 1: return cardFrameT1Stone;
+                case 2: return cardFrameT2Bronze;
+                case 3: return cardFrameT3Gold;
+                case 4: return cardFrameT4Ether;
+                case 5: return cardFrameT5Mythic;
+                default: return null;
+            }
+        }
 
         private static UiSprites instance;
 

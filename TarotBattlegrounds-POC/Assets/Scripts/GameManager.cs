@@ -42,7 +42,19 @@ public class GameManager : MonoBehaviour
     [Tooltip("Prefab used to instantiate additional players when count exceeds scene objects")]
     [SerializeField] internal GameObject playerPrefab;
 
-    internal float recruitTimer = 35f;
+    /// <summary>Base recruit seconds (turn 1). Scales up with turn for testability late-game.</summary>
+    internal float recruitTimer = 45f;
+
+    /// <summary>
+    /// Recruit duration grows as the game goes on so high gold / full boards stay playable.
+    /// Turn 1: base · then +6s per turn · hard cap 120s.
+    /// </summary>
+    public float GetRecruitTimerForTurn(int turnNumber)
+    {
+        int t = Mathf.Max(1, turnNumber);
+        float seconds = recruitTimer + (t - 1) * 6f;
+        return Mathf.Clamp(seconds, recruitTimer, 120f);
+    }
 
     [Header("AI Settings (Legacy - use GameConfig instead)")]
     [Tooltip("These are now read from GameConfig automatically")]
@@ -426,9 +438,12 @@ public class GameManager : MonoBehaviour
             yield return StartCoroutine(RecruitPhase());
             session.CurrentPhase = GamePhase.Combat;
 
-            // Notify UI of phase change
+            // Notify UI of phase change + board env still
             if (GameUIManager.Instance != null)
+            {
                 GameUIManager.Instance.RefreshAllUI();
+                GameUIManager.Instance.ApplyPhaseEnvironmentBackground(GamePhase.Combat, force: true);
+            }
 
 #if PHOTON_UNITY_NETWORKING
             // Broadcast phase change to clients
@@ -510,7 +525,7 @@ public class GameManager : MonoBehaviour
 #if PHOTON_UNITY_NETWORKING
         // Broadcast phase change to clients
         if (IsOnlineMode && NetworkGameBridge.Instance != null)
-            NetworkGameBridge.Instance.BroadcastPhaseChange("Recruit", session.TurnNumber, recruitTimer);
+            NetworkGameBridge.Instance.BroadcastPhaseChange("Recruit", session.TurnNumber, GetRecruitTimerForTurn(session.TurnNumber));
 #endif
 
         Debug.Log("Current Phase: " + session.CurrentPhase);
@@ -527,7 +542,15 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        float timer = recruitTimer;
+        float timer = GetRecruitTimerForTurn(session.TurnNumber);
+        Debug.Log($"[RecruitTimer] Turn {session.TurnNumber}: {timer:0}s recruit time (base={recruitTimer})");
+        if (GameUIManager.Instance != null)
+        {
+            GameUIManager.Instance.BeginRecruitTimer(timer);
+            // Force recruit env art every recruit phase (shop_bg)
+            GameUIManager.Instance.ApplyPhaseEnvironmentBackground(GamePhase.Recruit, force: true);
+        }
+
         for (int i = 0; i < playerCount; i++)
         {
             if (session.GetHealth(i) <= 0) continue;
