@@ -93,9 +93,18 @@ public class AutoPlaytestTests
         _recorder = _recorderGO.AddComponent<PlaytestEvidenceRecorder>();
         _recorder.BeginRecording(bundleDir);
 
-        // Key moment 1: shortly after scene boot, recruit phase HUD.
-        yield return _recorder.CaptureScreenshotAfterFrames("01_boot_recruit_hud", 2);
-        _recorder.SampleTurnLabel("post-boot (turn 1 recruit)");
+        // Key moment 1: post-boot. The recorder owns this capture (and its combat capture
+        // waits for it), so the two shots can no longer invert order — run_20260718_220720
+        // showed the poll loop's combat shot landing first. In AIvsAI the recruit phase is
+        // instantaneous, so this is honest "post-boot state", not a recruit-HUD guarantee.
+        float bootWait = 0f;
+        while (!_recorder.BootCaptureDone && bootWait < 5f)
+        {
+            bootWait += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        _recorder.SampleTurnLabel(
+            $"post-boot (phase={GameManager.Instance.CurrentPhase}, turn={GameManager.Instance.TurnNumber})");
 
         // Speed the match up: combat WaitForSeconds are timeScale-scaled, and the recruit
         // phase is already instant in AIvsAI (every AI auto-readies). Mirrors MatchPlaythroughTests.
@@ -116,6 +125,7 @@ public class AutoPlaytestTests
         {
             yield return _recorder.CaptureScreenshotAfterFrames("03_game_over", 20);
             _recorder.CheckGameOverUIActive();
+            _recorder.CheckGameOverExclusivity();
         }
         else
         {

@@ -52,3 +52,6 @@ test-logs/*.txt
 # Metas for gitignored vendored files (Unity regenerates locally; clones lack the assets)
 *.pdb.meta
 TarotBattlegrounds-POC/Assets/Photon/PhotonUnityNetworking/Icons.meta
+
+# AutoPlaytest evidence bundles (run artifacts, regenerated every run)
+AutoPlaytest/

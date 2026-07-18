@@ -155,8 +155,24 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
 
         LogEvent("RecordingStarted", $"Bundle dir: {_bundleDir}");
 
+        StartCoroutine(BootCapture());
         StartCoroutine(PollLoop());
     }
+
+    /// <summary>
+    /// The recorder owns the boot capture, and PollLoop's combat capture waits for it —
+    /// run_20260718_220720 showed the combat shot landing BEFORE the boot shot (in AIvsAI
+    /// the recruit phase is instantaneous, so the game was already in Combat two frames
+    /// after scene load). Ordering is now deterministic: 01 always precedes 02.
+    /// </summary>
+    private IEnumerator BootCapture()
+    {
+        yield return CaptureScreenshotAfterFrames("01_boot_recruit_hud", 2);
+        _bootCaptureDone = true;
+    }
+
+    private bool _bootCaptureDone;
+    public bool BootCaptureDone => _bootCaptureDone;
 
     public void StopRecording()
     {
@@ -216,7 +232,7 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
                 if (lastPhase == GameManager.GamePhase.Combat && phase == GameManager.GamePhase.Recruit)
                     SampleMatchInfoNotAutoShown();
 
-                if (phase == GameManager.GamePhase.Combat && !combatScreenshotTaken)
+                if (phase == GameManager.GamePhase.Combat && !combatScreenshotTaken && _bootCaptureDone)
                 {
                     combatScreenshotTaken = true;
                     StartCoroutine(CaptureScreenshotAfterFrames("02_combat_phase", 2));
@@ -285,7 +301,9 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
             string fullPath = Path.Combine(_bundleDir, relative);
             File.WriteAllBytes(fullPath, png);
             _screenshotRelativePaths[name] = relative;
-            LogEvent("Screenshot", $"{name} -> {relative} ({tex.width}x{tex.height})");
+            var gm = GameManager.Instance;
+            string state = gm != null ? $", phase={gm.CurrentPhase}, turn={gm.TurnNumber}" : "";
+            LogEvent("Screenshot", $"{name} -> {relative} ({tex.width}x{tex.height}{state})");
         }
         catch (Exception e)
         {
@@ -327,6 +345,37 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
             : $"GameOverUI.IsShowing = {gameOverUI.IsShowing} after GameManager.OnGameOver fired.";
         RecordCheck("A1", "Game over — win or lose shows full-screen panel (not cut off)",
             pass ? AutoPass : AutoFail, detail, GetScreenshotRelativePath("03_game_over"));
+    }
+
+    /// <summary>
+    /// Row A1b — game over must be the ONLY full-screen UI. GameOverUI.Show's own comment says
+    /// "Tear down combat presentation so game-over is the only full-screen UI", but
+    /// run_20260718_220720's 03_game_over.png showed the CombatResultBanner and shop chrome
+    /// still fully visible behind the panel. This check is the regression test for that bug:
+    /// it AUTO-FAILs (and therefore fails the suite) until the teardown actually covers them.
+    /// </summary>
+    public void CheckGameOverExclusivity()
+    {
+        var visible = new List<string>();
+
+        var banner = CombatResultBanner.Instance;
+        if (banner != null)
+        {
+            FieldInfo rootField = typeof(CombatResultBanner).GetField("root", BindingFlags.NonPublic | BindingFlags.Instance);
+            var rootObj = rootField?.GetValue(banner) as GameObject;
+            if (rootObj != null && rootObj.activeInHierarchy)
+                visible.Add("CombatResultBanner.root");
+        }
+        if (!IsInactive(_shopUI)) visible.Add("ShopUI");
+        if (!IsInactive(_handUI)) visible.Add("HandUI");
+        if (!IsInactive(_boardUI)) visible.Add("BoardUI");
+
+        RecordCheck("A1b", "Game over is the only full-screen UI (combat banner + shop chrome hidden)",
+            visible.Count == 0 ? AutoPass : AutoFail,
+            visible.Count == 0
+                ? "No combat result banner or shop chrome active behind the game-over panel."
+                : "Still active behind the game-over panel: " + string.Join(", ", visible),
+            GetScreenshotRelativePath("03_game_over"));
     }
 
     /// <summary>Row A4 sample point — count active TMP_Text components whose text matches "Turn N".</summary>
@@ -505,6 +554,13 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
         sb.AppendLine($"| Standings (1st..last) | {standingsStr} |");
         sb.AppendLine();
 
+        string dupNote = DuplicateScreenshotNote();
+        if (!string.IsNullOrEmpty(dupNote))
+        {
+            sb.AppendLine(dupNote);
+            sb.AppendLine();
+        }
+
         sb.AppendLine("## Automated Row Checks");
         sb.AppendLine();
         sb.AppendLine("| Row | Status | Detail | Evidence |");
@@ -537,6 +593,26 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
         sb.AppendLine($"Total events recorded: {_events.Count}.");
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Flags byte-identical boot/combat screenshots in the report. In AIvsAI this can happen
+    /// legitimately (instant recruit phase + no combat animation for a non-local viewer), so
+    /// the note explains it instead of letting the duplicate silently pose as two moments.
+    /// </summary>
+    private string DuplicateScreenshotNote()
+    {
+        string a = Path.Combine(_bundleDir, "screenshots", "01_boot_recruit_hud.png");
+        string b = Path.Combine(_bundleDir, "screenshots", "02_combat_phase.png");
+        if (!File.Exists(a) || !File.Exists(b)) return "";
+        byte[] ba = File.ReadAllBytes(a), bb = File.ReadAllBytes(b);
+        if (ba.Length != bb.Length) return "";
+        for (int i = 0; i < ba.Length; i++)
+            if (ba[i] != bb[i]) return "";
+        return "> **Note:** the boot and combat screenshots are byte-identical. In AIvsAI the recruit " +
+               "phase is instantaneous (all AIs auto-ready) and combat never animates for a non-local " +
+               "viewer, so the screen is static across both captures. Recruit-HUD visual rows " +
+               "(B1/B6/C3/C4) need a HumanVsAI run (T839) for valid evidence.";
     }
 
     private static string EscapePipes(string s) => string.IsNullOrEmpty(s) ? "" : s.Replace("|", "\\|").Replace("\n", " ");
