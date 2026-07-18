@@ -176,9 +176,17 @@ public class GameOverUI : MonoBehaviour, IThemeable
         // Force entire hierarchy on (root often saved inactive; combat UI may cover us)
         EnsureReady();
 
-        // Tear down combat presentation so game-over is the only full-screen UI
+        // Tear down combat presentation so game-over is the only full-screen UI (T840).
+        // CombatResultBanner has its own root (not under GameUIManager chrome).
+        if (CombatResultBanner.Instance != null)
+            CombatResultBanner.Instance.Hide();
+        // combatActive=true hides shop/hand/board (and related recruit chrome).
+        // combatActive=false was wrong here — it re-showed shop chrome behind the panel.
         if (GameUIManager.Instance != null)
-            GameUIManager.Instance.SetCombatPresentationMode(false);
+            GameUIManager.Instance.SetCombatPresentationMode(true);
+        // Belt-and-suspenders: A1b finds ShopUI/HandUI/BoardUI via FindObjectOfType
+        // and requires their roots inactive even if GameUIManager refs were unbound.
+        HideRecruitChromeFallback();
         if (TarotBattlegrounds.Combat.Animator.CombatAnimator.Instance != null)
         {
             // Best-effort: hide combat panel if still up after last fight
@@ -334,6 +342,23 @@ public class GameOverUI : MonoBehaviour, IThemeable
             }
             standingsText.text = standings;
         }
+    }
+
+    /// <summary>
+    /// T840: ensure ShopUI / HandUI / BoardUI roots are inactive even when
+    /// GameUIManager serialized refs are missing or unbound.
+    /// </summary>
+    private static void HideRecruitChromeFallback()
+    {
+        var shop = Object.FindObjectOfType<ShopUI>(true);
+        if (shop != null && shop.gameObject.activeSelf)
+            shop.gameObject.SetActive(false);
+        var hand = Object.FindObjectOfType<HandUI>(true);
+        if (hand != null && hand.gameObject.activeSelf)
+            hand.gameObject.SetActive(false);
+        var board = Object.FindObjectOfType<BoardUI>(true);
+        if (board != null && board.gameObject.activeSelf)
+            board.gameObject.SetActive(false);
     }
 
 #if PHOTON_UNITY_NETWORKING

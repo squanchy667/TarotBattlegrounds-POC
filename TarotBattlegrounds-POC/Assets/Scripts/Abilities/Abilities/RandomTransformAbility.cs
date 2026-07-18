@@ -45,13 +45,18 @@ public class RandomTransformAbility : AbilityBase
 
     private Card GetRandomCard(int maxTier)
     {
-        // Try to get from tavern pool
+        // Try to get from tavern pool — reserve (remove) before clone so we don't
+        // silently exceed configured supply (T767 / TA-3; mirrors BuyCard / shop reservation).
         if (TavernManager.Instance != null)
         {
             var pool = TavernManager.Instance.GetFullPool();
-            var candidates = pool.Where(c => c.tier <= maxTier).ToList();
+            var candidates = pool.Where(c => c != null && c.tier <= maxTier).ToList();
             if (candidates.Count > 0)
-                return candidates[Random.Range(0, candidates.Count)];
+            {
+                Card picked = candidates[Random.Range(0, candidates.Count)];
+                TavernManager.Instance.RemoveCardFromPool(picked);
+                return picked;
+            }
         }
 
         // Fallback: create a simple token if no pool available

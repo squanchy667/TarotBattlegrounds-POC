@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: DataConfig
   m_EditorClassIdentifier:
   dataBaseUrl: https://tarot-battlegrounds-data-prod.s3.amazonaws.com/live/
-  enableRuntimeLoading: 1
+  enableRuntimeLoading: 0
   requestTimeout: 10
   fallbackToBuiltIn: 1

@@ -224,6 +224,14 @@ public class Player : MonoBehaviour
             
             Debug.Log($"Player {playerId}: Bought {newCard.cardName} (Tier {newCard.tier}) for {cost} coins. Hand size: {hand.Count}, Coins: {coins}, Pool size: {tavern.GetFullPool().Count}");
 
+            // T765 / TA-9: Coins tier-2 OnBuy (+1 gold when buying) and any other OnBuy synergies.
+            // Snapshot from board (bought card is in hand, not board).
+            if (SynergyManager.Instance != null)
+            {
+                var snapshot = SynergyManager.Instance.CalculateSynergies(board);
+                SynergyManager.Instance.TriggerSynergies(SynergyTrigger.OnBuy, board, this, snapshot);
+            }
+
             // Check for triples after buying
             CheckAndResolveTriples();
         }

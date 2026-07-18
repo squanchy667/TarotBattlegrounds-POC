@@ -573,7 +573,11 @@ public static class CombatManager
         
         Debug.Log($"Post-removal state: {pName}={pBoardCopy.Count}, {aName}={aBoardCopy.Count}");
         
-        // Calculate results (damage = count of surviving minions + winner's tavern tier, per Hearthstone Battlegrounds rules)
+        // Damage formula (T835 verified 2026-07-18):
+        //   SHIPPED: damage = count(surviving minions) + winner tavern tier
+        //   HSBG / EXECUTION_PHASES brief: damage = sum(surviving minion tiers) + winner tavern tier
+        // Divergence: this uses survivor COUNT, not the sum of their card.tier values.
+        // Documented deliberately — do not "fix" without a design decision + golden tests.
         // Filter for alive cards only to be safe (ProcessDeaths should have removed dead cards, but be defensive)
         int pAlive = pBoardCopy.Count(c => c.health > 0);
         int aAlive = aBoardCopy.Count(c => c.health > 0);
@@ -924,7 +928,8 @@ public static class CombatManager
 
     private static int CalculateDamage(List<Card> survivingBoard, int tavernTier)
     {
-        // Damage = count of surviving minions + tavern tier (per Hearthstone Battlegrounds rules)
+        // T835: same formula as the main battle path — survivor COUNT + tavern tier
+        // (NOT sum of minion tiers). See comment at final-damage calculation above.
         int damage = survivingBoard.Count + tavernTier;
         return damage;
     }

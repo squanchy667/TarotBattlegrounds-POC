@@ -311,7 +311,9 @@ public class Card : ScriptableObject
         clone.sellValueModifier = this.sellValueModifier;
         clone.effectType = this.effectType;
         clone.effectParameter = this.effectParameter;
-        clone.hasAegis = this.hasAegis;
+        // T766 / TA-10: EffectType.Aegis is a permanent keyword on the card template but
+        // master cards never set hasAegis=true; honor it on every clone (buy/play/combat).
+        clone.hasAegis = this.hasAegis || this.effectType == EffectType.Aegis;
         clone.hasReborn = this.hasReborn;
         clone.hasWindfury = this.hasWindfury;
         clone.hasVenomous = this.hasVenomous;

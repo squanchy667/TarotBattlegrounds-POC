@@ -117,8 +117,21 @@ public class CombatResultBanner : MonoBehaviour
     private IEnumerator HideAfterDelay()
     {
         yield return new WaitForSecondsRealtime(visibleSeconds);
-        if (root != null) root.SetActive(false);
-        hideRoutine = null;
+        Hide();
+    }
+
+    /// <summary>
+    /// Immediately hide the banner (T840: game-over teardown must clear combat result chrome).
+    /// </summary>
+    public void Hide()
+    {
+        if (hideRoutine != null)
+        {
+            StopCoroutine(hideRoutine);
+            hideRoutine = null;
+        }
+        if (root != null)
+            root.SetActive(false);
     }
 
     /// <summary>Runtime-build minimal hierarchy if editor setup was not run.</summary>

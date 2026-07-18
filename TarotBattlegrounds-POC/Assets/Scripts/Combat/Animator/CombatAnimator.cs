@@ -619,7 +619,8 @@ namespace TarotBattlegrounds.Combat.Animator
                 var bg = combatPanel.GetComponent<Image>();
                 if (bg != null && visible)
                 {
-                    bg.color = Tokens.WithAlpha(Tokens.Ash, 0.82f);
+                    // T763: WO-17 claimed 28% Ash so the board env shows through; was still 0.82.
+                    bg.color = Tokens.WithAlpha(Tokens.Ash, 0.28f);
                     bg.raycastTarget = true;
                 }
             }

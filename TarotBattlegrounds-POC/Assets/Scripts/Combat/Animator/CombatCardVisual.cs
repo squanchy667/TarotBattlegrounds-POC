@@ -382,7 +382,9 @@ namespace TarotBattlegrounds.Combat.Animator
             faceRt.offsetMin = new Vector2(4f, 4f);
             faceRt.offsetMax = new Vector2(-4f, -4f);
             Image bg = face.AddComponent<Image>();
-            bg.color = Tokens.WithAlpha(Tokens.CharredWood, 0.96f);
+            // T763: CharredWood@0.96 was near-black on a dark arena. StoneEdge is the elevated
+            // surface token — solid enough for text, bright enough to read ATK/HP chips.
+            bg.color = Tokens.WithAlpha(Tokens.StoneEdge, 0.94f);
             bg.raycastTarget = false;
             // Prefer kit frame if available (stone shell)
             if (UiSprites.Instance != null && UiSprites.Instance.GetCardFrame(1) != null)

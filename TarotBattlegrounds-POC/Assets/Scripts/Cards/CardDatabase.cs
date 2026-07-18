@@ -655,6 +655,9 @@ public static class CardDatabase
         // Legacy effect system
         card.effectType = effectType;
         card.effectParameter = effectParameter;
+        // T766 / TA-10: keyword effect types must set their runtime flags on the template too
+        if (effectType == Card.EffectType.Aegis)
+            card.hasAegis = true;
 
         // Set legacy tribe field for backwards compatibility
         if (tribes != null && tribes.Length > 0 && tribes[0] != TribeType.None)

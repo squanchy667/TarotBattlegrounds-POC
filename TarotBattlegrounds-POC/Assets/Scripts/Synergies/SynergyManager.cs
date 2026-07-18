@@ -518,6 +518,15 @@ public class SynergyManager : MonoBehaviour
                 if (tribeCards.Count == 0) return new List<Card>();
                 return new List<Card> { tribeCards[Random.Range(0, tribeCards.Count)] };
 
+            case SynergyTarget.Self:
+                // Owner-level effects (e.g. Coins OnBuy BonusGold, Pentacles OnSell) use Self as
+                // the target type. Anchor once on a tribe member so ApplyEffect runs a single time
+                // (not per-member). Falls back to first board card when tribe is empty.
+                var selfMembers = board.Where(c => c != null && c.HasTribe(tribe)).ToList();
+                if (selfMembers.Count > 0) return new List<Card> { selfMembers[0] };
+                if (board.Count > 0 && board[0] != null) return new List<Card> { board[0] };
+                return new List<Card>();
+
             default:
                 return new List<Card>();
         }
