@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using TarotBattlegrounds.Combat.Animator;
+using TarotBattlegrounds.Combat.Replay;
 
 /// <summary>
 /// Runs a single pairwise battle: board snapshot/restore around hero-power combat
@@ -48,6 +49,16 @@ public class BattleExecutor
         // T725: thread the live owners through so owner-aware synergies (Golden Hoard) can read
         // each player's banked coins at StartOfCombat. recordReplay stays at its default (true).
         var (damage, winner) = CombatManager.SimulateBattle(board1, board2, gm.players[p1].currentTavernTier, gm.players[p2].currentTavernTier, p1Name, p2Name, true, gm.players[p1], gm.players[p2]);
+
+        // T846: write a human-readable play-by-play of every battle for post-session analysis
+        if (CombatManager.lastReplay != null)
+        {
+            bool yourBattle = IsLocalPlayerBattle(p1, p2);
+            CombatTranscript.WriteToDisk(CombatManager.lastReplay,
+                $"T{session.TurnNumber}_P{p1 + 1}v{p2 + 1}" + (yourBattle ? "_YOURS" : ""),
+                $"**Turn {session.TurnNumber}** — {p1Name} (tavern tier {gm.players[p1].currentTavernTier}) vs {p2Name} (tavern tier {gm.players[p2].currentTavernTier})" +
+                (yourBattle ? " — **YOUR BATTLE**" : " — AI-vs-AI battle"));
+        }
 
         // Restore pre-passive stats for cards still on the board (membership stays post-passive).
         foreach (var (card, atk, hp, aegis, reborn) in p1Snapshot)
