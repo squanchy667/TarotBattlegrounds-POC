@@ -588,12 +588,12 @@ public class GameUIManager : MonoBehaviour, IThemeable
     }
 
     /// <summary>
-    /// Hide shop/hand/board chrome so combat plays on a clean arena.
-    /// Called by CombatAnimator when the replay panel opens/closes.
+    /// T844: exclusive combat stage — hide ALL recruit chrome so the arena is alone.
+    /// Called by CombatAnimator when the replay panel opens/closes; also used by GameOverUI.
     /// </summary>
     public void SetCombatPresentationMode(bool combatActive)
     {
-        // Keep settings + match-info usable; hide recruit clutter
+        // Hide recruit clutter (shop window included — Ofek: replay was overlaying the shop)
         SetChromeActive(shopUI != null ? shopUI.gameObject : null, !combatActive);
         SetChromeActive(handUI != null ? handUI.gameObject : null, !combatActive);
         SetChromeActive(boardUI != null ? boardUI.gameObject : null, !combatActive);
@@ -603,36 +603,39 @@ public class GameUIManager : MonoBehaviour, IThemeable
         if (phaseBanner != null)
             SetChromeActive(phaseBanner.gameObject, !combatActive);
 
-        // Named shop/action panels (scene hierarchy)
+        // Named shop/action panels (scene hierarchy) — deep-find so nested Shop windows hide too
         Transform host = GetTopHudHost();
         if (host != null)
         {
             foreach (var name in new[]
                      {
                          "ActionsButtonsPanel", "ActionButtonsPanel", "ShopPanel", "ShopUI",
-                         "HandPanel", "HandUI", "BoardPanel", "BoardUI", "PlayerInfoPanel"
+                         "HandPanel", "HandUI", "BoardPanel", "BoardUI", "PlayerInfoPanel",
+                         "ShopWindow", "ShopArea", "RecruitRoot", "TavernPanel"
                      })
             {
-                Transform t = host.Find(name);
-                if (t == null)
-                {
-                    // deep-ish: only direct children of SafeArea
-                    continue;
-                }
-                SetChromeActive(t.gameObject, !combatActive);
+                Transform t = FindDeepChild(host, name);
+                if (t != null)
+                    SetChromeActive(t.gameObject, !combatActive);
             }
         }
 
         // Also toggle individual action buttons if their panel wasn't found
         if (buyButton != null && buyButton.transform.parent != null)
             SetChromeActive(buyButton.transform.parent.gameObject, !combatActive);
+        foreach (var btn in new[] { buyButton, sellButton, playCardButton, refreshButton, upgradeButton, freezeShopButton, endTurnButton })
+        {
+            if (btn != null)
+                SetChromeActive(btn.gameObject, !combatActive);
+        }
 
         if (timerText != null && combatActive)
             timerText.gameObject.SetActive(false);
 
-        // Keep phase/turn readable during combat
-        if (phaseText != null) phaseText.gameObject.SetActive(true);
-        if (turnText != null) turnText.gameObject.SetActive(true);
+        // T844/cosmetics: hide phase/turn during exclusive combat/game-over stages
+        // (they were still reading "Combat / Turn N" behind the game-over panel)
+        if (phaseText != null) phaseText.gameObject.SetActive(!combatActive);
+        if (turnText != null) turnText.gameObject.SetActive(!combatActive);
 
         if (!combatActive)
         {
@@ -643,12 +646,26 @@ public class GameUIManager : MonoBehaviour, IThemeable
                 && GameManager.Instance.CurrentPhase == GameManager.GamePhase.Recruit
                 && timerText != null)
                 timerText.gameObject.SetActive(true);
+            if (phaseText != null) phaseText.gameObject.SetActive(true);
+            if (turnText != null) turnText.gameObject.SetActive(true);
             hud?.RefreshSynergyDisplay();
         }
         else
         {
             ApplyPhaseEnvironmentBackground(GameManager.GamePhase.Combat, force: true);
         }
+    }
+
+    private static Transform FindDeepChild(Transform parent, string name)
+    {
+        if (parent == null) return null;
+        if (parent.name == name) return parent;
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            var found = FindDeepChild(parent.GetChild(i), name);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     private static void SetChromeActive(GameObject go, bool active)

@@ -58,6 +58,9 @@ namespace TarotBattlegrounds.Combat.Animator
         /// </summary>
         public int BoardIndex { get; private set; }
 
+        /// <summary>Display name for assertions / final-state matching (T843).</summary>
+        public string CardName => snapshot != null ? snapshot.cardName : (cardNameText != null ? cardNameText.text : "?");
+
         /// <summary>
         /// Initialize from a combat card snapshot.
         /// </summary>
@@ -104,6 +107,10 @@ namespace TarotBattlegrounds.Combat.Animator
         /// </summary>
         public void FlashDamage(int newHealth)
         {
+            // T841: death sets the GO inactive; never StartCoroutine on inactive visuals.
+            if (this == null || !gameObject.activeInHierarchy || isDead)
+                return;
+
             // UX14: Calculate damage amount before updating health
             int damageAmount = currentHealth - newHealth;
 
@@ -382,13 +389,18 @@ namespace TarotBattlegrounds.Combat.Animator
             faceRt.offsetMin = new Vector2(4f, 4f);
             faceRt.offsetMax = new Vector2(-4f, -4f);
             Image bg = face.AddComponent<Image>();
-            // T763: CharredWood@0.96 was near-black on a dark arena. StoneEdge is the elevated
-            // surface token — solid enough for text, bright enough to read ATK/HP chips.
-            bg.color = Tokens.WithAlpha(Tokens.StoneEdge, 0.94f);
+            // T845: lighter elevated face + bronze rim for contrast on dark arena dim
+            bg.color = Tokens.WithAlpha(Tokens.Umber, 0.98f);
             bg.raycastTarget = false;
             // Prefer kit frame if available (stone shell)
             if (UiSprites.Instance != null && UiSprites.Instance.GetCardFrame(1) != null)
                 UiSprites.ApplySliced(bg, UiSprites.Instance.GetCardFrame(1));
+
+            // Outer rim for silhouette against the dim panel (T845)
+            var outline = cardObj.AddComponent<Outline>();
+            outline.effectColor = Tokens.WithAlpha(Tokens.BronzeBright, 0.85f);
+            outline.effectDistance = new Vector2(2f, -2f);
+            outline.useGraphicAlpha = true;
 
             CanvasGroup cg = cardObj.AddComponent<CanvasGroup>();
 

@@ -90,10 +90,16 @@ public static class AbilityEffects
         BuffHealth(card, health);
     }
 
-    /// <summary>Deal damage to a card</summary>
+    /// <summary>Deal damage to a card (TA-17: respect Aegis like combat attack path).</summary>
     public static void DealDamage(Card card, int damage)
     {
-        if (card == null) return;
+        if (card == null || damage <= 0) return;
+        if (card.hasAegis)
+        {
+            card.hasAegis = false;
+            Debug.Log($"[AbilityEffect] {card.cardName}'s Aegis blocks {damage} damage");
+            return;
+        }
         card.health -= damage;
         Debug.Log($"[AbilityEffect] {card.cardName} takes {damage} damage (now {card.health} HP)");
     }

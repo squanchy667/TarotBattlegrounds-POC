@@ -52,8 +52,12 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
     /// </summary>
     public static Dictionary<int, List<Card>> PendingDiscoveryByPlayer { get; set; } = new Dictionary<int, List<Card>>();
 
+    private Coroutine subscribeRoutine;
+    private readonly HashSet<Player> _subscribedPlayers = new HashSet<Player>();
+
     private void Awake()
     {
+        // T842: root must stay active (so Start/coroutines run); only the panel child starts hidden.
         if (discoveryPanel != null)
             discoveryPanel.SetActive(false);
     }
@@ -73,23 +77,62 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
 
     private void Start()
     {
-        // Subscribe to all existing players' discovery events
+        // T842: GameManager.Start may create/spawn players after DiscoveryUI.Start.
+        // Subscribe immediately for whoever exists, then keep trying until the roster is ready.
         SubscribeToAllPlayers();
+        if (subscribeRoutine != null) StopCoroutine(subscribeRoutine);
+        subscribeRoutine = StartCoroutine(SubscribeWhenPlayersReady());
+    }
+
+    /// <summary>
+    /// T842: re-subscribe as players appear (spawned AI seats, late InitializePlayers).
+    /// </summary>
+    private IEnumerator SubscribeWhenPlayersReady()
+    {
+        float timeout = 10f;
+        float elapsed = 0f;
+        while (elapsed < timeout)
+        {
+            SubscribeToAllPlayers();
+            if (GameManager.Instance != null
+                && GameManager.Instance.players != null
+                && GameManager.Instance.players.Count > 0
+                && _subscribedPlayers.Count >= GameManager.Instance.players.Count)
+            {
+                // One more frame in case late spawns append after Count first settles
+                yield return null;
+                SubscribeToAllPlayers();
+                break;
+            }
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        subscribeRoutine = null;
     }
 
     private void SubscribeToAllPlayers()
     {
-        if (GameManager.Instance == null) return;
+        if (GameManager.Instance == null || GameManager.Instance.players == null) return;
         foreach (var player in GameManager.Instance.players)
         {
-            if (player != null)
-                player.OnTripleDiscovery += ShowDiscovery;
+            if (player == null) continue;
+            if (_subscribedPlayers.Contains(player)) continue;
+            player.OnTripleDiscovery += ShowDiscovery;
+            _subscribedPlayers.Add(player);
+            Debug.Log($"[DiscoveryUI] Subscribed to Player {player.playerId} OnTripleDiscovery");
         }
     }
 
     private void UnsubscribeFromAllPlayers()
     {
-        if (GameManager.Instance == null) return;
+        foreach (var player in _subscribedPlayers)
+        {
+            if (player != null)
+                player.OnTripleDiscovery -= ShowDiscovery;
+        }
+        _subscribedPlayers.Clear();
+        if (GameManager.Instance == null || GameManager.Instance.players == null) return;
+        // Belt-and-suspenders for any player we never tracked
         foreach (var player in GameManager.Instance.players)
         {
             if (player != null)
@@ -127,9 +170,9 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
         // Only show discovery UI for human players
         if (!GameConfig.IsHumanPlayer(player.playerId - 1))
         {
-            // AI auto-picks the first card
+            // AI auto-picks the first card; AddDiscoveryCard returns unchosen reserved pool cards.
             player.AddDiscoveryCard(cards[0]);
-            Debug.Log($"[DiscoveryUI] AI Player {player.playerId} auto-picked {cards[0].cardName}");
+            Debug.Log($"[DiscoveryUI] AI Player {player.playerId} auto-picked {cards[0].cardName} (unchosen returned to pool)");
             return;
         }
 
@@ -559,6 +602,10 @@ public class DiscoveryUI : MonoBehaviour, IThemeable
     {
         if (showRoutine != null) StopCoroutine(showRoutine);
         if (selectionRoutine != null) StopCoroutine(selectionRoutine);
+        if (subscribeRoutine != null) StopCoroutine(subscribeRoutine);
         UnsubscribeFromAllPlayers();
     }
+
+    /// <summary>T842 / AutoPlaytest v2: panel is showing choices for the local player.</summary>
+    public bool IsShowing => discoveryPanel != null && discoveryPanel.activeSelf;
 }

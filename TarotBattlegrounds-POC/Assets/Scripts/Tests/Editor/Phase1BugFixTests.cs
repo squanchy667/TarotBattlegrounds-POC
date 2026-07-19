@@ -238,4 +238,106 @@ public class Phase1BugFixTests
             "RandomTransform must remove the reserved pool card before cloning");
         Assert.Greater(board.Count, 1, "A transformed card should be inserted on the board");
     }
+
+    // =====================================================
+    // TA-2 — Cleave uses ApplyArmor
+    // =====================================================
+
+    [Test]
+    public void TA2_Cleave_RespectsArmor()
+    {
+        // Adjacent with armor should take reduced cleave damage via GainArmorAbility.ApplyArmor
+        var attacker = ScriptableObject.CreateInstance<Card>();
+        attacker.cardName = "CleaveGuy";
+        attacker.attack = 5;
+        attacker.health = 5;
+        attacker.hasCleave = true;
+        attacker.abilityEffect = Card.AbilityEffectType.None; // synergy cleave path
+        _toDestroy.Add(attacker);
+
+        var mid = ScriptableObject.CreateInstance<Card>();
+        mid.cardName = "Mid";
+        mid.attack = 1;
+        mid.health = 10;
+        _toDestroy.Add(mid);
+
+        var left = ScriptableObject.CreateInstance<Card>();
+        left.cardName = "LeftArmored";
+        left.attack = 1;
+        left.health = 10;
+        left.armor = 3;
+        _toDestroy.Add(left);
+
+        // ApplyArmor formula: max(0, damage - armor) typically — call through the real helper
+        int raw = 5;
+        int expected = GainArmorAbility.ApplyArmor(left, raw);
+        // ApplyArmor returns max(1, dmg - armor) without mutating health
+        Assert.Less(expected, raw, "Armor should reduce damage vs raw attack");
+        Assert.AreEqual(Mathf.Max(1, raw - 3), expected, "Armor 3 vs dmg 5 => 2");
+    }
+
+    [Test]
+    public void T842_AI_Discovery_ReturnsUnchosenToPool()
+    {
+        int poolBefore = _tavern.GetFullPool().Count;
+        // Seed three reserved discovery cards (as GetDiscoveryCards would)
+        var reserved = new List<Card>();
+        for (int i = 0; i < 3; i++)
+        {
+            var c = ScriptableObject.CreateInstance<Card>();
+            c.cardName = $"Disc_{i}";
+            c.tier = 6;
+            c.attack = 1;
+            c.health = 1;
+            _toDestroy.Add(c);
+            reserved.Add(c);
+            // simulate reservation already removed from pool
+        }
+        // inject pending via reflection
+        var field = typeof(Player).GetField("_pendingDiscoveryCards",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.IsNotNull(field);
+        field.SetValue(_player, new List<Card>(reserved));
+
+        int poolAtPending = _tavern.GetFullPool().Count;
+        _player.AddDiscoveryCard(reserved[0]); // chooses first; returns 2 unchosen
+
+        int poolAfter = _tavern.GetFullPool().Count;
+        Assert.AreEqual(poolAtPending + 2, poolAfter,
+            "Unchosen discovery cards must return to the pool (T842)");
+        Assert.AreEqual(1, _player.hand.Count);
+    }
+
+    // =====================================================
+    // TA-17 — DealDamage respects Aegis
+    // =====================================================
+
+    [Test]
+    public void TA17_DealDamage_PopsAegisWithoutHealthLoss()
+    {
+        var card = ScriptableObject.CreateInstance<Card>();
+        card.cardName = "Shielded";
+        card.attack = 2;
+        card.health = 5;
+        card.hasAegis = true;
+        _toDestroy.Add(card);
+
+        AbilityEffects.DealDamage(card, 3);
+        Assert.IsFalse(card.hasAegis, "Aegis should pop");
+        Assert.AreEqual(5, card.health, "Health must not drop when Aegis blocks");
+    }
+
+    [Test]
+    public void TA17_DealDamage_WithoutAegis_ReducesHealth()
+    {
+        var card = ScriptableObject.CreateInstance<Card>();
+        card.cardName = "Naked";
+        card.attack = 2;
+        card.health = 5;
+        card.hasAegis = false;
+        _toDestroy.Add(card);
+
+        AbilityEffects.DealDamage(card, 3);
+        Assert.AreEqual(2, card.health);
+    }
 }

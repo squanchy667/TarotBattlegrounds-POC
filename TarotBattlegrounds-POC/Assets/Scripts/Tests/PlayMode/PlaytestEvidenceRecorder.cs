@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.TestTools;
 using TMPro;
 using TarotBattlegrounds.Combat.Animator;
 
@@ -278,8 +279,9 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
     /// </summary>
     public IEnumerator CaptureScreenshotAfterFrames(string name, int extraFrames)
     {
-        for (int i = 0; i < extraFrames; i++)
+        for (int i = 0; i < Mathf.Max(1, extraFrames); i++)
             yield return null;
+        // Required for CaptureScreenshotAsTexture; keep it — hangs were from stuck combat coroutines (fixed T839 SkipReplay force-stop), not EOF itself.
         yield return new WaitForEndOfFrame();
         CaptureNow(name);
     }
@@ -287,6 +289,8 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
     private void CaptureNow(string name)
     {
         Texture2D tex = null;
+        bool prevIgnore = LogAssert.ignoreFailingMessages;
+        LogAssert.ignoreFailingMessages = true; // ScreenCapture can log Error if not true EOF
         try
         {
             tex = ScreenCapture.CaptureScreenshotAsTexture();
@@ -311,12 +315,15 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
         }
         finally
         {
+            LogAssert.ignoreFailingMessages = prevIgnore;
             if (tex != null) Destroy(tex);
         }
     }
 
     public string GetScreenshotRelativePath(string name) =>
         _screenshotRelativePaths.TryGetValue(name, out var p) ? p : "";
+
+    public bool HasScreenshot(string name) => _screenshotRelativePaths.ContainsKey(name);
 
     // ================================================================
     // Row checks

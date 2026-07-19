@@ -143,14 +143,17 @@ public class GameManager : MonoBehaviour
         // Build standings: winner first, then reverse elimination order (last eliminated = 2nd place)
         List<int> standings = session.BuildStandings(winnerIndex, playerCount);
 
+        // Cosmetics: after each combat we ++ TurnNumber for the *next* recruit that may never
+        // run. HUD shows the combat's turn (pre-increment). Report completed combats.
+        int turnsPlayed = Mathf.Max(1, session.TurnNumber - 1);
         GameOverData data = new GameOverData
         {
             winnerPlayerIndex = winnerIndex,
             standings = standings,
-            totalTurns = session.TurnNumber
+            totalTurns = turnsPlayed
         };
 
-        Debug.Log($"[GameManager] Game Over! Winner: Player {(winnerIndex >= 0 ? (winnerIndex + 1).ToString() : "None")}. Turns played: {session.TurnNumber}");
+        Debug.Log($"[GameManager] Game Over! Winner: Player {(winnerIndex >= 0 ? (winnerIndex + 1).ToString() : "None")}. Turns played: {turnsPlayed} (session.TurnNumber={session.TurnNumber})");
         for (int i = 0; i < standings.Count; i++)
         {
             Debug.Log($"  #{i + 1}: Player {standings[i] + 1}");

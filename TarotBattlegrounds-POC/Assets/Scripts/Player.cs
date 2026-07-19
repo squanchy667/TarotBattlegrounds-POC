@@ -451,6 +451,15 @@ public class Player : MonoBehaviour
                     // Trigger local event (for host's UI)
                     OnTripleDiscovery?.Invoke(this, discoveryCards);
 
+                    // T842: if no DiscoveryUI listener ran (or AI path failed to clear pending),
+                    // AI must still resolve so reserved pool cards return via AddDiscoveryCard.
+                    // Humans keep the pending set until they choose.
+                    if (_pendingDiscoveryCards.Count > 0 && !GameConfig.IsHumanPlayer(playerId - 1))
+                    {
+                        AddDiscoveryCard(_pendingDiscoveryCards[0]);
+                        Debug.Log($"Player {playerId}: AI discovery fallback auto-pick (no UI / late subscribe).");
+                    }
+
 #if PHOTON_UNITY_NETWORKING
                     // M2 FIX: In online mode, broadcast discovery to client
                     if (GameManager.Instance != null && GameManager.Instance.IsOnlineMode &&

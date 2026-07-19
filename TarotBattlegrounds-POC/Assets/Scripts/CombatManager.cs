@@ -346,22 +346,41 @@ public static class CombatManager
 
                         // Synergy-granted cleave: damage adjacent enemies
                         // C7 fix: Skip if card already has OnAttackCleave ability (fired via TriggerCombatAbility above)
+                        // TA-2: route through GainArmorAbility.ApplyArmor like the main hit path
                         if (attacker.hasCleave && attacker.abilityEffect != Card.AbilityEffectType.OnAttackCleave)
                         {
                             int targetIndex = targetBoard.IndexOf(target);
                             if (targetIndex >= 0)
                             {
-                                int cleaveDmg = attacker.attack;
-                                if (targetIndex > 0 && targetBoard[targetIndex - 1].health > 0)
+                                void CleaveHit(Card adj)
                                 {
-                                    targetBoard[targetIndex - 1].health -= cleaveDmg;
-                                    Debug.Log($"[Cleave/Synergy] {attacker.cardName} cleaves {targetBoard[targetIndex - 1].cardName} for {cleaveDmg}");
+                                    if (adj == null || adj.health <= 0) return;
+                                    if (adj.hasAegis)
+                                    {
+                                        adj.hasAegis = false;
+                                        Debug.Log($"[Cleave/Synergy] {adj.cardName}'s Aegis blocks cleave");
+                                        if (replay != null)
+                                        {
+                                            int adjIdx = targetBoard.IndexOf(adj);
+                                            int tgtSide = isP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1);
+                                            replay.RecordAegisPopped(adjIdx, tgtSide);
+                                        }
+                                        return;
+                                    }
+                                    int dmg = GainArmorAbility.ApplyArmor(adj, attacker.attack);
+                                    adj.health -= dmg;
+                                    Debug.Log($"[Cleave/Synergy] {attacker.cardName} cleaves {adj.cardName} for {dmg}");
+                                    if (replay != null)
+                                    {
+                                        int adjIdx = targetBoard.IndexOf(adj);
+                                        int tgtSide = isP ? (pFirst ? 1 : 0) : (pFirst ? 0 : 1);
+                                        replay.RecordTakeDamage(adjIdx, tgtSide, dmg, adj.health);
+                                    }
                                 }
-                                if (targetIndex < targetBoard.Count - 1 && targetBoard[targetIndex + 1].health > 0)
-                                {
-                                    targetBoard[targetIndex + 1].health -= cleaveDmg;
-                                    Debug.Log($"[Cleave/Synergy] {attacker.cardName} cleaves {targetBoard[targetIndex + 1].cardName} for {cleaveDmg}");
-                                }
+                                if (targetIndex > 0)
+                                    CleaveHit(targetBoard[targetIndex - 1]);
+                                if (targetIndex < targetBoard.Count - 1)
+                                    CleaveHit(targetBoard[targetIndex + 1]);
                             }
                         }
 
@@ -504,30 +523,34 @@ public static class CombatManager
                                 }
 
                                 // Counterattack for Windfury second strike
-                                if (!attacker.hasAegis)
+                                // T841/TA-6: dead target2 must not counter (and must not record dead-on-dead actions)
+                                if (target2.health > 0)
                                 {
-                                    int wfCounter = GainArmorAbility.ApplyArmor(attacker, target2.attack);
-                                    attacker.health -= wfCounter;
-                                    bool wfCounterVenom = false;
-                                    if (VenomousAbility.HasVenomous(target2) && attacker.health > 0)
+                                    if (!attacker.hasAegis)
                                     {
-                                        attacker.health = 0;
-                                        wfCounterVenom = true;
-                                    }
+                                        int wfCounter = GainArmorAbility.ApplyArmor(attacker, target2.attack);
+                                        attacker.health -= wfCounter;
+                                        bool wfCounterVenom = false;
+                                        if (VenomousAbility.HasVenomous(target2) && attacker.health > 0)
+                                        {
+                                            attacker.health = 0;
+                                            wfCounterVenom = true;
+                                        }
 
-                                    if (replay != null)
-                                    {
-                                        int atkIdx2 = attackers.IndexOf(attacker);
-                                        int atkSide2 = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
-                                        int tgtIdx2 = targetBoard.IndexOf(target2);
-                                        replay.RecordCounterattack(tgtIdx2, 1 - atkSide2, atkIdx2, atkSide2, wfCounter, attacker.health);
-                                        if (wfCounterVenom)
-                                            replay.RecordVenomousKill(tgtIdx2, 1 - atkSide2, atkIdx2, atkSide2);
+                                        if (replay != null)
+                                        {
+                                            int atkIdx2 = attackers.IndexOf(attacker);
+                                            int atkSide2 = isP ? (pFirst ? 0 : 1) : (pFirst ? 1 : 0);
+                                            int tgtIdx2 = targetBoard.IndexOf(target2);
+                                            replay.RecordCounterattack(tgtIdx2, 1 - atkSide2, atkIdx2, atkSide2, wfCounter, attacker.health);
+                                            if (wfCounterVenom)
+                                                replay.RecordVenomousKill(tgtIdx2, 1 - atkSide2, atkIdx2, atkSide2);
+                                        }
                                     }
-                                }
-                                else
-                                {
-                                    attacker.hasAegis = false;
+                                    else
+                                    {
+                                        attacker.hasAegis = false;
+                                    }
                                 }
 
                                 // Undo only temporary bonus damage for windfury strike

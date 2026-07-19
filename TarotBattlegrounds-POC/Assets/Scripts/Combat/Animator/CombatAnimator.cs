@@ -116,10 +116,31 @@ namespace TarotBattlegrounds.Combat.Animator
 
         /// <summary>
         /// T317: Skip remaining replay and show result immediately.
+        /// Force-stops nested animate coroutines so IsPlaying cannot stick true forever
+        /// (T839/T841: mid-action WaitForSeconds ignores skipRequested).
         /// </summary>
         public void SkipReplay()
         {
             skipRequested = true;
+            if (playbackCoroutine != null)
+            {
+                StopCoroutine(playbackCoroutine);
+                playbackCoroutine = null;
+            }
+            StopAllCoroutines();
+            // Finish presentation state so callers waiting on IsPlaying unblock
+            if (isPlaying)
+            {
+                ApplyFinalSurvivorVisuals();
+                ShowResult();
+                isPlaying = false;
+                arenaVisual?.HideArena();
+                SetPanelVisible(false);
+                CleanupCards();
+                if (MusicManager.Instance != null)
+                    MusicManager.Instance.PlayRecruitMusic();
+                OnPlaybackComplete?.Invoke();
+            }
         }
 
         private IEnumerator PlaybackCoroutine()
@@ -145,6 +166,9 @@ namespace TarotBattlegrounds.Combat.Animator
                 var action = currentReplay.actions[i];
                 yield return StartCoroutine(AnimateAction(action));
             }
+
+            // T843: force arena to match recorded final survivors (missed deaths / failed coroutines)
+            ApplyFinalSurvivorVisuals();
 
             // Show result (in-panel + keep readable longer for testing)
             ShowResult();
@@ -349,7 +373,9 @@ namespace TarotBattlegrounds.Combat.Animator
         {
             var target = GetCardVisual(action.targetCardIndex, action.targetOwnerSide);
 
-            if (target != null)
+            // T841: skip flash on null / already-dead (inactive) visuals — death animation
+            // deactivates the GO; later TakeDamage actions in the stream must not StartCoroutine.
+            if (target != null && target.gameObject.activeInHierarchy)
             {
                 if (SFXManager.Instance != null)
                     SFXManager.Instance.PlaySFX(SFXEvent.AttackImpact);
@@ -368,7 +394,9 @@ namespace TarotBattlegrounds.Combat.Animator
             var attacker = GetCardVisual(action.sourceCardIndex, action.sourceOwnerSide);
             var target = GetCardVisual(action.targetCardIndex, action.targetOwnerSide);
 
-            if (target != null)
+            // T841: counter flash lands on the original attacker (target of the counter action).
+            // Skip if that visual is already inactive (e.g. died earlier in the stream).
+            if (target != null && target.gameObject.activeInHierarchy)
             {
                 if (SFXManager.Instance != null)
                     SFXManager.Instance.PlaySFX(SFXEvent.CounterattackHit);
@@ -615,14 +643,15 @@ namespace TarotBattlegrounds.Combat.Animator
             if (combatPanel != null)
             {
                 combatPanel.gameObject.SetActive(visible);
-                // Solid-ish dim so the fight reads as a clean combat screen (env still under cards)
+                // T845: darker arena dim for stronger separation from recruit UI underneath
                 var bg = combatPanel.GetComponent<Image>();
                 if (bg != null && visible)
                 {
-                    // T763: WO-17 claimed 28% Ash so the board env shows through; was still 0.82.
-                    bg.color = Tokens.WithAlpha(Tokens.Ash, 0.28f);
-                    bg.raycastTarget = true;
+                    bg.color = Tokens.WithAlpha(Tokens.Ash, 0.72f);
+                    bg.raycastTarget = true; // block clicks to shop underneath (T844)
                 }
+                if (visible)
+                    combatPanel.transform.SetAsLastSibling();
             }
 
             if (skipButton != null)
@@ -633,9 +662,69 @@ namespace TarotBattlegrounds.Combat.Animator
             if (resultText != null && !visible)
                 resultText.gameObject.SetActive(false);
 
-            // Hide recruit shop/hand/board so simulation is on a clean arena
+            // T844: exclusive combat stage — hide ALL recruit chrome while arena plays
             if (GameUIManager.Instance != null)
                 GameUIManager.Instance.SetCombatPresentationMode(visible);
+        }
+
+        /// <summary>
+        /// T843: after playback (or skip), hide any visual not in the recorded survivor list
+        /// so a declared win never shows both boards still full of living minions.
+        /// Surviving list is only the winner's board (or empty on tie).
+        /// </summary>
+        private void ApplyFinalSurvivorVisuals()
+        {
+            if (currentReplay?.result == null) return;
+
+            string winnerSide = currentReplay.result.winnerSide; // "attacker" | "defender" | "Tie"
+            var survivors = currentReplay.result.survivingCards ?? new List<CombatCardSnapshot>();
+            var survivorNames = new HashSet<string>();
+            foreach (var s in survivors)
+            {
+                if (s != null && !string.IsNullOrEmpty(s.cardName))
+                    survivorNames.Add(s.cardName);
+            }
+
+            void FilterSide(List<CombatCardVisual> list, bool isWinnerSide)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var v = list[i];
+                    if (v == null) continue;
+                    bool keep = isWinnerSide && survivorNames.Contains(v.CardName);
+                    // Winner-side: keep only named survivors (by name; multi-copy OK as multi-keep).
+                    // Losing side / tie empty: hide all.
+                    if (!keep && v.gameObject.activeSelf)
+                        v.gameObject.SetActive(false);
+                }
+            }
+
+            if (winnerSide == "Tie")
+            {
+                FilterSide(attackerCards, false);
+                FilterSide(defenderCards, false);
+            }
+            else if (winnerSide == "attacker")
+            {
+                FilterSide(attackerCards, true);
+                FilterSide(defenderCards, false);
+            }
+            else if (winnerSide == "defender")
+            {
+                FilterSide(attackerCards, false);
+                FilterSide(defenderCards, true);
+            }
+        }
+
+        /// <summary>T843 / AutoPlaytest v2: active combat-card visuals still showing after playback.</summary>
+        public List<string> GetActiveVisualCardNames()
+        {
+            var names = new List<string>();
+            foreach (var c in attackerCards)
+                if (c != null && c.gameObject.activeInHierarchy) names.Add("A:" + c.CardName);
+            foreach (var c in defenderCards)
+                if (c != null && c.gameObject.activeInHierarchy) names.Add("D:" + c.CardName);
+            return names;
         }
 
         private void CleanupCards()
