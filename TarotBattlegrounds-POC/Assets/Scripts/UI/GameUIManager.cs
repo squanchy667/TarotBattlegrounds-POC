@@ -411,9 +411,13 @@ public class GameUIManager : MonoBehaviour, IThemeable
 
         PinTopHudChrome();
 
+        // Hygiene: never re-show recruit timer over a live combat replay (even if phase==Recruit)
+        bool combatPlaying = TarotBattlegrounds.Combat.Animator.CombatAnimator.Instance != null
+            && TarotBattlegrounds.Combat.Animator.CombatAnimator.Instance.IsPlaying;
         if (timerText != null
             && GameManager.Instance != null
             && GameManager.Instance.CurrentPhase == GameManager.GamePhase.Recruit
+            && !combatPlaying
             && !timerText.gameObject.activeSelf)
             timerText.gameObject.SetActive(true);
     }

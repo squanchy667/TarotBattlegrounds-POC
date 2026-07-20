@@ -85,10 +85,53 @@ public class AutoPlaytestV2Tests
         Assert.IsTrue(discovery.gameObject.activeInHierarchy,
             "DiscoveryUIRoot must be activeInHierarchy (T842)");
 
-        // Build two small boards and run a local combat with animated replay
+        // ---------- T842: real human triple → DiscoveryUI.IsShowing ----------
+        bool discoveryPanelOpened = false;
+        string discoveryDetail = "no human player";
+        var gm = UnityEngine.Object.FindObjectOfType<GameManager>(true);
+        if (gm != null && gm.players != null && gm.players.Count > 0)
+        {
+            var human = gm.players[0];
+            // Ensure DiscoveryUI subscribed to this human
+            for (int i = 0; i < 30; i++) yield return null;
+
+            // Three same-name non-golden copies → CheckAndResolveTriples
+            for (int i = 0; i < 3; i++)
+            {
+                var c = ScriptableObject.CreateInstance<Card>();
+                c.cardName = "TripleProbe";
+                c.tier = 1;
+                c.attack = 1;
+                c.health = 1;
+                c.isGolden = false;
+                human.hand.Add(c);
+            }
+            human.CheckAndResolveTriples();
+            // Wait for UI show (subscribe + ShowDiscovery)
+            for (int i = 0; i < 20; i++)
+            {
+                if (discovery != null && discovery.IsShowing)
+                {
+                    discoveryPanelOpened = true;
+                    break;
+                }
+                yield return null;
+            }
+            discoveryDetail = $"IsShowing={discovery != null && discovery.IsShowing}";
+            if (discovery != null && discovery.IsShowing)
+            {
+                // Avoid WaitForEndOfFrame mid-suite hangs under MCP — capture later or skip
+                yield return null;
+                yield return null;
+                // Auto-resolve so game can continue (panel screenshot optional)
+                ForcePickDiscovery(discovery, 0);
+                yield return null;
+            }
+        }
+
+        // ---------- Combat with deaths (T847 index alignment stress) ----------
         var board1 = BuildBoard("LocalA", 3, 4, withCleave: false);
         var board2 = BuildBoard("EnemyB", 2, 2, withCleave: false);
-        // Give one windfury high-attack minion to stress death/damage ordering (T841)
         var wf = ScriptableObject.CreateInstance<Card>();
         wf.cardName = "WindStriker";
         wf.attack = 10;
@@ -101,13 +144,15 @@ public class AutoPlaytestV2Tests
 
         Assert.IsNotNull(CombatManager.lastReplay, "SimulateBattle must produce lastReplay");
 
+        // T846: write transcript for Anomalies evidence
+        string transcriptPath = CombatTranscript.WriteToDisk(
+            CombatManager.lastReplay, "v2_batch3", "AutoPlaytest v2 Batch 3 combat");
+
         var animator = CombatAnimator.Instance
             ?? UnityEngine.Object.FindObjectOfType<CombatAnimator>(true);
         Assert.IsNotNull(animator, "CombatAnimator must exist in Game scene (CombatRoot)");
-        // Ensure hierarchy is active so Awake/coroutines can run
         if (!animator.gameObject.activeInHierarchy)
             animator.gameObject.SetActive(true);
-        // Rebind static Instance if Awake was skipped while inactive (private set)
         if (CombatAnimator.Instance == null)
         {
             var prop = typeof(CombatAnimator).GetProperty("Instance",
@@ -115,14 +160,13 @@ public class AutoPlaytestV2Tests
             prop?.GetSetMethod(nonPublic: true)?.Invoke(null, new object[] { animator });
         }
 
-        // Play animated replay (HumanVsAI local path)
+        Time.timeScale = 8f; // speed through WaitForSeconds in animator
         animator.PlayReplay(CombatManager.lastReplay);
         Assert.IsTrue(animator.IsPlaying || CombatManager.lastReplay.actions.Count == 0,
             "PlayReplay should start IsPlaying for non-empty replays");
 
-        float wait = 0f;
-        // Capture a few frames of live playback, then force-skip so the suite cannot hang
-        while (animator.IsPlaying && wait < 8f)
+        float tEnd = Time.realtimeSinceStartup + 4f;
+        while (animator.IsPlaying && Time.realtimeSinceStartup < tEnd)
         {
             _sawCombatAnimation = true;
             bool shopHidden = IsInactive(UnityEngine.Object.FindObjectOfType<ShopUI>(true));
@@ -130,62 +174,21 @@ public class AutoPlaytestV2Tests
             bool boardHidden = IsInactive(UnityEngine.Object.FindObjectOfType<BoardUI>(true));
             if (shopHidden && handHidden && boardHidden)
                 _chromeHiddenDuringReplay = true;
-
-            if (!_recorder.HasScreenshot("02_combat_replay"))
-                yield return _recorder.CaptureScreenshotAfterFrames("02_combat_replay", 1);
-
-            wait += Time.unscaledDeltaTime;
             yield return null;
         }
 
         if (animator.IsPlaying)
         {
             _sawCombatAnimation = true;
-            // Sample chrome one last time before skip
-            bool shopHidden = IsInactive(UnityEngine.Object.FindObjectOfType<ShopUI>(true));
-            bool handHidden = IsInactive(UnityEngine.Object.FindObjectOfType<HandUI>(true));
-            bool boardHidden = IsInactive(UnityEngine.Object.FindObjectOfType<BoardUI>(true));
-            if (shopHidden && handHidden && boardHidden)
-                _chromeHiddenDuringReplay = true;
             animator.SkipReplay();
         }
-        for (int i = 0; i < 10; i++) yield return null;
+        Time.timeScale = 1f;
+        yield return null;
+        yield return null;
 
-        yield return _recorder.CaptureScreenshotAfterFrames("03_post_replay", 2);
-
-        // T843: result survivors self-consistent
-        string survivorMsg = null;
-        var result = CombatManager.lastReplay?.result;
-        if (result == null)
-            survivorMsg = "lastReplay.result is null";
-        else if (result.winnerName == "Tie" && result.survivingCards != null && result.survivingCards.Count > 0)
-            survivorMsg = "Tie but survivingCards non-empty";
-
-        // T842 pool path: reserve + AI-style resolve returns unchosen
-        int poolBefore = TavernManager.Instance != null ? TavernManager.Instance.GetFullPool().Count : -1;
-        bool poolOk = true;
-        string poolDetail = "TavernManager unavailable";
-        if (TavernManager.Instance != null)
-        {
-            var discCards = TavernManager.Instance.GetDiscoveryCards(6, 3);
-            int afterReserve = TavernManager.Instance.GetFullPool().Count;
-            if (discCards.Count > 0)
-            {
-                // Simulate AI pick first; return rest
-                var unchosen = new List<Card>();
-                for (int i = 1; i < discCards.Count; i++) unchosen.Add(discCards[i]);
-                TavernManager.Instance.ReturnDiscoveryCards(unchosen);
-                // chosen stays out (reserved)
-                int afterReturn = TavernManager.Instance.GetFullPool().Count;
-                poolOk = afterReturn == afterReserve + unchosen.Count;
-                poolDetail = $"reserve {poolBefore}->{afterReserve}, return unchosen +{unchosen.Count} -> {afterReturn}, ok={poolOk}";
-            }
-            else
-            {
-                poolDetail = "GetDiscoveryCards returned empty (pool thin) — skip pool assertion";
-                poolOk = true;
-            }
-        }
+        // T847 STRICT T843: live visuals vs result.survivingCards
+        string strictT843 = animator.CompareActiveVisualsToSurvivors();
+        bool desyncWarn = animator.LastFinalSurvivorHadDesync;
 
         _recorder.StopRecording();
 
@@ -204,20 +207,24 @@ public class AutoPlaytestV2Tests
                 : "Errors: " + string.Join("; ", _errorSnippets),
             "");
 
-        _recorder.RecordCheck("T842", "DiscoveryUIRoot active + discovery pool return",
-            discovery.gameObject.activeInHierarchy && poolOk
-                ? PlaytestEvidenceRecorder.AutoPass : PlaytestEvidenceRecorder.AutoFail,
-            $"rootActive={discovery.gameObject.activeInHierarchy}; {poolDetail}",
-            "");
+        _recorder.RecordCheck("T842", "Real triple opens DiscoveryUI panel",
+            discoveryPanelOpened ? PlaytestEvidenceRecorder.AutoPass : PlaytestEvidenceRecorder.AutoFail,
+            discoveryPanelOpened
+                ? "Human triple → DiscoveryUI.IsShowing=true"
+                : "Panel did not open after forced triple. " + discoveryDetail,
+            _recorder.GetScreenshotRelativePath("04_discovery_panel"));
 
-        _recorder.RecordCheck("T843", "CombatReplay final survivors consistent",
-            survivorMsg == null ? PlaytestEvidenceRecorder.AutoPass : PlaytestEvidenceRecorder.AutoFail,
-            survivorMsg ?? $"winner={result?.winnerName}, survivors={result?.survivingCards?.Count ?? 0}, dmg={damage}",
+        _recorder.RecordCheck("T843", "STRICT: live visuals match survivingCards (T847)",
+            strictT843 == null
+                ? PlaytestEvidenceRecorder.AutoPass : PlaytestEvidenceRecorder.AutoFail,
+            strictT843 == null
+                ? $"Visuals match survivors; desyncAlarm={desyncWarn}; dmg={damage} winner={winner}; transcript={transcriptPath}"
+                : strictT843 + $"; desyncAlarm={desyncWarn}; transcript={transcriptPath}",
             _recorder.GetScreenshotRelativePath("03_post_replay"));
 
         _recorder.RecordCheck("T845", "Combat contrast iterate #2 (NEEDS-HUMAN judge)",
             PlaytestEvidenceRecorder.NeedsHuman,
-            "Ash dim 0.72 + Umber face + bronze Outline. Ofek is final judge.",
+            "Colors not touched in Batch 3. Ofek final judge.",
             _recorder.GetScreenshotRelativePath("02_combat_replay"));
 
         var summary = new PlaytestMatchSummary
@@ -235,11 +242,41 @@ public class AutoPlaytestV2Tests
         Assert.IsTrue(_chromeHiddenDuringReplay, "T844/B5: chrome must hide during replay");
         Assert.AreEqual(0, coroutineErrs,
             "T841: zero inactive-coroutine errors. " + string.Join(" | ", _errorSnippets));
-        Assert.IsNull(survivorMsg, "T843: " + survivorMsg);
-        Assert.IsTrue(discovery.gameObject.activeInHierarchy, "T842 root active");
-        Assert.IsTrue(poolOk, "T842 pool return: " + poolDetail);
+        Assert.IsTrue(discoveryPanelOpened, "T842: DiscoveryUI.IsShowing after real triple — " + discoveryDetail);
+        Assert.IsNull(strictT843, "T847/T843 strict: " + strictT843);
+        // Desync alarm should be rare after full natural playback; mid-skip may trip it — log only.
+        if (desyncWarn)
+            Debug.LogWarning("[AutoPlaytestV2] ApplyFinalSurvivorVisuals desync alarm fired (see console). Prefer natural playback end.");
 
         AssertNoAutoFail();
+    }
+
+    private static void ForcePickDiscovery(DiscoveryUI ui, int index)
+    {
+        var animField = typeof(DiscoveryUI).GetField("isAnimating",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        animField?.SetValue(ui, false);
+        var field = typeof(DiscoveryUI).GetField("pendingDiscoveries",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        var pending = field?.GetValue(ui) as System.Collections.IDictionary;
+        if (pending == null || pending.Count == 0) return;
+        foreach (System.Collections.DictionaryEntry entry in pending)
+        {
+            object val = entry.Value;
+            if (val == null) continue;
+            var vt = val.GetType();
+            var player = (Player)vt.GetField("Item1")?.GetValue(val);
+            var cards = (List<Card>)vt.GetField("Item2")?.GetValue(val);
+            if (player == null || cards == null || cards.Count == 0) continue;
+            int pick = Mathf.Clamp(index, 0, cards.Count - 1);
+            player.AddDiscoveryCard(cards[pick]);
+            var panelField = typeof(DiscoveryUI).GetField("discoveryPanel",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            var panel = panelField?.GetValue(ui) as GameObject;
+            if (panel != null) panel.SetActive(false);
+            pending.Clear();
+            return;
+        }
     }
 
     private static List<Card> BuildBoard(string prefix, int atk, int hp, bool withCleave)

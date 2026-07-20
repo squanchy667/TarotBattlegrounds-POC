@@ -132,6 +132,7 @@ namespace TarotBattlegrounds.Combat.Animator
             if (isPlaying)
             {
                 ApplyFinalSurvivorVisuals();
+                LastFinalActiveVisualNames = GetActiveVisualCardNames();
                 ShowResult();
                 isPlaying = false;
                 arenaVisual?.HideArena();
@@ -142,6 +143,17 @@ namespace TarotBattlegrounds.Combat.Animator
                 OnPlaybackComplete?.Invoke();
             }
         }
+
+        /// <summary>Index of the action currently being animated (T847 look-ahead for Reborn).</summary>
+        private int _playbackActionIndex = -1;
+
+        /// <summary>
+        /// T847: names of active visuals after the last ApplyFinalSurvivorVisuals (for strict T843 assert).
+        /// </summary>
+        public List<string> LastFinalActiveVisualNames { get; private set; } = new List<string>();
+
+        /// <summary>True if ApplyFinalSurvivorVisuals had to hide anything (desync alarm).</summary>
+        public bool LastFinalSurvivorHadDesync { get; private set; }
 
         private IEnumerator PlaybackCoroutine()
         {
@@ -163,12 +175,14 @@ namespace TarotBattlegrounds.Combat.Animator
             {
                 if (skipRequested) break;
 
+                _playbackActionIndex = i;
                 var action = currentReplay.actions[i];
                 yield return StartCoroutine(AnimateAction(action));
             }
 
-            // T843: force arena to match recorded final survivors (missed deaths / failed coroutines)
+            // T843 safety net — after T847 live lists, this should almost never hide anything
             ApplyFinalSurvivorVisuals();
+            LastFinalActiveVisualNames = GetActiveVisualCardNames();
 
             // Show result (in-panel + keep readable longer for testing)
             ShowResult();
@@ -414,6 +428,10 @@ namespace TarotBattlegrounds.Combat.Animator
         {
             var target = GetCardVisual(action.targetCardIndex, action.targetOwnerSide);
 
+            // T847: sim keeps reborn cards in place — only remove from live list when
+            // the next action is NOT Reborn for the same side+index (mirrors CombatTranscript).
+            bool rebornNext = IsRebornNext(action);
+
             if (target != null)
             {
                 if (SFXManager.Instance != null)
@@ -434,6 +452,36 @@ namespace TarotBattlegrounds.Combat.Animator
             {
                 yield return new WaitForSeconds(duration);
             }
+
+            // Shrink live visual list to match sim board (T847) so subsequent indices resolve correctly
+            if (!rebornNext)
+                RemoveLiveVisualAt(action.targetOwnerSide, action.targetCardIndex, destroyVisual: true);
+        }
+
+        /// <summary>T847: next action is Reborn for the same dying slot (sim keeps card in list).</summary>
+        private bool IsRebornNext(CombatReplayAction dieAction)
+        {
+            if (currentReplay?.actions == null || dieAction == null) return false;
+            int i = _playbackActionIndex;
+            if (i < 0 || i + 1 >= currentReplay.actions.Count) return false;
+            var next = currentReplay.actions[i + 1];
+            return next != null
+                && next.type == CombatActionType.Reborn
+                && next.targetOwnerSide == dieAction.targetOwnerSide
+                && next.targetCardIndex == dieAction.targetCardIndex;
+        }
+
+        /// <summary>
+        /// T847: remove a visual at the sim index from the live list (board shrink).
+        /// </summary>
+        private void RemoveLiveVisualAt(int side, int index, bool destroyVisual)
+        {
+            var list = side == 0 ? attackerCards : defenderCards;
+            if (index < 0 || index >= list.Count) return;
+            var v = list[index];
+            list.RemoveAt(index);
+            if (destroyVisual && v != null)
+                Destroy(v.gameObject);
         }
 
         private IEnumerator AnimateReborn(CombatReplayAction action, float duration)
@@ -530,7 +578,7 @@ namespace TarotBattlegrounds.Combat.Animator
             if (SFXManager.Instance != null)
                 SFXManager.Instance.PlaySFX(SFXEvent.SummonToken);
 
-            // Create a placeholder visual so subsequent actions targeting this token are visible
+            // T847: insert at recorded index (sim Insert) — do not append.
             var tokenSnap = new CombatCardSnapshot
             {
                 cardName = action.abilityName ?? "Token",
@@ -542,12 +590,17 @@ namespace TarotBattlegrounds.Combat.Animator
             int side = action.targetOwnerSide;
             var list = side == 0 ? attackerCards : defenderCards;
             var container = side == 0 ? attackerBoardContainer : defenderBoardContainer;
-            var visual = CreateCardVisual(container, tokenSnap, side, list.Count);
+            int at = Mathf.Clamp(action.targetCardIndex, 0, list.Count);
+            var visual = CreateCardVisual(container, tokenSnap, side, at);
             if (visual != null)
             {
-                list.Add(visual);
+                list.Insert(at, visual);
+                if (container != null)
+                    visual.transform.SetSiblingIndex(Mathf.Min(at, container.childCount - 1));
                 if (VFXManager.Instance != null)
                     VFXManager.Instance.PlayBuffVFX(visual.transform.position);
+                yield return visual.PlaySummonAnimation(duration);
+                yield break;
             }
 
             yield return new WaitForSeconds(duration);
@@ -571,6 +624,10 @@ namespace TarotBattlegrounds.Combat.Animator
 
         // ====== HELPERS ======
 
+        /// <summary>
+        /// T847: resolve through LIVE lists that shrink on Die / grow on SummonToken,
+        /// matching CombatManager board indices after each death removal.
+        /// </summary>
         private CombatCardVisual GetCardVisual(int index, int side)
         {
             if (index < 0) return null;
@@ -668,12 +725,12 @@ namespace TarotBattlegrounds.Combat.Animator
         }
 
         /// <summary>
-        /// T843: after playback (or skip), hide any visual not in the recorded survivor list
-        /// so a declared win never shows both boards still full of living minions.
-        /// Surviving list is only the winner's board (or empty on tie).
+        /// T843 safety net: after T847 live lists, hide anything that still disagrees with
+        /// result.survivingCards. Any actual hide is a desync alarm (should be zero after T847).
         /// </summary>
         private void ApplyFinalSurvivorVisuals()
         {
+            LastFinalSurvivorHadDesync = false;
             if (currentReplay?.result == null) return;
 
             string winnerSide = currentReplay.result.winnerSide; // "attacker" | "defender" | "Tie"
@@ -692,10 +749,14 @@ namespace TarotBattlegrounds.Combat.Animator
                     var v = list[i];
                     if (v == null) continue;
                     bool keep = isWinnerSide && survivorNames.Contains(v.CardName);
-                    // Winner-side: keep only named survivors (by name; multi-copy OK as multi-keep).
-                    // Losing side / tie empty: hide all.
-                    if (!keep && v.gameObject.activeSelf)
+                    if (!keep && v.gameObject != null && v.gameObject.activeSelf)
+                    {
+                        LastFinalSurvivorHadDesync = true;
+                        Debug.LogWarning(
+                            $"[CombatAnimator/T843-desync] Hiding leftover visual '{v.CardName}' " +
+                            $"(winnerSide={winnerSide}, isWinnerSide={isWinnerSide}) — live list drifted from sim.");
                         v.gameObject.SetActive(false);
+                    }
                 }
             }
 
@@ -721,10 +782,79 @@ namespace TarotBattlegrounds.Combat.Animator
         {
             var names = new List<string>();
             foreach (var c in attackerCards)
-                if (c != null && c.gameObject.activeInHierarchy) names.Add("A:" + c.CardName);
+                if (c != null && c.gameObject != null && c.gameObject.activeInHierarchy)
+                    names.Add("A:" + c.CardName);
             foreach (var c in defenderCards)
-                if (c != null && c.gameObject.activeInHierarchy) names.Add("D:" + c.CardName);
+                if (c != null && c.gameObject != null && c.gameObject.activeInHierarchy)
+                    names.Add("D:" + c.CardName);
             return names;
+        }
+
+        /// <summary>
+        /// T847 strict T843: winner-side active visual names must match result.survivingCards names
+        /// (multiset). Losing side must be empty of active visuals.
+        /// </summary>
+        public string CompareActiveVisualsToSurvivors()
+        {
+            // Prefer snapshot taken at end of playback (before CleanupCards)
+            var active = LastFinalActiveVisualNames != null
+                ? LastFinalActiveVisualNames
+                : GetActiveVisualCardNames();
+
+            var result = currentReplay?.result ?? CombatManager.lastReplay?.result;
+            if (result == null)
+                return "no result on currentReplay/lastReplay";
+
+            var expected = new List<string>();
+            if (result.survivingCards != null)
+            {
+                foreach (var s in result.survivingCards)
+                    if (s != null && !string.IsNullOrEmpty(s.cardName))
+                        expected.Add(s.cardName);
+            }
+            expected.Sort();
+
+            string sidePrefix = result.winnerSide == "attacker" ? "A:"
+                : result.winnerSide == "defender" ? "D:" : null;
+
+            if (result.winnerSide == "Tie")
+            {
+                if (active.Count > 0)
+                    return $"tie but {active.Count} active visual(s): {string.Join(", ", active)}";
+                if (LastFinalSurvivorHadDesync)
+                    return "ApplyFinalSurvivorVisuals had to correct a desync on tie";
+                return null;
+            }
+
+            if (sidePrefix == null)
+                return $"unknown winnerSide '{result.winnerSide}'";
+
+            var winnerActive = new List<string>();
+            var loserActive = new List<string>();
+            foreach (var n in active)
+            {
+                if (n.StartsWith(sidePrefix))
+                    winnerActive.Add(n.Substring(2));
+                else
+                    loserActive.Add(n);
+            }
+            winnerActive.Sort();
+
+            if (loserActive.Count > 0)
+                return $"losing side still has visuals: {string.Join(", ", loserActive)}";
+
+            if (winnerActive.Count != expected.Count)
+                return $"winner visuals [{string.Join(", ", winnerActive)}] count {winnerActive.Count} != survivors [{string.Join(", ", expected)}] count {expected.Count}";
+
+            for (int i = 0; i < expected.Count; i++)
+            {
+                if (winnerActive[i] != expected[i])
+                    return $"winner visuals [{string.Join(", ", winnerActive)}] != survivors [{string.Join(", ", expected)}]";
+            }
+
+            // Desync alarm is logged separately; name multiset match is the hard T847 bar.
+            // (SkipReplay mid-playback may need the safety net even with correct live lists.)
+            return null; // match
         }
 
         private void CleanupCards()

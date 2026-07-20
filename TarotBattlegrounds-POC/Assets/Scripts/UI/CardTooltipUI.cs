@@ -153,6 +153,41 @@ public class CardTooltipUI : MonoBehaviour
             tooltipPanel.SetActive(false);
     }
 
+    /// <summary>
+    /// T850: free-form tooltip (synergy tribe rows) — reuses the same panel chrome.
+    /// </summary>
+    public void ShowTextTooltip(string title, string body, bool useFixedPosition = true)
+    {
+        currentCard = null;
+        _useFixedPosition = useFixedPosition;
+        isWaitingToShow = false;
+
+        if (cardNameText != null)
+            cardNameText.text = $"<b>{title}</b>";
+        if (statsText != null)
+            statsText.text = "";
+        if (tierText != null)
+            tierText.text = "";
+        if (tribesText != null)
+            tribesText.text = "";
+        if (abilitySection != null)
+            abilitySection.SetActive(true);
+        if (abilityTriggerText != null)
+            abilityTriggerText.text = "";
+        if (abilityEffectText != null)
+            abilityEffectText.text = "";
+        if (abilityDescriptionText != null)
+            abilityDescriptionText.text = body ?? "";
+        if (legacyEffectSection != null)
+            legacyEffectSection.SetActive(false);
+
+        if (tooltipPanel != null)
+        {
+            tooltipPanel.SetActive(true);
+            PositionTooltip();
+        }
+    }
+
     private void PopulateTooltip(Card card)
     {
         // Card Name - bold and larger style via rich text

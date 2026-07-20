@@ -441,7 +441,14 @@ public class SynergyManager : MonoBehaviour
         List<Card> targets = GetTargets(tribe, tier.target, board);
         string playerName = owner != null ? $"Player {owner.playerId}" : "Unknown";
 
-        if (targets.Count == 0)
+        // T848: Golden Hoard is owner-level — apply once, always log (including +0 case).
+        if (tier.effect == SynergyEffect.GoldenHoard)
+        {
+            ApplyGoldenHoard(tribe, tier, targets ?? new List<Card>(), owner, playerName);
+            return;
+        }
+
+        if (targets == null || targets.Count == 0)
         {
             Debug.Log($"[SynergyManager] {playerName}: {tribe} synergy has no valid targets (target type: {tier.target})");
             return;
@@ -454,6 +461,35 @@ public class SynergyManager : MonoBehaviour
         {
             ApplyEffect(tier.effect, tier.value, target, owner);
         }
+    }
+
+    /// <summary>
+    /// T848: banked coins → +Y/+Y at combat start on all targets. Always emit a combat-log line
+    /// so the player sees the win condition even when they banked 0 gold.
+    /// </summary>
+    private void ApplyGoldenHoard(TribeType tribe, SynergyTier tier, List<Card> targets, Player owner, string playerName)
+    {
+        int coins = owner != null ? owner.coins : 0;
+        int divisor = Mathf.Max(1, tier.value);
+        int bonus = owner != null ? coins / divisor : 0;
+
+        if (targets != null)
+        {
+            foreach (var target in targets)
+            {
+                if (target == null || bonus <= 0) continue;
+                target.attack += bonus;
+                target.health += bonus;
+            }
+        }
+
+        int n = targets != null ? targets.Count : 0;
+        string tribeName = tribe.ToString();
+        string line = bonus > 0
+            ? $"Golden Hoard: +{bonus}/+{bonus} to {n} {tribeName} from {coins} banked gold"
+            : $"Golden Hoard: {coins} gold banked — no bonus";
+        Debug.Log($"[Synergy] {playerName}: {line}");
+        CombatManager.EmitLog(line);
     }
 
     private void ApplyComboEffects(List<Card> board, Player owner)
@@ -595,20 +631,8 @@ public class SynergyManager : MonoBehaviour
                 break;
 
             case SynergyEffect.GoldenHoard:
-                // T725: Pentacles combat win-condition. At StartOfCombat, convert the owner's
-                // banked coins into a stat buff. `value` is the coins-per-stat divisor
-                // (e.g. value=2 => +1/+1 per 2 coins). Owner-aware: no-ops without an owner
-                // (AI/test paths that don't thread the player), so pre-existing callers stay safe.
-                if (owner != null && value > 0)
-                {
-                    int hoardBonus = owner.coins / value;
-                    if (hoardBonus > 0)
-                    {
-                        target.attack += hoardBonus;
-                        target.health += hoardBonus;
-                        Debug.Log($"[Synergy] {playerName}: {target.cardName} Golden Hoard +{hoardBonus}/+{hoardBonus} from {owner.coins} coins ({oldAtk}/{oldHp} -> {target.attack}/{target.health})");
-                    }
-                }
+                // T848: handled as a batch in ApplyGoldenHoard (once per trigger, always logs).
+                // Keep a per-target no-op here so accidental direct ApplyEffect calls are safe.
                 break;
 
             default:

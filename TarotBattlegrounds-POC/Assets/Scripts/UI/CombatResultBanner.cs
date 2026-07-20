@@ -50,7 +50,8 @@ public class CombatResultBanner : MonoBehaviour
         int localIndex, int opponentIndex,
         int winnerIndex, int damage,
         int localHpAfter, int opponentHpAfter,
-        int localBoardCount, int opponentBoardCount)
+        int localBoardCount, int opponentBoardCount,
+        string summaryExtra = null)
     {
         bool localWon = winnerIndex == localIndex;
         bool tie = winnerIndex < 0;
@@ -77,11 +78,59 @@ public class CombatResultBanner : MonoBehaviour
             $"Face damage: {damage}  ·  Your HP now: {localHpAfter}  ·  Their HP: {opponentHpAfter}\n" +
             $"Combat boards (clones): you had {localBoardCount} · they had {opponentBoardCount}";
 
+        if (!string.IsNullOrEmpty(summaryExtra))
+            detail += "\n" + summaryExtra;
+
         string hint =
             "Shop board stays as you built it — combat uses copies. " +
-            "Living minions after a loss is normal here; only hero HP drops.";
+            "Living minions after a loss is normal here; only hero HP drops. (tap/wait to dismiss)";
 
         Show(title, detail, hint, bg);
+    }
+
+    /// <summary>
+    /// T849: build a short post-combat summary from the last replay (deaths, survivors, damage breakdown).
+    /// </summary>
+    public static string BuildSummaryFromReplay(TarotBattlegrounds.Combat.Replay.CombatReplay replay, int winnerTavernTier = -1)
+    {
+        if (replay == null) return null;
+        var sb = new System.Text.StringBuilder();
+
+        int deaths = 0;
+        int survivors = 0;
+        if (replay.actions != null)
+        {
+            foreach (var a in replay.actions)
+            {
+                if (a == null) continue;
+                if (a.type == TarotBattlegrounds.Combat.Replay.CombatActionType.Die)
+                    deaths++;
+            }
+        }
+        if (replay.result?.survivingCards != null)
+            survivors = replay.result.survivingCards.Count;
+
+        sb.Append($"Deaths: {deaths}  ·  Survivors: {survivors}");
+
+        // Damage breakdown: current formula count+tier (T835 pending redesign)
+        if (replay.result != null && replay.result.damageDealt > 0)
+        {
+            int dmg = replay.result.damageDealt;
+            int tierPart = winnerTavernTier >= 0 ? winnerTavernTier : Mathf.Max(0, dmg - survivors);
+            int survPart = Mathf.Max(0, dmg - tierPart);
+            sb.Append($"\n{dmg} dmg = {survPart} survivors + tier {tierPart} (count+tier formula)");
+        }
+        else if (replay.result != null && replay.result.winnerName == "Tie")
+        {
+            sb.Append("\n0 dmg (tie)");
+        }
+
+        // Synergy lines recorded as BattleResult messages with "Golden Hoard"
+        // (sim already logged them; banner restates for the player)
+        if (replay.result != null && !string.IsNullOrEmpty(replay.result.winnerName))
+            sb.Append($"\nWinner: {replay.result.winnerName}");
+
+        return sb.ToString();
     }
 
     /// <summary>Brief notice when local player is not in a pairing this round.</summary>

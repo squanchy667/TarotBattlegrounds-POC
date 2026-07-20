@@ -210,7 +210,12 @@ public class BattleExecutor
             int oppHp = p1 == local ? p2HpAfter : p1HpAfter;
             int localBoard = p1 == local ? p1BoardCount : p2BoardCount;
             int oppBoard = p1 == local ? p2BoardCount : p1BoardCount;
-            banner.ShowLocalBattleResult(local, opp, winnerIndex, damage, localHp, oppHp, localBoard, oppBoard);
+            // T849: mini post-combat summary (auto-dismisses with the banner)
+            int winnerTier = -1;
+            if (winnerIndex == p1) winnerTier = gm.players[p1].currentTavernTier;
+            else if (winnerIndex == p2) winnerTier = gm.players[p2].currentTavernTier;
+            string summary = CombatResultBanner.BuildSummaryFromReplay(CombatManager.lastReplay, winnerTier);
+            banner.ShowLocalBattleResult(local, opp, winnerIndex, damage, localHp, oppHp, localBoard, oppBoard, summary);
         }
         else
         {

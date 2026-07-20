@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 using System.Collections.Generic;
+using System.Text;
 using TarotBattlegrounds.UI;
 
 /// <summary>
@@ -41,11 +43,16 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
         public Image tribeIcon;
         public Image[] pips = new Image[3]; // 2, 4, 6 thresholds
         public TMP_Text countText;
+        public TMP_Text hoardPreview; // T848: Pentacles T6 banked-gold line
         public Image rowBackground;
         public Image glowOverlay;
         public TribeType tribe;
         public int currentCount;
+        public GameObject root;
     }
+
+    private Player _lastPlayer;
+    private TribeType? _tooltipToggleTribe; // tap toggle
 
     private void Awake()
     {
@@ -212,7 +219,9 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
         LayoutElement glowLE = glowObj.AddComponent<LayoutElement>();
         glowLE.ignoreLayout = true;
 
-        // Tribe icon
+        row.root = rowObj;
+
+        // Tribe icon (raycast on for T850 tooltip hover/tap)
         GameObject iconObj = new GameObject("TribeIcon");
         iconObj.transform.SetParent(rowObj.transform, false);
         RectTransform iconRect = iconObj.AddComponent<RectTransform>();
@@ -220,10 +229,11 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
         row.tribeIcon = iconObj.AddComponent<Image>();
         Texture2D iconTex = GenerateTribeIcon(tribe, Mathf.RoundToInt(iconSize));
         row.tribeIcon.sprite = TextureToSprite(iconTex);
-        row.tribeIcon.raycastTarget = false;
+        row.tribeIcon.raycastTarget = true;
         LayoutElement iconLE = iconObj.AddComponent<LayoutElement>();
         iconLE.preferredWidth = iconSize;
         iconLE.preferredHeight = iconSize;
+        WireTooltipTriggers(iconObj, tribe);
 
         // 3 pips (thresholds 2, 4, 6)
         Texture2D pipTex = GeneratePipTexture(Mathf.RoundToInt(pipSize));
@@ -258,10 +268,96 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
         textLE.preferredWidth = 36f;
         textLE.preferredHeight = rowHeight;
 
+        // T848: hoard preview under count (hidden unless Pentacles @ 6)
+        GameObject hoardObj = new GameObject("HoardPreview");
+        hoardObj.transform.SetParent(rowObj.transform, false);
+        RectTransform hoardRect = hoardObj.AddComponent<RectTransform>();
+        hoardRect.sizeDelta = new Vector2(120f, rowHeight);
+        row.hoardPreview = hoardObj.AddComponent<TextMeshProUGUI>();
+        row.hoardPreview.fontSize = Tokens.TextCaption * 0.85f;
+        row.hoardPreview.color = Tokens.BoneDim;
+        row.hoardPreview.alignment = TextAlignmentOptions.MidlineLeft;
+        row.hoardPreview.enableWordWrapping = true;
+        row.hoardPreview.raycastTarget = false;
+        row.hoardPreview.gameObject.SetActive(false);
+        LayoutElement hoardLE = hoardObj.AddComponent<LayoutElement>();
+        hoardLE.preferredWidth = 120f;
+        hoardLE.flexibleWidth = 1f;
+
         rows[tribe] = row;
 
         // Initialize as inactive
-        UpdateRow(row, 0);
+        UpdateRow(row, 0, null);
+    }
+
+    // ===================== T850 TOOLTIPS =====================
+
+    private void WireTooltipTriggers(GameObject iconObj, TribeType tribe)
+    {
+        var et = iconObj.AddComponent<EventTrigger>();
+        var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+        enter.callback.AddListener(_ => ShowTribeTooltip(tribe, toggle: false));
+        et.triggers.Add(enter);
+        var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+        exit.callback.AddListener(_ => HideTribeTooltip(tribe));
+        et.triggers.Add(exit);
+        var click = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
+        click.callback.AddListener(_ => ShowTribeTooltip(tribe, toggle: true));
+        et.triggers.Add(click);
+    }
+
+    private void ShowTribeTooltip(TribeType tribe, bool toggle)
+    {
+        if (toggle)
+        {
+            if (_tooltipToggleTribe.HasValue && _tooltipToggleTribe.Value == tribe)
+            {
+                _tooltipToggleTribe = null;
+                CardTooltipUI.Instance?.Hide();
+                return;
+            }
+            _tooltipToggleTribe = tribe;
+        }
+
+        var synergy = SynergyManager.Instance != null
+            ? SynergyManager.Instance.GetTribeSynergy(tribe)
+            : null;
+        string title = synergy != null && !string.IsNullOrEmpty(synergy.tribeName)
+            ? synergy.tribeName
+            : tribe.ToString();
+
+        var sb = new StringBuilder();
+        if (synergy != null && !string.IsNullOrEmpty(synergy.description))
+            sb.AppendLine(synergy.description);
+
+        // Active count for greying
+        int count = rows.TryGetValue(tribe, out var row) ? row.currentCount : 0;
+        if (synergy?.tiers != null)
+        {
+            foreach (var tier in synergy.tiers)
+            {
+                if (tier == null) continue;
+                bool active = count >= tier.threshold;
+                string desc = string.IsNullOrEmpty(tier.description)
+                    ? $"({tier.threshold}) {tier.effect}"
+                    : tier.description;
+                if (active)
+                    sb.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BoneBright)}>{desc}</color>");
+                else
+                    sb.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(Tokens.BoneDim)}>{desc}</color>");
+            }
+        }
+
+        if (CardTooltipUI.Instance != null)
+            CardTooltipUI.Instance.ShowTextTooltip(title, sb.ToString().TrimEnd(), useFixedPosition: true);
+    }
+
+    private void HideTribeTooltip(TribeType tribe)
+    {
+        // Don't auto-hide if user toggled this tribe open on tap
+        if (_tooltipToggleTribe.HasValue && _tooltipToggleTribe.Value == tribe)
+            return;
+        CardTooltipUI.Instance?.Hide();
     }
 
     /// <summary>
@@ -272,6 +368,7 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
         if (player == null) return;
         EnsureInitialized();
         if (rows.Count == 0) return;
+        _lastPlayer = player;
 
         // Count tribes on player's board
         var tribeCounts = new Dictionary<TribeType, int>();
@@ -307,14 +404,14 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
         foreach (var kvp in rows)
         {
             int count = tribeCounts.ContainsKey(kvp.Key) ? tribeCounts[kvp.Key] : 0;
-            UpdateRow(kvp.Value, count);
+            UpdateRow(kvp.Value, count, player);
         }
     }
 
     /// <summary>
     /// Update a single row's visual state based on tribe count.
     /// </summary>
-    private void UpdateRow(SynergyRow row, int count)
+    private void UpdateRow(SynergyRow row, int count, Player player = null)
     {
         row.currentCount = count;
 
@@ -362,6 +459,24 @@ public class SynergyDisplayPanel : MonoBehaviour, IThemeable
             row.tribeIcon.color = new Color(row.tribeIcon.color.r, row.tribeIcon.color.g, row.tribeIcon.color.b, alpha);
         if (row.countText != null)
             row.countText.alpha = alpha;
+
+        // T848: Pentacles T6 live Golden Hoard preview (even at 0 banked gold)
+        UpdateHoardPreview(row, count, player);
+    }
+
+    private void UpdateHoardPreview(SynergyRow row, int count, Player player)
+    {
+        if (row.hoardPreview == null) return;
+        bool show = row.tribe == TribeType.Pentacles && count >= 6;
+        row.hoardPreview.gameObject.SetActive(show);
+        if (!show) return;
+
+        int coins = player != null ? player.coins : 0;
+        int bonus = coins / 2; // DefaultSynergyFactory divisor for Golden Hoard
+        row.hoardPreview.text = bonus > 0
+            ? $"Banked {coins}g → +{bonus}/+{bonus} at combat start"
+            : "Bank gold for +atk/+hp!";
+        row.hoardPreview.color = bonus > 0 ? Tokens.BronzeBright : Tokens.BoneDim;
     }
 
     // ===================== PROCEDURAL TEXTURES =====================

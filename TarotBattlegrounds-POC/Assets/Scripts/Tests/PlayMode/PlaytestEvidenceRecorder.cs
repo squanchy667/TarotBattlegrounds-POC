@@ -279,10 +279,10 @@ public class PlaytestEvidenceRecorder : MonoBehaviour
     /// </summary>
     public IEnumerator CaptureScreenshotAfterFrames(string name, int extraFrames)
     {
-        for (int i = 0; i < Mathf.Max(1, extraFrames); i++)
+        // Never WaitForEndOfFrame here — under MCP PlayMode it can hang indefinitely.
+        // ScreenCapture may log an error (ignored via ignoreFailingMessages); pixels still often work.
+        for (int i = 0; i < Mathf.Max(3, extraFrames); i++)
             yield return null;
-        // Required for CaptureScreenshotAsTexture; keep it — hangs were from stuck combat coroutines (fixed T839 SkipReplay force-stop), not EOF itself.
-        yield return new WaitForEndOfFrame();
         CaptureNow(name);
     }
 

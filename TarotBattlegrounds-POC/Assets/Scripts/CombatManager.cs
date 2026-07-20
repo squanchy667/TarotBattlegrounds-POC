@@ -962,4 +962,15 @@ public static class CombatManager
         Debug.Log($"[LogEntry] Invoking event for: {entry.Message} (Turn {entry.TurnNumber})");
         OnCombatLogEntry?.Invoke(entry);
     }
+
+    /// <summary>T848: allow synergy/UI code to emit combat-log lines during StartOfCombat.</summary>
+    public static void EmitLog(string message, CombatLogEntry.LogType type = CombatLogEntry.LogType.BattleResult)
+    {
+        LogEntry(new CombatLogEntry
+        {
+            Type = type,
+            Message = message,
+            TurnNumber = 0
+        });
+    }
 }
